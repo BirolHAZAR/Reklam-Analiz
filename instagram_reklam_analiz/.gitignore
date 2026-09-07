@@ -230,7 +230,9 @@ wheels/
 # Backup / temporary files
 
 # ------------------------------------------------------------
-
+*.cmd
+*.ps1
+*.bat
 *.bak
 *.old
 *.tmp
