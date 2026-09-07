@@ -1,0 +1,10 @@
+cat > nixpacks.toml <<'EOF'
+[phases.setup]
+nixPkgs = ["python312"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmd = "cd instagram_reklam_analiz && celery -A config worker --loglevel=info"
+EOF
