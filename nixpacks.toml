@@ -1,8 +1,6 @@
-[phases.setup]
-nixPkgs = ["python312", "python312Packages.pip"]
+cd /etc/dokploy/applications/reklam-analiz-analiz-8dzpai/code
 
-[phases.install]
-cmds = ["python3.12 -m pip install -r requirements.txt"]
-
+cat > nixpacks.toml <<'EOF'
 [start]
 cmd = "cd instagram_reklam_analiz && celery -A config worker --loglevel=info"
+EOF
