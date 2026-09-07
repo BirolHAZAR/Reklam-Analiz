@@ -1,5 +1,0 @@
-cd /etc/dokploy/applications/reklam-analiz-analiz-8dzpai/code
-
-rm -f nixpacks.toml
-
-printf '%s\n' '[start]' 'cmd = "cd instagram_reklam_analiz && python manage.py migrate --noinput && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application"' > nixpacks.tomlF
