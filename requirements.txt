@@ -1,0 +1,52 @@
+# ReklamAnaliz.net
+# Python 3.12 / Django 5.2
+#
+# Generated from the current project requirements and source/config inspection.
+# Existing tested pins were preserved where available.
+# Google Analytics dependencies were added because the project imports them directly.
+#
+celery==5.6.3
+channels==4.2.2
+channels_redis==4.2.1
+crispy-bootstrap5==2026.3
+cryptography==48.0.0
+daphne==4.2.2
+django-allauth==65.16.0
+django-cors-headers==4.9.0
+django-crispy-forms==2.6
+django-extensions==4.1
+Django==5.2.14
+django_celery_results==2.6.0
+djangorestframework==3.17.1
+flower==2.0.1
+google-analytics-data>=0.18,<1
+google-auth>=2.0,<3
+langchain-classic==1.0.4
+langchain-community==0.4.1
+langchain-openai==1.1.13
+langchain==1.2.15
+langgraph==1.1.6
+langsmith==0.7.35
+numpy==2.4.4
+openai==2.31.0
+openpyxl==3.1.5
+pandas==3.0.2
+pdfkit==1.0.0
+pillow==12.2.0
+playwright==1.56.0
+plotly==6.7.0
+psycopg2==2.9.12
+pydantic-settings==2.14.0
+pydantic==2.13.3
+python-decouple==3.8
+python-dotenv==1.2.2
+qrcode==8.2
+redis==7.4.0
+reportlab==4.5.0
+requests==2.33.1
+sentry-sdk==2.60.0
+SQLAlchemy==2.0.49
+tiktoken==0.12.0
+ujson==5.12.1
+weasyprint==68.1
+whitenoise==6.12.0
