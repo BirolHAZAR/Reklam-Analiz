@@ -1,4 +1,4 @@
-cd /etc/dokploy/applications/reklam-analiz-analiz-8dzpai/code
+[phases.install]
 
 cat > nixpacks.toml <<'EOF'
 [phases.install]
