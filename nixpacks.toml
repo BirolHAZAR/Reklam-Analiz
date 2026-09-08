@@ -1,10 +1,4 @@
 cat > nixpacks.toml <<'EOF'
-[phases.setup]
-nixPkgs = ["python312", "gcc"]
-
-[phases.install]
-cmds = ["python -m pip install --no-cache-dir -r requirements.txt"]
-
 [start]
 cmd = "cd instagram_reklam_analiz && python manage.py migrate --noinput && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 config.asgi:application"
 EOF
