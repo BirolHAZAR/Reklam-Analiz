@@ -1,2 +1,5 @@
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
 [start]
 cmd = "cd instagram_reklam_analiz && python manage.py migrate --noinput && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application"
