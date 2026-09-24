@@ -1,4 +1,4 @@
-﻿{% load humanize %}
+{% load humanize %}
 {% load notification_icons %}
 <!DOCTYPE html>
 <html lang="{{ current_language|default:'tr' }}">
@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>{% block title %}{{ labels.site_title }}{% endblock %}</title>
-    
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -16,10 +16,19 @@
 {% load static %}
 {% load agency_permissions %}
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
-    <link rel="stylesheet" href="{% static 'css/base_layout.css' %}?v=agency-identity-20260902-2">
+    <link rel="stylesheet" href="{% static 'css/base_layout.css' %}?v=agency-identity-20260724-1">
     <link rel="shortcut icon" type="image/png" href="{% static 'images/favicon.png' %}">
     {% block extra_css %}{% endblock %}
-  
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}?v=theme-20260924-3">
+    <link rel="stylesheet" href="{% static 'css/header_layout.css' %}?v=20260924-2">
+    <script>
+        (function(){
+            try {
+                var theme = localStorage.getItem('reklamanaliz-theme');
+                document.documentElement.dataset.theme = (theme === 'light' || theme === 'dark') ? theme : 'dark';
+            } catch (e) { document.documentElement.dataset.theme = 'dark'; }
+        })();
+    </script>
     <script defer src="https://analitik.reklamanaliz.net/script.js" data-website-id="6bd72c65-e1aa-4642-be39-34e0271ac124"></script>
 </head>
 <body>
@@ -34,14 +43,6 @@
             </a>
 
             <div class="ra-topbar-value" aria-label="Entegre reklam platformları">
-                <div class="ra-topbar-brandline">
-                    <span class="ra-topbar-brandline-icon"><i class="fas fa-bolt"></i></span>
-                    <span class="ra-topbar-brandline-text">
-                        <strong>{{ labels.topbar_headline }}</strong>
-                        <span>{{ labels.topbar_subtitle }}</span>
-                    </span>
-                </div>
-
                 <div class="ra-platform-strip" aria-label="Desteklenen platformlar">
                     <span class="ra-platform-chip meta connected" title="Meta"><i class="fab fa-facebook"></i><span>Meta</span></span>
                     <span class="ra-platform-chip instagram connected" title="Instagram"><i class="fab fa-instagram"></i><span>Instagram</span></span>
@@ -53,11 +54,9 @@
                 </div>
             </div>
 
-            <div class="topbar-spacer"></div>
-
             <div class="nav-buttons">
                 {% if user.is_authenticated %}
-                {% if agency_scope and agency_scope.is_agency %}
+                {% if agency_scope and agency_scope.is_agency and request.resolver_match.url_name != 'index' %}
                 <form class="agency-client-scope-form" method="get" action="{{ request.path }}">
                     <label for="agencyClientScope"><i class="fas fa-building"></i> Firma</label>
                     <select id="agencyClientScope" name="agency_client" onchange="this.form.submit()" aria-label="Raporlanacak ajans firmasını seçin">
@@ -139,12 +138,22 @@
                     </div>
                 </div>
                 {% else %}
+                <button type="button" class="ra-theme-toggle" id="raThemeToggle" aria-pressed="false" aria-label="Açık moda geç" title="Açık moda geç">
+                    <i class="fas fa-sun" data-theme-icon aria-hidden="true"></i>
+                    <span class="ra-theme-toggle-label" data-theme-label>Açık</span>
+                </button>
                 <a href="{% url 'account_login' %}" class="btn-nav btn-login"><i class="fas fa-sign-in-alt"></i> {{ labels.login }}</a>
                 <a href="{% url 'demo_request' %}" class="btn-nav btn-demo"><i class="fas fa-calendar-check"></i> Demo Talep Et</a>
                 <a href="{% url 'account_signup' %}" class="btn-nav btn-register"><i class="fas fa-user-plus"></i> {{ labels.signup }}</a>
                 {% endif %}
+                {% if user.is_authenticated %}
+                <button type="button" class="ra-theme-toggle" id="raThemeToggle" aria-pressed="false" aria-label="Açık moda geç" title="Açık moda geç">
+                    <i class="fas fa-sun" data-theme-icon aria-hidden="true"></i>
+                    <span class="ra-theme-toggle-label" data-theme-label>Açık</span>
+                </button>
+                {% endif %}
             </div>
-            <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
+            <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Menüyü aç veya kapat"><i class="fas fa-bars"></i></button>
         </div>
     </nav>
 
@@ -322,6 +331,7 @@
                         </div>
                     </div>
                     <p>{{ labels.footer_description }}</p>
+
                 </div>
                 <div class="col-lg-2 col-md-6">
                     <h5>{{ labels.corporate }}</h5>
@@ -363,13 +373,25 @@
                     </ul>
                 </div>
             </div>
+            <address class="footer-company">
+                <strong>HZRSoft Yazılım Dijital Pazarlama Danışmanlık ve Ticaret</strong>
+                <div class="footer-company-row"><i class="fas fa-map-marker-alt" aria-hidden="true"></i><span>{% if current_language == "en" %}Head Office{% else %}Merkez Ofis{% endif %}: Yeni Mahalle Ahmet Kabaklı Cad. 1583. Sokak No:12/3, Bağcılar / İstanbul</span></div>
+                <div class="footer-company-row"><i class="fas fa-phone" aria-hidden="true"></i><a href="tel:+902126515253" aria-label="{% if current_language == 'en' %}Office phone{% else %}Ofis telefonu{% endif %}: 0212 651 52 53">0212 651 52 53</a></div>
+                <div class="footer-company-row"><i class="fas fa-mobile-alt" aria-hidden="true"></i><span class="footer-company-mobiles"><a href="tel:+905545802136">0554 580 21 36</a><span class="footer-phone-divider" aria-hidden="true"> / </span><a href="tel:+905016495959">0501 649 59 59</a></span></div>
+                <div class="footer-company-row"><i class="fas fa-envelope" aria-hidden="true"></i><a href="mailto:info@reklamanaliz.net">info@reklamanaliz.net</a></div>
+            </address>
             <hr>
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
-                <p class="mb-0">&copy; {% now "Y" %} ReklamAnaliz.net. {{ labels.all_rights_reserved }}</p>
+                <p class="mb-0">&copy; {% now "Y" %} ReklamAnaliz.net. {% if current_language == "en" %}All rights reserved by HZRSoft Yazılım.{% else %}Tüm hakları HZRSoft Yazılım'a aittir.{% endif %}</p>
                 <p class="mb-0 footer-muted-note"><a href="{% url 'legal_document_index' %}">Sözleşmeler ve Politikalar</a> · {{ labels.tr_en_ready }} · {{ labels.ai_supported_ad_platform }}</p>
             </div>
         </div>
     </footer>
+
+    <button type="button" class="ra-back-to-top" id="raBackToTop" hidden
+            aria-label="Sayfanın başına dön" title="Başa dön">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 12 6-6 6 6M12 6v13"/></svg>
+    </button>
 
     {% if whatsapp_url %}
     <a class="ra-whatsapp-float" href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp ile iletişime geç">
@@ -459,7 +481,9 @@
             };
         })();
     </script>
-    <script src="{% static 'js/base_layout.js' %}?v=announcement-20260716-2"></script>
+    <script src="{% static 'js/base_layout.js' %}?v=header-20260924-1"></script>
+    <script src="{% static 'js/home_navigation.js' %}?v=global-20260924-2"></script>
+    <script src="{% static 'js/theme.js' %}?v=button-contrast-20260924-1"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

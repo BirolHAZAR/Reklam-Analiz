@@ -150,7 +150,7 @@
     .btn-outline-instagram {
         background: transparent;
         border: 2px solid rgba(255,255,255,0.5);
-        color: white;
+        color: var(--theme-page-text, white);
         padding: 0.6rem 1.2rem;
         border-radius: 50px;
         font-weight: 600;
@@ -260,8 +260,8 @@
         position: absolute;
         top: 10px;
         right: 10px;
-        background: rgba(0,0,0,0.7);
-        color: white;
+        background: var(--theme-page-surface, rgba(0,0,0,0.7));
+        color: var(--theme-page-text, white);
         padding: 0.25rem 0.75rem;
         border-radius: 50px;
         font-size: 0.7rem;
@@ -344,7 +344,7 @@
     }
     
     .metric-mini .label {
-        color: #888;
+        color: var(--theme-page-muted, #888);
         font-size: 0.6rem;
     }
     
@@ -377,7 +377,7 @@
     .demographic-row .label {
         width: 40px;
         text-align: right;
-        color: #888;
+        color: var(--theme-page-muted, #888);
     }
     
     .demographic-row .bar-container {
@@ -452,7 +452,7 @@
     
     .empty-ads i {
         font-size: 3rem;
-        color: #d1d5db;
+        color: var(--theme-page-text, #d1d5db);
         margin-bottom: 1rem;
     }
     
@@ -477,7 +477,7 @@
     }
     
     .modal-media {
-        background: #000;
+        background: var(--theme-page-surface, #000);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -561,7 +561,7 @@
     .collapsible-section summary {
         font-size: 0.7rem;
         font-weight: 600;
-        color: #667eea;
+        color: var(--theme-page-info, #667eea);
         cursor: pointer;
         padding: 4px 0;
     }

@@ -121,7 +121,7 @@
         margin: 0 auto 0.5rem;
     }
     
-    .stat-icon i { font-size: 1.3rem; color: white; }
+    .stat-icon i { font-size: 1.3rem; color: var(--theme-page-text, white); }
     .stat-value { font-size: 1.5rem; font-weight: 800; color: var(--dark); margin: 0.3rem 0 0.2rem; }
     .stat-label { font-size: 0.7rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; }
     
@@ -204,7 +204,7 @@
        MEDYA BÃ–LÃœMÃœ - SAÄ TARAF
        ============================================ */
     .media-card {
-        background: linear-gradient(135deg, #1a1a2e, #16213e);
+        background: linear-gradient(135deg, var(--theme-page-surface, #1a1a2e), var(--theme-page-surface, #16213e));
         border-radius: var(--radius);
         overflow: hidden;
         box-shadow: var(--shadow-md);
@@ -221,7 +221,7 @@
     
     .media-header h5 {
         margin: 0;
-        color: white;
+        color: var(--theme-page-text, white);
         font-size: 0.9rem;
     }
     
@@ -265,7 +265,7 @@
         position: relative;
         border-radius: var(--radius);
         overflow: hidden;
-        background: rgba(0,0,0,0.3);
+        background: var(--theme-page-surface, rgba(0,0,0,0.3));
     }
     
     .carousel-custom-inner {
@@ -307,11 +307,11 @@
     .carousel-btn {
         width: 36px;
         height: 36px;
-        background: rgba(0,0,0,0.6);
+        background: var(--theme-page-surface, rgba(0,0,0,0.6));
         backdrop-filter: blur(5px);
         border: none;
         border-radius: 50%;
-        color: white;
+        color: var(--theme-page-text, white);
         font-size: 1rem;
         cursor: pointer;
         transition: all 0.3s ease;
@@ -353,7 +353,7 @@
     .carousel-counter {
         text-align: center;
         margin-top: 0.5rem;
-        color: rgba(255,255,255,0.6);
+        color: var(--theme-page-text, rgba(255,255,255,0.6));
         font-size: 0.7rem;
     }
     

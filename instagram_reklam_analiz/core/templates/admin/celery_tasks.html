@@ -3,6 +3,7 @@
 
 {% block extrastyle %}
 {{ block.super }}
+
 <style>
     .celery-page {
         display: grid;
@@ -124,6 +125,16 @@
         font-weight: 800;
     }
 
+    .celery-danger {
+        color: #991b1b;
+        font-weight: 800;
+    }
+
+    .celery-info {
+        color: #1d4ed8;
+        font-weight: 800;
+    }
+
     .celery-badge {
         border-radius: 999px;
         display: inline-flex;
@@ -147,6 +158,36 @@
     .celery-badge.passive {
         background: #fef3c7;
         color: #92400e;
+    }
+
+    .celery-badge.running {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .celery-badge.queued {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .celery-badge.scheduled {
+        background: #e0f2fe;
+        color: #075985;
+    }
+
+    .celery-badge.success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .celery-badge.failure {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .celery-badge.unknown {
+        background: #f1f5f9;
+        color: #475569;
     }
 
     .celery-table {
@@ -257,7 +298,6 @@
         padding: 10px 12px;
         position: absolute;
         text-align: left;
-        top: auto;
         bottom: calc(100% + 10px);
         transform: translateX(-50%);
         width: max-content;
@@ -358,6 +398,13 @@
         margin-top: 6px;
     }
 
+    .celery-summary-card small {
+        color: #64748b;
+        display: block;
+        font-weight: 700;
+        margin-top: 5px;
+    }
+
     .celery-details {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -384,6 +431,119 @@
         word-break: break-word;
     }
 
+    .celery-live-status {
+        align-items: center;
+        background: #f8fafc;
+        border: 1px solid #dbe3ef;
+        border-radius: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 14px;
+        justify-content: space-between;
+        padding: 14px 16px;
+    }
+
+    .celery-live-status[hidden] {
+        display: none;
+    }
+
+    .celery-live-status .status-main {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .celery-state {
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 13px;
+        font-weight: 900;
+        padding: 7px 11px;
+    }
+
+    .celery-state.pending,
+    .celery-state.retry {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .celery-state.started {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .celery-state.success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .celery-state.failure,
+    .celery-state.revoked,
+    .celery-state.unknown {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .celery-live-status small {
+        color: #64748b;
+        font-weight: 700;
+    }
+
+    .celery-live-status .status-result {
+        flex-basis: 100%;
+        color: #334155;
+        font-size: 12px;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+
+    .celery-managed-state {
+        min-width: 135px;
+    }
+
+    .celery-runtime {
+        display: grid;
+        gap: 5px;
+    }
+
+    .celery-runtime-meta {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .celery-alert {
+        background: #fff7ed;
+        border: 1px solid #fdba74;
+        border-radius: 8px;
+        color: #9a3412;
+        padding: 12px 14px;
+    }
+
+    .celery-alert.critical {
+        background: #fef2f2;
+        border-color: #fca5a5;
+        color: #991b1b;
+    }
+
+    .celery-alert strong {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .celery-alert ul {
+        margin: 6px 0 0 18px;
+    }
+
+    .celery-system-status {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
     @media (max-width: 760px) {
         .celery-hero {
             display: block;
@@ -397,257 +557,1211 @@
         .celery-task-picker {
             grid-template-columns: 1fr;
         }
+
+        .celery-table {
+            display: block;
+            overflow-x: auto;
+        }
     }
 </style>
+
 {% endblock %}
 
 {% block content %}
+
 <div class="celery-page">
-    <section class="celery-hero">
-        <div>
-            <h1>reklamanaliz.net Celery / Redis Görev Merkezi</h1>
-            <p>Otomatik çalışan beat görevleri, admin tarafından eklenen periyodik görevler, worker durumu ve son task sonuçları bu ekrandan izlenir ve yönetilir.</p>
-        </div>
-        <div class="celery-actions">
-            <a class="celery-button secondary" href="{% url 'admin:index' %}">Admin Ana Panel</a>
-            <a class="celery-button secondary" href="{{ managed_list_url }}">Admin Celery Görevleri</a>
-            <a class="celery-button" href="{{ managed_add_url }}">Yeni Görev Ekle</a>
-        </div>
-    </section>
 
-    <section class="celery-panel">
-        <h2>Görev Sayıları</h2>
-        <div class="celery-summary-grid">
-            <article class="celery-summary-card">
-                <span>Sistem beat görevi <i class="celery-tip" data-tip="settings.py içindeki CELERY_BEAT_SCHEDULE kayıtlarıdır. Bunlar otomatik çalışan sabit zamanlanmış işlerdir."></i></span>
-                <strong>{{ static_schedule_count|tr_int }}</strong>
-            </article>
-            <article class="celery-summary-card">
-                <span>Admin periyodik görevi <i class="celery-tip" data-tip="Admin panelinden eklenen, dakikalık dispatcher tarafından zamanı gelince kuyruğa alınan özel görevlerdir."></i></span>
-                <strong>{{ managed_schedule_count|tr_int }}</strong>
-                <small>{{ managed_active_count|tr_int }} aktif / {{ managed_inactive_count|tr_int }} pasif</small>
-            </article>
-            <article class="celery-summary-card">
-                <span>Kayıtlı task fonksiyonu <i class="celery-tip tip-left" data-tip="Celery uygulamasının çalıştırabileceği bütün task fonksiyonlarıdır. Hepsi otomatik zamanlanmış görev demek değildir."></i></span>
-                <strong>{{ registered_task_count|tr_int }}</strong>
-            </article>
-        </div>
-    </section>
+<section class="celery-hero">
+    <div>
+        <h1>reklamanaliz.net Celery / Redis Görev Merkezi</h1>
+        <p>
+            Otomatik zamanlanmış görevler, admin tarafından yönetilen görevler,
+            worker durumu ve task sonuçları bu ekrandan izlenir ve yönetilir.
+        </p>
+    </div>
 
-    <section class="celery-panel">
-        <h2>Worker Durumu</h2>
-        <div class="celery-grid">
-            {% for worker in worker_status %}
-                <article class="celery-status-card">
-                    <strong>{{ worker.name }}</strong>
-                    {% if worker.online %}
-                        <span class="celery-ok">Online</span>
-                    {% else %}
-                        <span class="celery-warn">Offline veya yanıt yok</span>
-                    {% endif %}
-                    <span>Aktif: {{ worker.active_count|tr_int }}</span>
-                    <span>Bekleyen: {{ worker.reserved_count|tr_int }}</span>
-                    <span>Kayıtlı task: {{ worker.registered_count|tr_int }}</span>
-                    {% if worker.error %}<span>{{ worker.error }}</span>{% endif %}
-                </article>
+    <div class="celery-actions">
+        <a class="celery-button secondary" href="{% url 'admin:index' %}">
+            Admin Ana Panel
+        </a>
+
+        <a class="celery-button secondary" href="{{ managed_list_url }}">
+            Admin Celery Görevleri
+        </a>
+
+        <a class="celery-button" href="{{ managed_add_url }}">
+            Yeni Görev Ekle
+        </a>
+    </div>
+</section>
+
+<section class="celery-panel">
+    <h2>Celery Sistem Durumu</h2>
+
+    <div class="celery-system-status">
+        {% if celery_system_status == "ok" %}
+            <span class="celery-badge success">Sistem sağlıklı</span>
+        {% elif celery_system_status == "warning" %}
+            <span class="celery-badge queued">Kontrol gerekiyor</span>
+        {% else %}
+            <span class="celery-badge failure">Kritik durum</span>
+        {% endif %}
+
+        <strong>{{ celery_system_label }}</strong>
+    </div>
+
+    {% if critical_tasks %}
+        <div class="celery-alert {% if celery_system_status == 'critical' %}critical{% endif %}" style="margin-top:12px;">
+            <strong>Kontrol edilmesi gereken görevler</strong>
+
+            <ul>
+                {% for item in critical_tasks %}
+                    <li>
+                        <strong>{{ item.label }}</strong>
+                        — {{ item.message }}
+
+                        {% if item.task_id %}
+                            <br>
+                            <small>Task ID: {{ item.task_id }}</small>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% else %}
+        <div class="celery-alert" style="background:#f0fdf4;border-color:#86efac;color:#166534;margin-top:12px;">
+            Kritik görev veya worker problemi tespit edilmedi.
+        </div>
+    {% endif %}
+</section>
+
+<section
+    id="celery-live-status"
+    class="celery-live-status"
+    {% if not watch_task %}hidden{% endif %}
+    data-task-id="{% if watch_task %}{{ watch_task.task_id }}{% endif %}"
+    data-status-url-template="{{ task_status_url_template }}"
+    aria-live="polite"
+>
+    <div class="status-main">
+        <strong>Son başlatılan görev:</strong>
+
+        <span id="celery-live-task-id">
+            {{ watch_task.task_id|default:"-" }}
+        </span>
+
+        <span
+            id="celery-live-state"
+            class="celery-state {% if watch_task %}{{ watch_task.state|lower }}{% else %}unknown{% endif %}"
+        >
+            {{ watch_task.label|default:"-" }}
+        </span>
+    </div>
+
+    <small id="celery-live-updated">
+        Durum canlı olarak kontrol ediliyor...
+    </small>
+
+    <div id="celery-live-result" class="status-result"></div>
+</section>
+
+<section class="celery-panel">
+    <h2>Görev Sayıları</h2>
+
+    <div class="celery-summary-grid">
+
+        <article class="celery-summary-card">
+            <span>
+                Sistem beat görevi
+                <i
+                    class="celery-tip"
+                    data-tip="Kod içinde CELERY_BEAT_SCHEDULE altında tanımlı zamanlanmış görevlerdir. Sayı, Beat prosesinin çalıştığını tek başına göstermez."
+                ></i>
+            </span>
+
+            <strong>{{ static_schedule_count|tr_int }}</strong>
+
+            <small>
+                {{ beat_status.label }}
+            </small>
+        </article>
+
+        <article class="celery-summary-card">
+            <span>
+                Admin periyodik görevi
+                <i
+                    class="celery-tip"
+                    data-tip="Admin panelinden eklenen ve dispatcher tarafından zamanı geldiğinde kuyruğa alınan görevlerdir."
+                ></i>
+            </span>
+
+            <strong>{{ managed_schedule_count|tr_int }}</strong>
+
+            <small>
+                {{ managed_active_count|tr_int }} aktif /
+                {{ managed_inactive_count|tr_int }} pasif
+            </small>
+        </article>
+
+        <article class="celery-summary-card">
+            <span>
+                Kayıtlı task fonksiyonu
+                <i
+                    class="celery-tip tip-left"
+                    data-tip="Celery worker'ın bildiği task fonksiyonlarının toplamıdır. Bu sayı otomatik çalışan görev sayısı değildir."
+                ></i>
+            </span>
+
+            <strong>{{ registered_task_count|tr_int }}</strong>
+
+            <small>
+                Çalıştırılabilir task fonksiyonları
+            </small>
+        </article>
+
+        <article class="celery-summary-card">
+            <span>Worker durumu</span>
+
+            {% if worker_online %}
+                <strong class="celery-ok">ONLINE</strong>
+                <small>Celery worker yanıt veriyor</small>
+            {% else %}
+                <strong class="celery-danger">OFFLINE</strong>
+                <small>Worker yanıt vermiyor</small>
+            {% endif %}
+        </article>
+
+    </div>
+</section>
+
+<section class="celery-panel">
+    <h2>Worker Durumu</h2>
+
+    {% if worker_inspection_error %}
+        <div class="celery-alert critical" style="margin-bottom:12px;">
+            <strong>Worker sorgusu başarısız</strong>
+            {{ worker_inspection_error }}
+        </div>
+    {% endif %}
+
+    <div class="celery-grid">
+
+        {% for worker in worker_status %}
+            <article class="celery-status-card">
+
+                <strong>{{ worker.name }}</strong>
+
+                {% if worker.online %}
+                    <span class="celery-ok">● Online</span>
+                {% else %}
+                    <span class="celery-danger">● Offline veya yanıt yok</span>
+                {% endif %}
+
+                <span>
+                    Aktif görev:
+                    {{ worker.active_count|tr_int }}
+                </span>
+
+                <span>
+                    Worker kuyruğunda:
+                    {{ worker.reserved_count|tr_int }}
+                </span>
+
+                <span>
+                    Zamanlanmış:
+                    {{ worker.scheduled_count|tr_int }}
+                </span>
+
+                <span>
+                    Kayıtlı task:
+                    {{ worker.registered_count|tr_int }}
+                </span>
+
+                {% if worker.error %}
+                    <span class="celery-danger">
+                        {{ worker.error }}
+                    </span>
+                {% endif %}
+
+            </article>
+
+        {% empty %}
+
+            <article class="celery-status-card">
+                <strong>Worker bilgisi yok</strong>
+                <span class="celery-danger">
+                    Celery worker çalışmıyor veya yanıt vermiyor olabilir.
+                </span>
+            </article>
+
+        {% endfor %}
+
+    </div>
+</section>
+
+<section class="celery-panel">
+
+    <h2>
+        Kayıtlı Taskı Elle Çalıştır
+
+        <i
+            class="celery-tip"
+            data-tip="Celery worker'ın bildiği task fonksiyonlarından birini doğrudan kuyruğa gönderebilirsin. Parametre isteyen görevlerde Admin Celery Görevi kullan."
+        ></i>
+    </h2>
+
+    <p class="celery-help">
+        Bu liste otomatik çalışan görevlerin listesi değildir.
+        Celery'nin çalıştırabileceği kayıtlı task fonksiyonlarını gösterir.
+    </p>
+
+    <form class="celery-task-picker" method="post">
+        {% csrf_token %}
+
+        <select name="task_name" aria-label="Celery task seç">
+
+            {% for task in registered_tasks %}
+                <option value="{{ task.name }}">
+                    {{ task.display_name }} - {{ task.name }}
+                </option>
             {% empty %}
-                <article class="celery-status-card">
-                    <strong>Worker bilgisi yok</strong>
-                    <span class="celery-warn">Celery worker çalışmıyor olabilir.</span>
-                </article>
+                <option value="">
+                    Kayıtlı task bulunamadı
+                </option>
             {% endfor %}
-        </div>
-    </section>
 
-    <section class="celery-panel">
-        <h2>Kayıtlı Taskı Elle Çalıştır <i class="celery-tip" data-tip="Bu liste Celery'nin bildiği bütün task fonksiyonlarıdır. Parametresiz çalıştırılabilen işler için uygundur; parametre isteyen işler için Admin Celery Görevleri bölümünde args/kwargs tanımla."></i></h2>
-        <p class="celery-help">Bu sayı otomatik çalışan görev sayısı değildir; sadece sistemin çalıştırabileceği task fonksiyonlarının listesidir.</p>
-        <form class="celery-task-picker" method="post">
-            {% csrf_token %}
-            <select name="task_name" aria-label="Celery task seç">
-                {% for task_name in registered_tasks %}
-                    <option value="{{ task_name.name }}">{{ task_name.display_name }} - {{ task_name.name }}</option>
-                {% empty %}
-                    <option value="">Kayıtlı task bulunamadı</option>
-                {% endfor %}
-            </select>
-            <button class="celery-run-button" type="submit">Kuyruğa Al</button>
-        </form>
-        <table class="celery-table" style="margin-top:14px;">
-            <thead>
+        </select>
+
+        <button class="celery-run-button" type="submit">
+            Kuyruğa Al
+        </button>
+    </form>
+
+    <table class="celery-table" style="margin-top:14px;">
+
+        <thead>
+            <tr>
+                <th>Görev</th>
+                <th>Teknik Task</th>
+                <th>Otomatik Durum</th>
+                <th>Gerçek Durum</th>
+                <th>Zamanlama Anlamı</th>
+                <th>İşlem</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for task in registered_tasks %}
+
                 <tr>
-                    <th>Görev</th>
-                    <th>Teknik Task</th>
-                    <th>Otomatik Durum</th>
-                    <th>Zamanlama Anlamı</th>
-                    <th>İşlem</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for task in registered_tasks %}
-                    <tr>
-                        <td><span class="celery-task-name">{{ task.display_name }}</span></td>
-                        <td><span class="celery-task-code">{{ task.name }}</span></td>
-                        <td>
-                            {% if task.is_static_scheduled or task.is_managed_active %}
-                                <span class="celery-badge auto">{{ task.auto_status }}</span>
-                            {% elif task.is_managed_inactive %}
-                                <span class="celery-badge passive">{{ task.auto_status }}</span>
+
+                    <td>
+                        <span class="celery-task-name">
+                            {{ task.display_name }}
+                        </span>
+                    </td>
+
+                    <td>
+                        <span class="celery-task-code">
+                            {{ task.name }}
+                        </span>
+                    </td>
+
+                    <td>
+                        {% if task.is_static_scheduled or task.is_managed_active %}
+                            <span class="celery-badge auto">
+                                {{ task.auto_status }}
+                            </span>
+
+                        {% elif task.is_managed_inactive %}
+                            <span class="celery-badge passive">
+                                {{ task.auto_status }}
+                            </span>
+
+                        {% else %}
+                            <span class="celery-badge manual">
+                                {{ task.auto_status }}
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <div class="celery-runtime">
+
+                            {% if task.runtime.status == "running" %}
+                                <span class="celery-badge running">
+                                    Şu anda çalışıyor
+                                </span>
+
+                            {% elif task.runtime.status == "queued" %}
+                                <span class="celery-badge queued">
+                                    Worker kuyruğunda
+                                </span>
+
+                            {% elif task.runtime.status == "scheduled" %}
+                                <span class="celery-badge scheduled">
+                                    Zamanlanmış / bekliyor
+                                </span>
+
+                            {% elif task.runtime.status == "failure" %}
+                                <span class="celery-badge failure">
+                                    Son çalışma başarısız
+                                </span>
+
+                            {% elif task.runtime.status == "success" %}
+                                <span class="celery-badge success">
+                                    Son çalışma başarılı
+                                </span>
+
                             {% else %}
-                                <span class="celery-badge manual">{{ task.auto_status }}</span>
+                                <span class="celery-badge unknown">
+                                    Henüz sonuç yok
+                                </span>
                             {% endif %}
-                        </td>
-                        <td>{{ task.schedule_hint }}</td>
-                        <td>
-                            <div class="celery-task-actions">
-                                <form class="celery-inline-form" method="post">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="task_name" value="{{ task.name }}">
-                                    <button class="celery-run-button" type="submit">Şimdi Çalıştır</button>
-                                </form>
-                                <a class="celery-mini-link" href="{{ task.create_url }}">Admin Görevi Oluştur</a>
-                            </div>
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr><td colspan="5">Kayıtlı task bulunamadı.</td></tr>
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <th>Toplam</th>
-                    <th colspan="4">{{ registered_task_count|tr_int }} kayıtlı task fonksiyonu</th>
-                </tr>
-            </tfoot>
-        </table>
-    </section>
 
-    <section class="celery-panel">
-        <h2>Sistem Beat Görevleri <i class="celery-tip" data-tip="Bunlar kodda tanımlı otomatik zamanlanmış işlerdir. Zamanlamayı değiştirmek kod/config değişikliği gerektirir. Admin panelinden değiştirmek istediğin işler için Admin Celery Görevi oluştur."></i></h2>
-        <table class="celery-table">
-            <thead>
-                <tr>
-                    <th>Görev</th>
-                    <th>Teknik Task</th>
-                    <th>Otomatik Durum</th>
-                    <th>Zamanlama</th>
-                    <th>Parametre</th>
-                    <th>İşlem</th>
+                            {% if task.runtime.active_count %}
+                                <span class="celery-runtime-meta">
+                                    Aktif:
+                                    {{ task.runtime.active_count|tr_int }}
+                                </span>
+                            {% endif %}
+
+                            {% if task.runtime.reserved_count %}
+                                <span class="celery-runtime-meta">
+                                    Kuyruk:
+                                    {{ task.runtime.reserved_count|tr_int }}
+                                </span>
+                            {% endif %}
+
+                            {% if task.runtime.last_run_at %}
+                                <span class="celery-runtime-meta">
+                                    Son:
+                                    {{ task.runtime.last_run_at|date:"d.m.Y H:i" }}
+                                </span>
+                            {% endif %}
+
+                        </div>
+                    </td>
+
+                    <td>
+                        {{ task.schedule_hint }}
+                    </td>
+
+                    <td>
+                        <div class="celery-task-actions">
+
+                            <form class="celery-inline-form" method="post">
+                                {% csrf_token %}
+
+                                <input
+                                    type="hidden"
+                                    name="task_name"
+                                    value="{{ task.name }}"
+                                >
+
+                                <button
+                                    class="celery-run-button"
+                                    type="submit"
+                                >
+                                    Şimdi Çalıştır
+                                </button>
+                            </form>
+
+                            <a
+                                class="celery-mini-link"
+                                href="{{ task.create_url }}"
+                            >
+                                Admin Görevi Oluştur
+                            </a>
+
+                        </div>
+                    </td>
+
                 </tr>
-            </thead>
-            <tbody>
-                {% for schedule in static_schedules %}
-                    <tr>
-                        <td><span class="celery-task-name">{{ schedule.display_name }}</span><span class="celery-task-code">{{ schedule.name }}</span></td>
-                        <td><span class="celery-task-code">{{ schedule.task }}</span></td>
-                        <td><span class="celery-badge auto">Otomatik çalışıyor</span></td>
-                        <td>{{ schedule.schedule_human }}<details class="celery-details"><summary>Teknik zamanlama</summary><pre>{{ schedule.schedule }}</pre></details></td>
-                        <td>
-                            <details class="celery-details" open>
-                                <summary>Parametreler</summary>
-                                <pre>args: {{ schedule.args }}
+
+            {% empty %}
+
+                <tr>
+                    <td colspan="6">
+                        Kayıtlı task bulunamadı.
+                    </td>
+                </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+        <tfoot>
+            <tr>
+                <th>Toplam</th>
+                <th colspan="5">
+                    {{ registered_task_count|tr_int }}
+                    kayıtlı task fonksiyonu
+                </th>
+            </tr>
+        </tfoot>
+
+    </table>
+</section>
+
+<section class="celery-panel">
+
+    <h2>
+        Sistem Beat Görevleri
+
+        <i
+            class="celery-tip"
+            data-tip="Kod içinde CELERY_BEAT_SCHEDULE altında tanımlıdır. Buradaki 'tanımlı' bilgisi Beat prosesinin gerçekten çalıştığını garanti etmez."
+        ></i>
+    </h2>
+
+    <p class="celery-help">
+        Buradaki görevler sistem tarafından zamanlanmıştır.
+        Gerçek çalışma durumu worker üzerinden ayrıca gösterilir.
+    </p>
+
+    <table class="celery-table">
+
+        <thead>
+            <tr>
+                <th>Görev</th>
+                <th>Teknik Task</th>
+                <th>Zamanlama</th>
+                <th>Gerçek Durum</th>
+                <th>Son Çalışma</th>
+                <th>Parametre</th>
+                <th>İşlem</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for schedule in static_schedules %}
+
+                <tr>
+
+                    <td>
+                        <span class="celery-task-name">
+                            {{ schedule.display_name }}
+                        </span>
+
+                        <span class="celery-task-code">
+                            {{ schedule.name }}
+                        </span>
+                    </td>
+
+                    <td>
+                        <span class="celery-task-code">
+                            {{ schedule.task }}
+                        </span>
+                    </td>
+
+                    <td>
+                        {{ schedule.schedule_human }}
+
+                        <details class="celery-details">
+                            <summary>
+                                Teknik zamanlama
+                            </summary>
+
+                            <pre>{{ schedule.schedule }}</pre>
+                        </details>
+                    </td>
+
+                    <td>
+                        <div class="celery-runtime">
+
+                            {% if schedule.runtime.status == "running" %}
+
+                                <span class="celery-badge running">
+                                    Şu anda çalışıyor
+                                </span>
+
+                            {% elif schedule.runtime.status == "queued" %}
+
+                                <span class="celery-badge queued">
+                                    Worker kuyruğunda
+                                </span>
+
+                            {% elif schedule.runtime.status == "scheduled" %}
+
+                                <span class="celery-badge scheduled">
+                                    Zamanlanmış / bekliyor
+                                </span>
+
+                            {% elif schedule.runtime.status == "failure" %}
+
+                                <span class="celery-badge failure">
+                                    Son çalışma başarısız
+                                </span>
+
+                            {% elif schedule.runtime.status == "success" %}
+
+                                <span class="celery-badge success">
+                                    Son çalışma başarılı
+                                </span>
+
+                            {% else %}
+
+                                <span class="celery-badge unknown">
+                                    Henüz çalışma sonucu yok
+                                </span>
+
+                            {% endif %}
+
+                            {% if schedule.runtime.worker_registered %}
+                                <span class="celery-runtime-meta">
+                                    Worker taskı tanıyor
+                                </span>
+                            {% endif %}
+
+                        </div>
+                    </td>
+
+                    <td>
+
+                        {% if schedule.runtime.last_run_at %}
+
+                            {{ schedule.runtime.last_run_at|date:"d.m.Y H:i" }}
+
+                            {% if schedule.runtime.last_status %}
+                                <br>
+                                <span class="celery-runtime-meta">
+                                    {{ schedule.runtime.last_status }}
+                                </span>
+                            {% endif %}
+
+                            {% if schedule.runtime.last_task_id %}
+                                <br>
+                                <span class="celery-task-code">
+                                    {{ schedule.runtime.last_task_id }}
+                                </span>
+                            {% endif %}
+
+                        {% else %}
+
+                            <span class="celery-runtime-meta">
+                                Henüz sonuç yok
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        <details class="celery-details">
+                            <summary>Parametreler</summary>
+
+                            <pre>args: {{ schedule.args }}
 kwargs: {{ schedule.kwargs }}
 options: {{ schedule.options }}</pre>
-                            </details>
-                        </td>
-                        <td>
-                            <form class="celery-inline-form" method="post">
-                                {% csrf_token %}
-                                <input type="hidden" name="schedule_name" value="{{ schedule.name }}">
-                                <button class="celery-run-button" type="submit">Şimdi Çalıştır</button>
-                            </form>
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr><td colspan="6">Sistem beat görevi yok.</td></tr>
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <th>Toplam</th>
-                    <th colspan="5">{{ static_schedules|length|tr_int }} sistem görevi</th>
-                </tr>
-            </tfoot>
-        </table>
-    </section>
 
-    <section class="celery-panel">
-        <h2>Admin Tarafından Yönetilen Periyodik Görevler <i class="celery-tip" data-tip="Bu tablodaki görevlerin içine girip task adını, args/kwargs değerlerini, aktif/pasif durumunu ve çalışma periyodunu değiştirebilirsin."></i></h2>
-        <p class="celery-help">Görev adına tıklayarak detayına girip zamanlama ve parametreleri değiştirebilirsin.</p>
-        <table class="celery-table">
-            <thead>
-                <tr>
-                    <th>Ad</th>
-                    <th>Task</th>
-                    <th>Periyot</th>
-                    <th>Durum</th>
-                    <th>Otomatik Durum</th>
-                    <th>Son Çalışma</th>
-                    <th>İşlem</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for schedule in managed_schedules %}
-                    <tr>
-                        <td><a href="{% url 'admin:core_adminmanagedceleryschedule_change' schedule.id %}">{{ schedule.name }}</a></td>
-                        <td><span class="celery-task-name">{{ schedule.name }}</span><span class="celery-task-code">{{ schedule.task_name }}</span></td>
-                        <td>{{ schedule.interval_every }} {{ schedule.get_interval_period_display }}</td>
-                        <td>{% if schedule.is_active %}<span class="celery-ok">Aktif</span>{% else %}<span class="celery-warn">Pasif</span>{% endif %}</td>
-                        <td>{% if schedule.is_active %}<span class="celery-badge auto">Otomatik çalışıyor</span>{% else %}<span class="celery-badge passive">Otomatik çalışmıyor</span>{% endif %}</td>
-                        <td>{{ schedule.last_run_at|date:"d.m.Y H:i"|default:"-" }}{% if schedule.last_error %}<br>{{ schedule.last_error|truncatechars:90 }}{% endif %}</td>
-                        <td>
-                            <form class="celery-inline-form" method="post">
-                                {% csrf_token %}
-                                <input type="hidden" name="managed_id" value="{{ schedule.id }}">
-                                <button class="celery-run-button" type="submit">Şimdi Çalıştır</button>
-                            </form>
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr><td colspan="7">Admin tarafından eklenmiş periyodik görev yok. Yeni görev ekleyerek task adı ve periyodunu tanımlayabilirsin.</td></tr>
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <th>Toplam</th>
-                    <th colspan="6">{{ managed_schedules|length|tr_int }} admin görevi</th>
-                </tr>
-            </tfoot>
-        </table>
-    </section>
+                        </details>
 
-    <section class="celery-panel">
-        <h2>Son Task Sonuçları</h2>
-        <table class="celery-table">
-            <thead>
-                <tr>
-                    <th>Task</th>
-                    <th>Durum</th>
-                    <th>Task ID</th>
-                    <th>Tamamlanma</th>
-                    <th>Sonuç / Hata</th>
+                    </td>
+
+                    <td>
+
+                        <form class="celery-inline-form" method="post">
+                            {% csrf_token %}
+
+                            <input
+                                type="hidden"
+                                name="schedule_name"
+                                value="{{ schedule.name }}"
+                            >
+
+                            <button
+                                class="celery-run-button"
+                                type="submit"
+                            >
+                                Şimdi Çalıştır
+                            </button>
+
+                        </form>
+
+                    </td>
+
                 </tr>
-            </thead>
-            <tbody>
-                {% for result in recent_results %}
-                    <tr>
-                        <td><span class="celery-task-name">{{ result.display_name|default:"-" }}</span><span class="celery-task-code">{{ result.task_name|default:"-" }}</span></td>
-                        <td>{{ result.status }}</td>
-                        <td>{{ result.task_id }}</td>
-                        <td>{{ result.date_done|date:"d.m.Y H:i" }}</td>
-                        <td>{{ result.result|default:"-"|truncatechars:140 }}</td>
-                    </tr>
-                {% empty %}
-                    <tr><td colspan="5">Henüz kayıtlı task sonucu yok.</td></tr>
-                {% endfor %}
-            </tbody>
-            <tfoot>
+
+            {% empty %}
+
                 <tr>
-                    <th>Toplam</th>
-                    <th colspan="4">{{ recent_results|length|tr_int }} son sonuç</th>
+                    <td colspan="7">
+                        Sistem beat görevi yok.
+                    </td>
                 </tr>
-            </tfoot>
-        </table>
-    </section>
+
+            {% endfor %}
+
+        </tbody>
+
+        <tfoot>
+            <tr>
+                <th>Toplam</th>
+                <th colspan="6">
+                    {{ static_schedules|length|tr_int }}
+                    sistem görevi
+                </th>
+            </tr>
+        </tfoot>
+
+    </table>
+</section>
+
+<section class="celery-panel">
+
+    <h2>
+        Admin Tarafından Yönetilen Periyodik Görevler
+
+        <i
+            class="celery-tip"
+            data-tip="Admin panelinden eklenen görevlerdir. Task adı, parametreler, aktif/pasif durumu ve çalışma periyodu buradan yönetilebilir."
+        ></i>
+    </h2>
+
+    <p class="celery-help">
+        Görev adına tıklayarak detayına girip zamanlama ve parametreleri değiştirebilirsin.
+    </p>
+
+    <table class="celery-table">
+
+        <thead>
+            <tr>
+                <th>Ad</th>
+                <th>Task</th>
+                <th>Periyot</th>
+                <th>Durum</th>
+                <th>Gerçek Çalışma</th>
+                <th>Son Çalışma</th>
+                <th>İşlem</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for schedule in managed_schedules %}
+
+                <tr>
+
+                    <td>
+                        <a
+                            href="{% url 'admin:core_adminmanagedceleryschedule_change' schedule.id %}"
+                        >
+                            {{ schedule.name }}
+                        </a>
+                    </td>
+
+                    <td>
+                        <span class="celery-task-name">
+                            {{ schedule.name }}
+                        </span>
+
+                        <span class="celery-task-code">
+                            {{ schedule.task_name }}
+                        </span>
+                    </td>
+
+                    <td>
+                        {{ schedule.interval_every }}
+                        {{ schedule.get_interval_period_display }}
+                    </td>
+
+                    <td>
+
+                        {% if schedule.is_active %}
+                            <span class="celery-badge auto">
+                                Aktif
+                            </span>
+                        {% else %}
+                            <span class="celery-badge passive">
+                                Pasif
+                            </span>
+                        {% endif %}
+
+                    </td>
+
+                    <td
+                        class="celery-managed-state"
+                        data-managed-task-id="{{ schedule.last_task_id }}"
+                        data-status-url-template="{{ task_status_url_template }}"
+                    >
+
+                        {% if schedule.runtime.status == "running" %}
+
+                            <span class="celery-badge running">
+                                Şu anda çalışıyor
+                            </span>
+
+                        {% elif schedule.runtime.status == "queued" %}
+
+                            <span class="celery-badge queued">
+                                Worker kuyruğunda
+                            </span>
+
+                        {% elif schedule.runtime.status == "scheduled" %}
+
+                            <span class="celery-badge scheduled">
+                                Zamanlanmış / bekliyor
+                            </span>
+
+                        {% elif schedule.runtime.status == "failure" %}
+
+                            <span class="celery-badge failure">
+                                Son çalışma başarısız
+                            </span>
+
+                        {% elif schedule.runtime.status == "success" %}
+
+                            <span class="celery-badge success">
+                                Son çalışma başarılı
+                            </span>
+
+                        {% elif schedule.is_active %}
+
+                            <span class="celery-badge unknown">
+                                Henüz çalıştırılmadı
+                            </span>
+
+                        {% else %}
+
+                            <span class="celery-badge passive">
+                                Pasif
+                            </span>
+
+                        {% endif %}
+
+                        {% if schedule.runtime.last_task_id %}
+                            <span class="celery-runtime-meta">
+                                Task ID:
+                                {{ schedule.runtime.last_task_id }}
+                            </span>
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        {% if schedule.runtime.last_run_at %}
+
+                            {{ schedule.runtime.last_run_at|date:"d.m.Y H:i" }}
+
+                            {% if schedule.runtime.last_status %}
+                                <br>
+                                <span class="celery-runtime-meta">
+                                    {{ schedule.runtime.last_status }}
+                                </span>
+                            {% endif %}
+
+                            {% if schedule.last_error %}
+                                <br>
+                                <span class="celery-danger">
+                                    {{ schedule.last_error|truncatechars:120 }}
+                                </span>
+                            {% endif %}
+
+                        {% else %}
+
+                            <span class="celery-runtime-meta">
+                                Henüz çalıştırılmadı
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        <form class="celery-inline-form" method="post">
+                            {% csrf_token %}
+
+                            <input
+                                type="hidden"
+                                name="managed_id"
+                                value="{{ schedule.id }}"
+                            >
+
+                            <button
+                                class="celery-run-button"
+                                type="submit"
+                            >
+                                Şimdi Çalıştır
+                            </button>
+
+                        </form>
+
+                    </td>
+
+                </tr>
+
+            {% empty %}
+
+                <tr>
+                    <td colspan="7">
+                        Admin tarafından eklenmiş periyodik görev yok.
+                        Yeni görev ekleyerek task adı ve periyodunu tanımlayabilirsin.
+                    </td>
+                </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+        <tfoot>
+            <tr>
+                <th>Toplam</th>
+                <th colspan="6">
+                    {{ managed_schedule_count|tr_int }}
+                    admin görevi
+                </th>
+            </tr>
+        </tfoot>
+
+    </table>
+</section>
+
+<section class="celery-panel">
+
+    <h2>Son Task Sonuçları</h2>
+
+    <table class="celery-table">
+
+        <thead>
+            <tr>
+                <th>Task</th>
+                <th>Durum</th>
+                <th>Task ID</th>
+                <th>Tamamlanma</th>
+                <th>Sonuç / Hata</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for result in recent_results %}
+
+                <tr>
+
+                    <td>
+                        <span class="celery-task-name">
+                            {{ result.display_name|default:"-" }}
+                        </span>
+
+                        <span class="celery-task-code">
+                            {{ result.task_name|default:"-" }}
+                        </span>
+                    </td>
+
+                    <td>
+
+                        {% if result.status == "SUCCESS" %}
+
+                            <span class="celery-badge success">
+                                Başarılı
+                            </span>
+
+                        {% elif result.status == "FAILURE" %}
+
+                            <span class="celery-badge failure">
+                                Hata
+                            </span>
+
+                        {% elif result.status == "STARTED" %}
+
+                            <span class="celery-badge running">
+                                Çalışıyor
+                            </span>
+
+                        {% elif result.status == "RETRY" %}
+
+                            <span class="celery-badge queued">
+                                Yeniden deneniyor
+                            </span>
+
+                        {% else %}
+
+                            <span class="celery-badge unknown">
+                                {{ result.status }}
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+                        <span class="celery-task-code">
+                            {{ result.task_id }}
+                        </span>
+                    </td>
+
+                    <td>
+                        {{ result.date_done|date:"d.m.Y H:i" }}
+                    </td>
+
+                    <td>
+                        {{ result.result|default:"-"|truncatechars:140 }}
+                    </td>
+
+                </tr>
+
+            {% empty %}
+
+                <tr>
+                    <td colspan="5">
+                        Henüz kayıtlı task sonucu yok.
+                    </td>
+                </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+        <tfoot>
+            <tr>
+                <th>Toplam</th>
+                <th colspan="4">
+                    {{ recent_results|length|tr_int }}
+                    son sonuç
+                </th>
+            </tr>
+        </tfoot>
+
+    </table>
+</section>
+
 </div>
+
+<script>
+(function () {
+    const liveBox = document.getElementById("celery-live-status");
+    const statusUrlTemplate = liveBox
+        ? liveBox.dataset.statusUrlTemplate
+        : "";
+
+    const labels = {
+        PENDING: "Kuyrukta / bekliyor",
+        STARTED: "Çalışıyor",
+        RETRY: "Yeniden deneniyor",
+        SUCCESS: "Başarıyla tamamlandı",
+        FAILURE: "Hata ile tamamlandı",
+        REVOKED: "İptal edildi",
+        UNKNOWN: "Durum alınamadı"
+    };
+
+    function statusUrl(taskId, template) {
+        return template.replace(
+            "__TASK_ID__",
+            encodeURIComponent(taskId)
+        );
+    }
+
+    function stateClass(state) {
+        return String(state || "unknown")
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]/g, "");
+    }
+
+    function setState(element, data) {
+        if (!element) return;
+
+        element.className =
+            "celery-state " +
+            stateClass(data.state);
+
+        element.textContent =
+            data.label ||
+            labels[data.state] ||
+            data.state ||
+            "Bilinmiyor";
+    }
+
+    async function fetchTask(taskId, template) {
+        if (!taskId || !template) return null;
+
+        const response = await fetch(
+            statusUrl(taskId, template),
+            {
+                credentials: "same-origin",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                "Durum servisi yanıt vermedi."
+            );
+        }
+
+        return response.json();
+    }
+
+    async function watchLiveTask() {
+        if (!liveBox || liveBox.hidden) return;
+
+        const taskId = liveBox.dataset.taskId;
+
+        if (!taskId) return;
+
+        const stateElement =
+            document.getElementById("celery-live-state");
+
+        const resultElement =
+            document.getElementById("celery-live-result");
+
+        const updatedElement =
+            document.getElementById("celery-live-updated");
+
+        try {
+
+            const data = await fetchTask(
+                taskId,
+                statusUrlTemplate
+            );
+
+            if (!data) return;
+
+            setState(
+                stateElement,
+                data
+            );
+
+            updatedElement.textContent =
+                "Son kontrol: " +
+                new Date().toLocaleTimeString("tr-TR");
+
+            if (data.error) {
+
+                resultElement.textContent =
+                    data.error;
+
+            } else if (data.state === "FAILURE") {
+
+                resultElement.textContent =
+                    data.error ||
+                    "Görev hata ile tamamlandı.";
+
+            } else if (data.state === "SUCCESS") {
+
+                resultElement.textContent =
+                    data.result ||
+                    "Görev başarıyla tamamlandı.";
+
+            } else {
+
+                resultElement.textContent =
+                    "Görevin worker tarafından alınması bekleniyor.";
+            }
+
+            if (
+                ![
+                    "SUCCESS",
+                    "FAILURE",
+                    "REVOKED"
+                ].includes(data.state)
+            ) {
+
+                window.setTimeout(
+                    watchLiveTask,
+                    2000
+                );
+            }
+
+        } catch (error) {
+
+            updatedElement.textContent =
+                "Durum kontrolü başarısız.";
+
+            resultElement.textContent =
+                error.message;
+
+            window.setTimeout(
+                watchLiveTask,
+                3000
+            );
+        }
+    }
+
+    async function refreshManagedStates() {
+
+        const cells =
+            document.querySelectorAll(
+                "[data-managed-task-id]"
+            );
+
+        for (const cell of cells) {
+
+            const taskId =
+                cell.dataset.managedTaskId;
+
+            const template =
+                cell.dataset.statusUrlTemplate;
+
+            if (!taskId || !template) {
+                continue;
+            }
+
+            try {
+
+                const data =
+                    await fetchTask(
+                        taskId,
+                        template
+                    );
+
+                const badge =
+                    cell.querySelector(
+                        ".celery-state, .celery-badge"
+                    );
+
+                if (badge && data) {
+
+                    if (
+                        badge.classList.contains(
+                            "celery-state"
+                        )
+                    ) {
+
+                        setState(
+                            badge,
+                            data
+                        );
+
+                    } else {
+
+                        badge.className =
+                            "celery-state " +
+                            stateClass(data.state);
+
+                        badge.textContent =
+                            data.label ||
+                            labels[data.state] ||
+                            data.state ||
+                            "Bilinmiyor";
+                    }
+                }
+
+            } catch (error) {
+                /*
+                 * Geçici Redis/network problemi
+                 * admin ekranını bozmasın.
+                 */
+            }
+        }
+    }
+
+    watchLiveTask();
+
+    refreshManagedStates();
+
+    window.setInterval(
+        refreshManagedStates,
+        5000
+    );
+})();
+</script>
+
 {% endblock %}

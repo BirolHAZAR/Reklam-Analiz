@@ -4,20 +4,20 @@
 
 {% block content %}
 <style>
-  .reports-shell{max-width:1180px;margin:0 auto;color:#fff}
+  .reports-shell{max-width:1180px;margin:0 auto;color:var(--theme-page-text, #fff)}
   .reports-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:22px}
   .reports-head h1{font-weight:950;letter-spacing:-.04em;margin:0 0 6px}
-  .reports-head p{color:#b8bed0;margin:0;max-width:760px}
+  .reports-head p{color:var(--theme-page-muted, #b8bed0);margin:0;max-width:760px}
   .reports-btn{display:inline-flex;align-items:center;gap:9px;border:0;border-radius:12px;padding:12px 16px;font-weight:850;text-decoration:none;background:linear-gradient(135deg,#6C63FF,#00D4FF);color:#fff}
   .reports-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-  .report-card{border:1px solid rgba(139,132,255,.24);background:rgba(15,20,41,.88);border-radius:8px;padding:18px;box-shadow:0 18px 46px rgba(0,0,0,.24)}
+  .report-card{border:1px solid rgba(139,132,255,.24);background:var(--theme-page-surface, rgba(15,20,41,.88));border-radius:8px;padding:18px;box-shadow:0 18px 46px rgba(0,0,0,.24)}
   .report-card-top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
   .report-card h3{font-size:1.08rem;font-weight:900;margin:0 0 8px}
-  .report-meta{color:#b8bed0;font-size:.88rem;line-height:1.7}
-  .report-chip{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 10px;font-size:.74rem;font-weight:850;background:rgba(34,197,94,.13);color:#8dffbd;border:1px solid rgba(34,197,94,.25)}
-  .report-chip.off{background:rgba(148,163,184,.12);color:#cbd5e1;border-color:rgba(148,163,184,.22)}
+  .report-meta{color:var(--theme-page-muted, #b8bed0);font-size:.88rem;line-height:1.7}
+  .report-chip{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 10px;font-size:.74rem;font-weight:850;background:rgba(34,197,94,.13);color:var(--theme-page-success, #8dffbd);border:1px solid rgba(34,197,94,.25)}
+  .report-chip.off{background:rgba(148,163,184,.12);color:var(--theme-page-text, #cbd5e1);border-color:rgba(148,163,184,.22)}
   .report-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
-  .report-actions a,.report-actions button{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid rgba(139,132,255,.24);background:rgba(255,255,255,.04);color:#fff;border-radius:10px;padding:9px 11px;text-decoration:none;font-weight:800;font-size:.82rem;transition:transform .12s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease,opacity .18s ease}
+  .report-actions a,.report-actions button{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid rgba(139,132,255,.24);background:rgba(255,255,255,.04);color:var(--theme-page-text, #fff);border-radius:10px;padding:9px 11px;text-decoration:none;font-weight:800;font-size:.82rem;transition:transform .12s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease,opacity .18s ease}
   .report-actions button{cursor:pointer}
   .reports-btn,.report-actions a,.report-actions button{transition:transform .12s ease,filter .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease,opacity .18s ease}
   .reports-btn:hover,.report-actions a:hover,.report-actions button:hover{filter:brightness(1.12);border-color:rgba(139,132,255,.58)}
@@ -27,7 +27,7 @@
   .reports-btn .fa-spinner,.report-actions .fa-spinner{animation:report-spin .7s linear infinite}
   @keyframes report-spin{to{transform:rotate(360deg)}}
   @media(prefers-reduced-motion:reduce){.reports-btn,.report-actions a,.report-actions button{transition:none}.reports-btn .fa-spinner,.report-actions .fa-spinner{animation:none}}
-  .empty-report{border:1px dashed rgba(139,132,255,.35);background:rgba(15,20,41,.58);border-radius:8px;padding:38px;text-align:center;color:#b8bed0}
+  .empty-report{border:1px dashed rgba(139,132,255,.35);background:var(--theme-page-surface, rgba(15,20,41,.58));border-radius:8px;padding:38px;text-align:center;color:var(--theme-page-muted, #b8bed0)}
   .legacy-title{margin:34px 0 14px;font-weight:900}
   @media(max-width:820px){.reports-head,.reports-grid{grid-template-columns:1fr;display:grid}.reports-head{gap:14px}.reports-btn{justify-content:center}.reports-grid{grid-template-columns:1fr}}
 </style>

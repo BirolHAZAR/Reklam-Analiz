@@ -5,13 +5,13 @@
 {% block extra_css %}
 <style>
   .mpa-page {
-    --mpa-panel: rgba(16, 26, 45, .94);
-    --mpa-panel-2: rgba(12, 20, 36, .98);
+    --mpa-panel: var(--theme-page-surface, rgba(16, 26, 45, .94));
+    --mpa-panel-2: var(--theme-page-surface, rgba(12, 20, 36, .98));
     --mpa-line: rgba(148, 163, 184, .22);
     --mpa-line-strong: rgba(125, 211, 252, .26);
-    --mpa-text: #f8fafc;
-    --mpa-soft: #cbd5e1;
-    --mpa-muted: #94a3b8;
+    --mpa-text: var(--theme-page-text, #f8fafc);
+    --mpa-soft: var(--theme-page-text, #cbd5e1);
+    --mpa-muted: var(--theme-page-muted, #94a3b8);
     --mpa-cyan: #38bdf8;
     --mpa-green: #22c55e;
     --mpa-amber: #f59e0b;
@@ -44,10 +44,10 @@
     background:rgba(56,189,248,.14); color:var(--mpa-text); text-decoration:none; font-weight:850;
     display:inline-flex; align-items:center; justify-content:center; gap:8px; white-space:nowrap;
   }
-  .mpa-btn:hover { color:#fff; background:rgba(56,189,248,.22); }
+  .mpa-btn:hover { color:var(--theme-page-text, #fff); background:rgba(56,189,248,.22); }
   .mpa-btn.primary { border-color:transparent; background:#2563eb; }
   .mpa-supported { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
-  .mpa-supported span { display:inline-flex; align-items:center; gap:7px; padding:7px 10px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(125,211,252,.22); color:#e0f2fe; font-size:.78rem; font-weight:900; }
+  .mpa-supported span { display:inline-flex; align-items:center; gap:7px; padding:7px 10px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(125,211,252,.22); color:var(--theme-page-text, #e0f2fe); font-size:.78rem; font-weight:900; }
   .mpa-supported i { color:var(--mpa-cyan); }
 
   .mpa-kpis { display:grid; grid-template-columns:repeat(4, minmax(150px, 1fr)); gap:10px; margin:16px 0; }
@@ -73,10 +73,10 @@
   .mpa-form select,
   .mpa-form textarea {
     width:100%; min-height:42px; border:1px solid rgba(148,163,184,.32); border-radius:8px;
-    background:#0b1527; color:var(--mpa-text); padding:0 12px; outline:none;
+    background:var(--theme-page-surface, #0b1527); color:var(--mpa-text); padding:0 12px; outline:none;
   }
   .mpa-form textarea { min-height:86px; padding:10px 12px; }
-  .mpa-form input::placeholder { color:#64748b; }
+  .mpa-form input::placeholder { color:var(--theme-page-muted, #64748b); }
   .mpa-form input:focus,
   .mpa-form select:focus,
   .mpa-form textarea:focus { border-color:var(--mpa-cyan); box-shadow:0 0 0 3px rgba(56,189,248,.12); }
@@ -84,7 +84,7 @@
     width:18px; min-height:18px; height:18px; padding:0; accent-color:var(--mpa-green);
   }
   .mpa-form .helptext { display:block; color:var(--mpa-soft); font-size:.75rem; line-height:1.4; margin-top:5px; }
-  .mpa-errors { border:1px solid rgba(239,68,68,.35); background:rgba(239,68,68,.12); color:#fecaca; border-radius:8px; padding:10px 12px; font-size:.84rem; }
+  .mpa-errors { border:1px solid rgba(239,68,68,.35); background:rgba(239,68,68,.12); color:var(--theme-page-text, #fecaca); border-radius:8px; padding:10px 12px; font-size:.84rem; }
   .mpa-submit {
     grid-column:1 / -1; height:44px; border:0; border-radius:8px; padding:0 16px;
     background:#16a34a; color:#fff; font-weight:950; display:inline-flex; align-items:center; justify-content:center; gap:8px;
@@ -93,22 +93,22 @@
   .mpa-table-wrap { overflow:auto; }
   .mpa-table { width:100%; min-width:1080px; border-collapse:separate; border-spacing:0; }
   .mpa-table th {
-    padding:12px 13px; text-align:left; background:#0b1527; color:var(--mpa-muted);
+    padding:12px 13px; text-align:left; background:var(--theme-page-surface, #0b1527); color:var(--mpa-muted);
     border-bottom:1px solid var(--mpa-line); font-size:.73rem; font-weight:950; white-space:nowrap;
   }
   .mpa-table td { padding:13px; border-bottom:1px solid rgba(148,163,184,.14); color:var(--mpa-soft); vertical-align:middle; font-size:.86rem; }
   .mpa-table tr:hover td { background:rgba(56,189,248,.045); }
   .mpa-store { color:var(--mpa-text); font-weight:950; }
   .mpa-mini { color:var(--mpa-muted); font-size:.75rem; margin-top:3px; }
-  .mpa-badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:4px 8px; background:rgba(129,140,248,.16); color:#c7d2fe; font-size:.74rem; font-weight:900; white-space:nowrap; }
-  .mpa-badge.active { background:rgba(34,197,94,.14); color:#86efac; }
-  .mpa-badge.passive { background:rgba(148,163,184,.14); color:#cbd5e1; }
-  .mpa-badge.error { background:rgba(239,68,68,.14); color:#fca5a5; }
+  .mpa-badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:4px 8px; background:rgba(129,140,248,.16); color:var(--theme-page-muted, #c7d2fe); font-size:.74rem; font-weight:900; white-space:nowrap; }
+  .mpa-badge.active { background:rgba(34,197,94,.14); color:var(--theme-page-success, #86efac); }
+  .mpa-badge.passive { background:rgba(148,163,184,.14); color:var(--theme-page-text, #cbd5e1); }
+  .mpa-badge.error { background:rgba(239,68,68,.14); color:var(--theme-page-danger, #fca5a5); }
   .mpa-row-actions { display:flex; gap:6px; align-items:center; white-space:nowrap; }
   .mpa-row-actions form { margin:0; }
-  .mpa-action { border:1px solid var(--mpa-line); border-radius:7px; background:#0b1527; color:var(--mpa-soft); padding:7px 9px; text-decoration:none; font-weight:800; font-size:.75rem; }
-  .mpa-action:hover { color:#fff; border-color:var(--mpa-cyan); }
-  .mpa-action.delete { color:#fca5a5; border-color:rgba(239,68,68,.3); }
+  .mpa-action { border:1px solid var(--mpa-line); border-radius:7px; background:var(--theme-page-surface, #0b1527); color:var(--mpa-soft); padding:7px 9px; text-decoration:none; font-weight:800; font-size:.75rem; }
+  .mpa-action:hover { color:var(--theme-page-text, #fff); border-color:var(--mpa-cyan); }
+  .mpa-action.delete { color:var(--theme-page-danger, #fca5a5); border-color:rgba(239,68,68,.3); }
   .mpa-sync-mode { color:var(--mpa-text); font-weight:850; }
   .mpa-empty { padding:40px 20px; text-align:center; color:var(--mpa-muted); }
   .mpa-empty strong { display:block; color:var(--mpa-text); margin-bottom:6px; }

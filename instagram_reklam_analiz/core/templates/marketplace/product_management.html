@@ -7,14 +7,14 @@
 {% block extra_css %}
 <style>
   .mp-page {
-    --mp-bg: #08111f;
-    --mp-panel: rgba(16, 26, 45, .94);
-    --mp-panel-2: rgba(12, 20, 36, .98);
+    --mp-bg: var(--theme-page-surface, #08111f);
+    --mp-panel: var(--theme-page-surface, rgba(16, 26, 45, .94));
+    --mp-panel-2: var(--theme-page-surface, rgba(12, 20, 36, .98));
     --mp-line: rgba(148, 163, 184, .22);
     --mp-line-strong: rgba(125, 211, 252, .26);
-    --mp-text: #f8fafc;
-    --mp-soft: #cbd5e1;
-    --mp-muted: #94a3b8;
+    --mp-text: var(--theme-page-text, #f8fafc);
+    --mp-soft: var(--theme-page-text, #cbd5e1);
+    --mp-muted: var(--theme-page-muted, #94a3b8);
     --mp-cyan: #38bdf8;
     --mp-green: #22c55e;
     --mp-amber: #f59e0b;
@@ -47,7 +47,7 @@
     background:rgba(56,189,248,.14); color:var(--mp-text); text-decoration:none; font-weight:850;
     display:inline-flex; align-items:center; justify-content:center; gap:8px; white-space:nowrap;
   }
-  .mp-btn:hover { color:#fff; background:rgba(56,189,248,.22); }
+  .mp-btn:hover { color:var(--theme-page-text, #fff); background:rgba(56,189,248,.22); }
   .mp-btn.primary { border-color:transparent; background:#2563eb; }
   .mp-btn.primary:hover { background:#1d4ed8; }
 
@@ -77,9 +77,9 @@
   .mp-field label, .mp-sync label { display:block; color:var(--mp-muted); font-size:.75rem; font-weight:850; margin-bottom:6px; }
   .mp-field input, .mp-field select, .mp-sync select {
     width:100%; height:42px; border:1px solid rgba(148,163,184,.32); border-radius:8px;
-    background:#0b1527; color:var(--mp-text); padding:0 12px; outline:none;
+    background:var(--theme-page-surface, #0b1527); color:var(--mp-text); padding:0 12px; outline:none;
   }
-  .mp-field input::placeholder { color:#64748b; }
+  .mp-field input::placeholder { color:var(--theme-page-muted, #64748b); }
   .mp-field input:focus, .mp-field select:focus, .mp-sync select:focus { border-color:var(--mp-cyan); box-shadow:0 0 0 3px rgba(56,189,248,.12); }
   .mp-filter-btn {
     height:42px; border:0; border-radius:8px; padding:0 16px; background:#2563eb; color:#fff; font-weight:900;
@@ -104,7 +104,7 @@
     overflow-y:hidden;
     height:14px;
     border-bottom:1px solid rgba(148,163,184,.12);
-    background:#0b1527;
+    background:var(--theme-page-surface, #0b1527);
   }
   .mp-table-scroll-top-inner { height:1px; min-width:1320px; }
   .mp-table-wrap { overflow:auto; }
@@ -123,33 +123,33 @@
   .mp-page-link {
     min-width:34px; height:34px; border:1px solid var(--mp-line); border-radius:8px; padding:0 10px;
     display:inline-flex; align-items:center; justify-content:center; color:var(--mp-soft); text-decoration:none; font-weight:900;
-    background:#0b1527;
+    background:var(--theme-page-surface, #0b1527);
   }
-  .mp-page-link:hover { color:#fff; border-color:var(--mp-line-strong); background:rgba(56,189,248,.14); }
+  .mp-page-link:hover { color:var(--theme-page-text, #fff); border-color:var(--mp-line-strong); background:rgba(56,189,248,.14); }
   .mp-page-link.active { background:#2563eb; border-color:#2563eb; color:#fff; }
   .mp-page-link.disabled { opacity:.45; pointer-events:none; }
   .mp-table { width:100%; min-width:1320px; border-collapse:separate; border-spacing:0; }
   .mp-table th {
     position:sticky; top:0; z-index:2;
-    padding:12px 13px; text-align:left; background:#0b1527; color:var(--mp-muted);
+    padding:12px 13px; text-align:left; background:var(--theme-page-surface, #0b1527); color:var(--mp-muted);
     border-bottom:1px solid var(--mp-line); font-size:.73rem; font-weight:950; white-space:nowrap;
   }
   .mp-table td { padding:13px; border-bottom:1px solid rgba(148,163,184,.14); color:var(--mp-soft); vertical-align:middle; font-size:.86rem; }
   .mp-table tr:hover td { background:rgba(56,189,248,.045); }
   .mp-product { display:grid; grid-template-columns:56px minmax(0, 1fr); gap:11px; align-items:center; min-width:320px; }
-  .mp-product-img { width:56px; height:56px; border-radius:8px; object-fit:cover; background:#111827; border:1px solid var(--mp-line); }
+  .mp-product-img { width:56px; height:56px; border-radius:8px; object-fit:cover; background:var(--theme-page-surface, #111827); border:1px solid var(--mp-line); }
   .mp-product-title { color:var(--mp-text); font-weight:950; line-height:1.25; overflow-wrap:anywhere; }
   .mp-product-meta { color:var(--mp-muted); font-size:.75rem; margin-top:3px; display:flex; gap:7px; flex-wrap:wrap; }
   .mp-muted { color:var(--mp-muted); }
   .mp-money { color:var(--mp-text); font-weight:900; white-space:nowrap; }
-  .mp-profit { color:#86efac; font-weight:950; white-space:nowrap; }
+  .mp-profit { color:var(--theme-page-success, #86efac); font-weight:950; white-space:nowrap; }
   .mp-stock { color:var(--mp-text); font-weight:950; }
   .mp-mini { color:var(--mp-muted); font-size:.75rem; margin-top:3px; }
-  .mp-badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:4px 8px; background:rgba(129,140,248,.16); color:#c7d2fe; font-size:.74rem; font-weight:900; white-space:nowrap; }
-  .mp-badge.active, .mp-status.active, .mp-status.success { background:rgba(34,197,94,.14); color:#86efac; }
-  .mp-status.passive, .mp-status.skipped { background:rgba(148,163,184,.14); color:#cbd5e1; }
+  .mp-badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:4px 8px; background:rgba(129,140,248,.16); color:var(--theme-page-muted, #c7d2fe); font-size:.74rem; font-weight:900; white-space:nowrap; }
+  .mp-badge.active, .mp-status.active, .mp-status.success { background:rgba(34,197,94,.14); color:var(--theme-page-success, #86efac); }
+  .mp-status.passive, .mp-status.skipped { background:rgba(148,163,184,.14); color:var(--theme-page-text, #cbd5e1); }
   .mp-status.pending, .mp-status.queued, .mp-status.running { background:rgba(245,158,11,.14); color:#fcd34d; }
-  .mp-status.rejected, .mp-status.failed { background:rgba(239,68,68,.15); color:#fca5a5; }
+  .mp-status.rejected, .mp-status.failed { background:rgba(239,68,68,.15); color:var(--theme-page-danger, #fca5a5); }
   .mp-rating { color:#fbbf24; font-weight:950; white-space:nowrap; }
   .mp-empty { padding:36px 20px; text-align:center; color:var(--mp-muted); }
   .mp-empty strong { display:block; color:var(--mp-text); margin-bottom:6px; }

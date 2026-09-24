@@ -1,0 +1,121 @@
+/* Header geometry is independent of the current color theme. */
+:root { --ra-header-height: 108px; }
+body { padding-top: var(--ra-header-height) !important; }
+.navbar { min-height: 0 !important; padding: 8px 0 !important; }
+.navbar .navbar-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0;
+    padding: 0 18px !important;
+}
+.navbar .navbar-brand { margin: 0; }
+.navbar .navbar-brand img {
+    width: 300px !important;
+    max-width: 300px !important;
+    height: auto !important;
+    max-height: 90px !important;
+}
+.navbar .ra-topbar-value {
+    display: flex;
+    flex: 1 1 0;
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+}
+.navbar .ra-platform-strip {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+}
+.navbar .ra-platform-chip { flex: 0 0 auto; width: auto; }
+.navbar .nav-buttons {
+    flex: 0 0 auto !important;
+    margin-left: auto !important;
+    gap: 8px !important;
+    min-width: 0;
+}
+.navbar .agency-client-scope-form { min-width: 0; margin: 0; }
+.navbar .agency-client-scope-form select { width: 160px; min-width: 0; }
+.navbar .user-menu { min-width: 0; width: 160px; flex-basis: 160px; }
+.navbar .ra-theme-toggle,
+.navbar .mobile-menu-btn { flex-shrink: 0; }
+.ra-sidebar { top: calc(var(--ra-header-height) + 16px); }
+.ra-sidebar-backdrop { top: var(--ra-header-height); }
+.toast-global-container { top: calc(var(--ra-header-height) + 12px); }
+
+@media (max-width: 1540px) {
+    .navbar .ra-platform-chip { width: 100%; padding: 0; }
+    .navbar .ra-platform-chip > span:not(.ra-platform-mark) { display: none; }
+}
+
+@media (max-width: 1180px) {
+    :root { --ra-header-height: 132px; }
+    .navbar .navbar-container {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto 44px;
+        grid-template-areas: "brand actions menu" "platform platform platform";
+        gap: 8px 12px !important;
+    }
+    .navbar .navbar-brand { grid-area: brand; min-width: 0; }
+    .navbar .navbar-brand img { width: 230px !important; max-width: 100% !important; }
+    .navbar .nav-buttons { grid-area: actions; }
+    .navbar .mobile-menu-btn { grid-area: menu; display: inline-flex !important; }
+    .navbar .ra-topbar-value { grid-area: platform; width: 100%; }
+    .navbar .ra-platform-strip { justify-content: flex-start; height: 40px; }
+    .navbar .user-menu { width: 44px; flex-basis: 44px; padding: 5px !important; }
+    .navbar .user-identity,
+    .navbar .user-menu > .fa-chevron-down { display: none; }
+    .navbar .agency-client-scope-form select { width: 130px; }
+    .ra-sidebar { max-height: calc(100dvh - var(--ra-header-height) - 28px); }
+}
+
+@media (max-width: 760px) {
+    :root { --ra-header-height: 176px; }
+    .navbar .navbar-container {
+        grid-template-columns: minmax(0, 1fr) 44px;
+        grid-template-areas: "brand menu" "actions actions" "platform platform";
+        padding: 0 12px !important;
+    }
+    .navbar .navbar-brand img { width: 200px !important; max-height: 54px !important; }
+    .navbar .nav-buttons { flex-wrap: wrap; justify-content: flex-end; margin-left: 0 !important; gap: 6px !important; }
+    .navbar .nav-buttons .btn-nav {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 8px !important;
+        font-size: .72rem !important;
+        gap: 4px;
+    }
+    .navbar .ra-theme-toggle { display: inline-flex; min-height: 40px; }
+    .navbar .agency-client-scope-form { flex: 1 1 100%; }
+    .navbar .agency-client-scope-form select { flex: 1; width: 100%; max-width: none; }
+    .navbar .alert-dropdown-panel {
+        position: fixed;
+        top: calc(var(--ra-header-height) + 8px);
+        right: 12px;
+        left: 12px;
+        width: auto;
+        max-height: calc(100dvh - var(--ra-header-height) - 24px);
+        overflow-y: auto;
+    }
+    .navbar .dropdown-menu-custom {
+        position: fixed;
+        top: calc(var(--ra-header-height) + 8px);
+        right: 12px;
+        left: 12px;
+        min-width: 0;
+        max-height: calc(100dvh - var(--ra-header-height) - 24px);
+        overflow-y: auto;
+    }
+}
+
+html[data-theme="light"] .navbar .ra-platform-chip { color: #334155; }
+html[data-theme="light"] .navbar .ra-platform-chip.x i { color: #111827; }

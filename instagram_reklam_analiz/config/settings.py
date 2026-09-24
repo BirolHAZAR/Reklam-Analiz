@@ -2058,3 +2058,4 @@ REFERRAL_PROGRAM_ENABLED = os.getenv(
     "yes",
     "on",
 }
+

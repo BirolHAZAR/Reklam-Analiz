@@ -14,7 +14,7 @@ from django.contrib.auth import get_user_model, logout as auth_logout
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db.models import Count, Q, Sum
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
@@ -1023,6 +1023,64 @@ def _managed_task_create_url(task_name):
     return reverse("admin:core_adminmanagedceleryschedule_add") + f"?{query}"
 
 
+def _celery_task_status(task_id):
+    """Return the live Celery state for a task id."""
+    from config.celery import app
+
+    result = app.AsyncResult(task_id)
+    state = result.state or "PENDING"
+
+    labels = {
+        "PENDING": "Kuyrukta / bekliyor",
+        "STARTED": "Çalışıyor",
+        "RETRY": "Yeniden deneniyor",
+        "SUCCESS": "Başarıyla tamamlandı",
+        "FAILURE": "Hata ile tamamlandı",
+        "REVOKED": "İptal edildi",
+    }
+
+    payload = {
+        "task_id": task_id,
+        "state": state,
+        "label": labels.get(state, state),
+        "ready": result.ready(),
+        "successful": result.successful(),
+        "failed": result.failed(),
+    }
+
+    if result.successful():
+        payload["result"] = str(result.result)[:1000]
+    elif result.failed():
+        payload["error"] = str(result.result)[:1000]
+
+    return payload
+
+
+def celery_task_status_view(request, task_id):
+    """Small polling endpoint used by the Celery admin page."""
+    if request.method != "GET":
+        return JsonResponse({"error": "GET gerekli."}, status=405)
+
+    try:
+        return JsonResponse(_celery_task_status(task_id))
+    except Exception as exc:
+        return JsonResponse(
+            {
+                "task_id": task_id,
+                "state": "UNKNOWN",
+                "label": "Durum alınamadı",
+                "error": str(exc)[:1000],
+            },
+            status=503,
+        )
+
+
+def _celery_watch_redirect(request, task_id):
+    url = reverse("admin:celery_tasks")
+    return redirect(f"{url}?watch_task_id={task_id}")
+
+
+
 def celery_tasks_view(request):
     from config.celery import app
 
@@ -1032,131 +1090,683 @@ def celery_tasks_view(request):
         managed_id = request.POST.get("managed_id", "").strip()
         schedule_name = request.POST.get("schedule_name", "").strip()
         task_name = request.POST.get("task_name", "").strip()
+
         try:
             if managed_id:
-                schedule = get_object_or_404(AdminManagedCelerySchedule, id=managed_id)
-                async_result = app.send_task(schedule.task_name, args=schedule.args or [], kwargs=schedule.kwargs or {})
+                schedule = get_object_or_404(
+                    AdminManagedCelerySchedule,
+                    id=managed_id,
+                )
+
+                async_result = app.send_task(
+                    schedule.task_name,
+                    args=schedule.args or [],
+                    kwargs=schedule.kwargs or {},
+                )
+
                 schedule.last_task_id = async_result.id
                 schedule.last_run_at = timezone.now()
                 schedule.last_error = ""
-                schedule.save(update_fields=["last_task_id", "last_run_at", "last_error", "updated_at"])
-                messages.success(request, f"{schedule.name} kuyruğa alındı. Task id: {async_result.id}")
+
+                schedule.save(
+                    update_fields=[
+                        "last_task_id",
+                        "last_run_at",
+                        "last_error",
+                        "updated_at",
+                    ]
+                )
+
+                messages.success(
+                    request,
+                    f"{schedule.name} kuyruğa alındı. Task id: {async_result.id}",
+                )
+
+                return _celery_watch_redirect(request, async_result.id)
+
             elif schedule_name and schedule_name in beat_schedule:
                 item = beat_schedule[schedule_name]
+
                 async_result = app.send_task(
                     item.get("task"),
                     args=item.get("args", []),
                     kwargs=item.get("kwargs", {}),
                     **item.get("options", {}),
                 )
-                messages.success(request, f"{schedule_name} kuyruğa alındı. Task id: {async_result.id}")
+
+                messages.success(
+                    request,
+                    f"{schedule_name} kuyruğa alındı. Task id: {async_result.id}",
+                )
+
+                return _celery_watch_redirect(request, async_result.id)
+
             elif task_name:
                 async_result = app.send_task(task_name)
-                messages.success(request, f"{task_name} kuyruğa alındı. Task id: {async_result.id}")
+
+                messages.success(
+                    request,
+                    f"{task_name} kuyruğa alındı. Task id: {async_result.id}",
+                )
+
+                return _celery_watch_redirect(request, async_result.id)
+
         except Exception as exc:
-            messages.error(request, f"Görev kuyruğa alınamadı: {exc}")
+            messages.error(
+                request,
+                f"Görev kuyruğa alınamadı: {exc}",
+            )
 
-    static_schedules = []
-    for name, item in beat_schedule.items():
-        static_schedules.append({
-            "name": name,
-            "display_name": _task_display_name(item.get("task")),
-            "task": item.get("task"),
-            "schedule": _schedule_to_text(item.get("schedule")),
-            "schedule_human": _human_schedule(item.get("schedule")),
-            "args": item.get("args", []),
-            "kwargs": item.get("kwargs", {}),
-            "options": item.get("options", {}),
-        })
+    # ------------------------------------------------------------------
+    # ADMIN TARAFINDAN YÖNETİLEN GÖREVLER
+    # ------------------------------------------------------------------
 
-    managed_schedules = AdminManagedCelerySchedule.objects.order_by("name")
+    managed_schedules = list(
+        AdminManagedCelerySchedule.objects.order_by("name")
+    )
+
     managed_active_tasks = set(
-        managed_schedules.filter(is_active=True).values_list("task_name", flat=True)
+        schedule.task_name
+        for schedule in managed_schedules
+        if schedule.is_active
     )
+
     managed_inactive_tasks = set(
-        managed_schedules.filter(is_active=False).values_list("task_name", flat=True)
+        schedule.task_name
+        for schedule in managed_schedules
+        if not schedule.is_active
     )
+
+    # ------------------------------------------------------------------
+    # CELERY WORKER INSPECTION
+    # ------------------------------------------------------------------
+
+    worker_status = []
+
+    active_tasks_by_name = {}
+    reserved_tasks_by_name = {}
+    scheduled_tasks_by_name = {}
+
+    worker_registered_tasks = set()
+    worker_online = False
+    worker_inspection_error = ""
+
+    try:
+        inspector = app.control.inspect(timeout=1.0)
+
+        ping = inspector.ping() or {}
+        active = inspector.active() or {}
+        reserved = inspector.reserved() or {}
+        scheduled = inspector.scheduled() or {}
+        registered = inspector.registered() or {}
+
+        worker_names = sorted(
+            set(ping)
+            | set(active)
+            | set(reserved)
+            | set(scheduled)
+            | set(registered)
+        )
+
+        worker_online = bool(ping)
+
+        for worker_name in worker_names:
+            registered_for_worker = registered.get(
+                worker_name,
+                [],
+            ) or []
+
+            worker_registered_tasks.update(
+                registered_for_worker
+            )
+
+            worker_status.append(
+                {
+                    "name": worker_name,
+                    "online": worker_name in ping,
+                    "active_count": len(
+                        active.get(worker_name, []) or []
+                    ),
+                    "reserved_count": len(
+                        reserved.get(worker_name, []) or []
+                    ),
+                    "scheduled_count": len(
+                        scheduled.get(worker_name, []) or []
+                    ),
+                    "registered_count": len(
+                        registered_for_worker
+                    ),
+                }
+            )
+
+        # Şu anda çalışan görevler
+        for worker_name, tasks in active.items():
+            for task in tasks or []:
+                task_name = task.get("name")
+
+                if task_name:
+                    active_tasks_by_name.setdefault(
+                        task_name,
+                        [],
+                    ).append(
+                        {
+                            "worker": worker_name,
+                            "task_id": task.get("id"),
+                        }
+                    )
+
+        # Worker tarafından alınmış fakat henüz çalıştırılmamış görevler
+        for worker_name, tasks in reserved.items():
+            for task in tasks or []:
+                task_name = task.get("name")
+
+                if task_name:
+                    reserved_tasks_by_name.setdefault(
+                        task_name,
+                        [],
+                    ).append(
+                        {
+                            "worker": worker_name,
+                            "task_id": task.get("id"),
+                        }
+                    )
+
+        # ETA/countdown ile worker üzerinde bekleyen görevler
+        for worker_name, tasks in scheduled.items():
+            for task in tasks or []:
+                request_data = task.get("request") or {}
+
+                task_name = (
+                    request_data.get("name")
+                    or task.get("name")
+                )
+
+                if task_name:
+                    scheduled_tasks_by_name.setdefault(
+                        task_name,
+                        [],
+                    ).append(
+                        {
+                            "worker": worker_name,
+                            "task_id": request_data.get("id"),
+                            "eta": task.get("eta"),
+                        }
+                    )
+
+    except Exception as exc:
+        worker_inspection_error = str(exc)
+
+        worker_status = [
+            {
+                "name": "Worker sorgulanamadı",
+                "online": False,
+                "active_count": 0,
+                "reserved_count": 0,
+                "scheduled_count": 0,
+                "registered_count": 0,
+                "error": worker_inspection_error,
+            }
+        ]
+
+    # ------------------------------------------------------------------
+    # BEAT / SCHEDULE SONUÇLARI
+    # ------------------------------------------------------------------
+
     static_scheduled_tasks = {
         item.get("task")
         for item in beat_schedule.values()
         if item.get("task")
     }
 
-    worker_status = []
-    try:
-        inspector = app.control.inspect(timeout=0.8)
-        ping = inspector.ping() or {}
-        active = inspector.active() or {}
-        reserved = inspector.reserved() or {}
-        registered = inspector.registered() or {}
-        for worker_name in sorted(set(ping) | set(active) | set(reserved) | set(registered)):
-            worker_status.append({
-                "name": worker_name,
-                "online": worker_name in ping,
-                "active_count": len(active.get(worker_name, [])),
-                "reserved_count": len(reserved.get(worker_name, [])),
-                "registered_count": len(registered.get(worker_name, [])),
-            })
-    except Exception as exc:
-        worker_status = [{"name": "Worker sorgulanamadı", "online": False, "active_count": 0, "reserved_count": 0, "registered_count": 0, "error": str(exc)}]
+    # ------------------------------------------------------------------
+    # SON TASK RESULT KAYITLARI
+    # ------------------------------------------------------------------
 
     recent_results = []
+    latest_results_by_task = {}
+
     try:
         from django_celery_results.models import TaskResult
+
+        result_queryset = (
+            TaskResult.objects
+            .exclude(task_name__isnull=True)
+            .exclude(task_name="")
+            .order_by("-date_done", "-id")
+        )
+
+        for result in result_queryset[:500]:
+            if result.task_name not in latest_results_by_task:
+                latest_results_by_task[result.task_name] = result
+
         recent_results = [
             {
                 "task_name": result.task_name,
-                "display_name": _task_display_name(result.task_name),
+                "display_name": _task_display_name(
+                    result.task_name
+                ),
                 "status": result.status,
                 "task_id": result.task_id,
                 "date_done": result.date_done,
                 "result": result.result,
             }
-            for result in TaskResult.objects.order_by("-date_done")[:25]
+            for result in result_queryset[:25]
         ]
+
     except Exception:
         recent_results = []
+        latest_results_by_task = {}
 
-    registered_tasks = [
-        {
-            "name": task,
-            "display_name": _task_display_name(task),
-            "schedule_hint": _default_task_schedule_hint(task),
-            "is_static_scheduled": task in static_scheduled_tasks,
-            "is_managed_active": task in managed_active_tasks,
-            "is_managed_inactive": task in managed_inactive_tasks,
-            "auto_status": (
-                "Sistem tarafından otomatik çalışıyor"
-                if task in static_scheduled_tasks
-                else "Admin görevi olarak otomatik çalışıyor"
-                if task in managed_active_tasks
-                else "Admin görevi var ama pasif"
-                if task in managed_inactive_tasks
-                else "Otomatik çalışmıyor"
+    # ------------------------------------------------------------------
+    # GÖREV GERÇEK ÇALIŞMA DURUMU
+    # ------------------------------------------------------------------
+
+    def build_task_runtime_status(task_name, schedule=None):
+        active = active_tasks_by_name.get(
+            task_name,
+            [],
+        )
+
+        reserved = reserved_tasks_by_name.get(
+            task_name,
+            [],
+        )
+
+        scheduled = scheduled_tasks_by_name.get(
+            task_name,
+            [],
+        )
+
+        latest = latest_results_by_task.get(
+            task_name
+        )
+
+        # 1. Şu anda çalışan görev
+        if active:
+            status = "running"
+            label = "Şu anda çalışıyor"
+            severity = "ok"
+
+        # 2. Worker görevi almış, çalıştırmayı bekliyor
+        elif reserved:
+            status = "queued"
+            label = "Worker kuyruğunda bekliyor"
+            severity = "warning"
+
+        # 3. ETA/countdown bekleyen görev
+        elif scheduled:
+            status = "scheduled"
+            label = "Zamanlanmış / bekliyor"
+            severity = "info"
+
+        # 4. Son çalışmada hata
+        elif latest and latest.status == "FAILURE":
+            status = "failure"
+            label = "Son çalışmada hata oluştu"
+            severity = "critical"
+
+        # 5. Son çalışma başarılı
+        elif latest and latest.status == "SUCCESS":
+            status = "success"
+            label = "Son çalışma başarılı"
+            severity = "ok"
+
+        # 6. Başka bir Celery sonucu
+        elif latest:
+            status = str(
+                latest.status or "UNKNOWN"
+            ).lower()
+
+            label = f"Son durum: {latest.status}"
+            severity = "warning"
+
+        # 7. Henüz TaskResult yok
+        else:
+            status = "unknown"
+            label = "Henüz çalışma sonucu yok"
+            severity = "info"
+
+        return {
+            "status": status,
+            "label": label,
+            "severity": severity,
+            "active_count": len(active),
+            "reserved_count": len(reserved),
+            "scheduled_count": len(scheduled),
+            "last_run_at": (
+                latest.date_done
+                if latest
+                else None
             ),
-            "create_url": _managed_task_create_url(task),
+            "last_status": (
+                latest.status
+                if latest
+                else None
+            ),
+            "last_task_id": (
+                latest.task_id
+                if latest
+                else None
+            ),
+            "last_result": (
+                latest.result
+                if latest
+                else None
+            ),
+            "worker_registered": (
+                task_name in worker_registered_tasks
+                if worker_online
+                else False
+            ),
+            "worker_online": worker_online,
         }
-        for task in sorted(app.tasks.keys())
-        if not task.startswith("celery.")
-    ]
+
+    # ------------------------------------------------------------------
+    # SABİT CELERY BEAT GÖREVLERİ
+    # ------------------------------------------------------------------
+
+    static_schedules = []
+
+    for name, item in beat_schedule.items():
+        task_name = item.get("task")
+
+        runtime = build_task_runtime_status(
+            task_name,
+            item.get("schedule"),
+        )
+
+        static_schedules.append(
+            {
+                "name": name,
+                "display_name": _task_display_name(
+                    task_name
+                ),
+                "task": task_name,
+                "schedule": _schedule_to_text(
+                    item.get("schedule")
+                ),
+                "schedule_human": _human_schedule(
+                    item.get("schedule")
+                ),
+                "args": item.get("args", []),
+                "kwargs": item.get("kwargs", {}),
+                "options": item.get("options", {}),
+                "runtime": runtime,
+            }
+        )
+
+    # ------------------------------------------------------------------
+    # KAYITLI TASK'LAR
+    # ------------------------------------------------------------------
+
+    registered_tasks = []
+
+    for task in sorted(app.tasks.keys()):
+        if task.startswith("celery."):
+            continue
+
+        runtime = build_task_runtime_status(task)
+
+        if task in static_scheduled_tasks:
+            auto_status = "Sistem tarafından zamanlanmış"
+        elif task in managed_active_tasks:
+            auto_status = "Admin görevi olarak zamanlanmış"
+        elif task in managed_inactive_tasks:
+            auto_status = "Admin görevi var ama pasif"
+        else:
+            auto_status = "Otomatik çalışmıyor"
+
+        registered_tasks.append(
+            {
+                "name": task,
+                "display_name": _task_display_name(
+                    task
+                ),
+                "schedule_hint": _default_task_schedule_hint(
+                    task
+                ),
+                "is_static_scheduled": (
+                    task in static_scheduled_tasks
+                ),
+                "is_managed_active": (
+                    task in managed_active_tasks
+                ),
+                "is_managed_inactive": (
+                    task in managed_inactive_tasks
+                ),
+                "auto_status": auto_status,
+                "runtime": runtime,
+                "create_url": _managed_task_create_url(
+                    task
+                ),
+            }
+        )
+
+    # ------------------------------------------------------------------
+    # ADMIN MANAGED TASK DURUMLARI
+    # ------------------------------------------------------------------
+
+    managed_runtime = {}
+
+    for schedule in managed_schedules:
+        runtime = build_task_runtime_status(
+            schedule.task_name
+        )
+
+        managed_runtime[schedule.id] = runtime
+
+        # Template tarafında get_item filtresi gerektirmemesi için
+        # runtime bilgisini doğrudan schedule nesnesine ekliyoruz.
+        schedule.runtime = runtime
+
+    # ------------------------------------------------------------------
+    # KRİTİK DURUM KONTROLÜ
+    # ------------------------------------------------------------------
+
+    critical_tasks = []
+
+    if not worker_online:
+        critical_tasks.append(
+            {
+                "type": "worker",
+                "label": "Celery Worker",
+                "message": (
+                    "Celery worker online görünmüyor. "
+                    "Otomatik görevler çalışmayabilir."
+                ),
+            }
+        )
+
+    for schedule in static_schedules:
+        runtime = schedule["runtime"]
+
+        if runtime["status"] == "failure":
+            critical_tasks.append(
+                {
+                    "type": "task",
+                    "label": schedule["display_name"],
+                    "message": (
+                        "Son çalıştırmada hata oluştu."
+                    ),
+                    "task_name": schedule["task"],
+                    "task_id": runtime["last_task_id"],
+                }
+            )
+
+    for schedule in managed_schedules:
+        runtime = managed_runtime.get(
+            schedule.id,
+            {},
+        )
+
+        if (
+            schedule.is_active
+            and runtime.get("status") == "failure"
+        ):
+            critical_tasks.append(
+                {
+                    "type": "task",
+                    "label": schedule.name,
+                    "message": (
+                        "Aktif admin görevi son çalıştırmada "
+                        "hata verdi."
+                    ),
+                    "task_name": schedule.task_name,
+                    "task_id": runtime.get(
+                        "last_task_id"
+                    ),
+                }
+            )
+
+    # ------------------------------------------------------------------
+    # GENEL SİSTEM DURUMU
+    # ------------------------------------------------------------------
+
+    if not worker_online:
+        celery_system_status = "critical"
+        celery_system_label = (
+            "Celery Worker çalışmıyor veya yanıt vermiyor"
+        )
+    elif critical_tasks:
+        celery_system_status = "warning"
+        celery_system_label = (
+            "Celery çalışıyor ancak kontrol edilmesi "
+            "gereken görev var"
+        )
+    else:
+        celery_system_status = "ok"
+        celery_system_label = (
+            "Celery Worker çalışıyor"
+        )
+
+    # Beat süreci worker inspection üzerinden doğrudan
+    # doğrulanamaz. Burada yalnızca schedule tanımlarını
+    # raporluyoruz.
+    beat_status = {
+        "configured": bool(beat_schedule),
+        "schedule_count": len(beat_schedule),
+        "label": (
+            "Zamanlanmış görevler tanımlı"
+            if beat_schedule
+            else "Tanımlı sistem beat görevi yok"
+        ),
+    }
+
+    # ------------------------------------------------------------------
+    # TASK İZLEME
+    # ------------------------------------------------------------------
+
+    watch_task_id = request.GET.get(
+        "watch_task_id",
+        "",
+    ).strip()
+
+    watch_task = None
+
+    if watch_task_id:
+        try:
+            watch_task = _celery_task_status(
+                watch_task_id
+            )
+        except Exception as exc:
+            watch_task = {
+                "task_id": watch_task_id,
+                "state": "UNKNOWN",
+                "label": "Durum alınamadı",
+                "error": str(exc)[:1000],
+            }
+
+    # ------------------------------------------------------------------
+    # CONTEXT
+    # ------------------------------------------------------------------
 
     context = {
         **admin.site.each_context(request),
+
         "title": "Celery Görev Yönetimi",
+
+        # Sistem görevleri
         "static_schedules": static_schedules,
+
+        # Admin görevleri
         "managed_schedules": managed_schedules,
+        "managed_runtime": managed_runtime,
+
+        # Worker
         "worker_status": worker_status,
+        "worker_online": worker_online,
+        "worker_inspection_error": (
+            worker_inspection_error
+        ),
+
+        # Beat
+        "beat_status": beat_status,
+
+        # Sonuçlar
         "recent_results": recent_results,
+
+        # Task listesi
         "registered_tasks": registered_tasks,
-        "registered_task_count": len(registered_tasks),
-        "static_schedule_count": len(static_schedules),
-        "managed_schedule_count": managed_schedules.count(),
-        "managed_active_count": managed_schedules.filter(is_active=True).count(),
-        "managed_inactive_count": managed_schedules.filter(is_active=False).count(),
-        "managed_add_url": reverse("admin:core_adminmanagedceleryschedule_add"),
-        "managed_list_url": reverse("admin:core_adminmanagedceleryschedule_changelist"),
+        "registered_task_count": len(
+            registered_tasks
+        ),
+
+        # Sayılar
+        "static_schedule_count": len(
+            static_schedules
+        ),
+        "managed_schedule_count": len(
+            managed_schedules
+        ),
+        "managed_active_count": sum(
+            1
+            for schedule in managed_schedules
+            if schedule.is_active
+        ),
+        "managed_inactive_count": sum(
+            1
+            for schedule in managed_schedules
+            if not schedule.is_active
+        ),
+
+        # Genel durum
+        "celery_system_status": (
+            celery_system_status
+        ),
+        "celery_system_label": (
+            celery_system_label
+        ),
+
+        # Kritik görevler
+        "critical_tasks": critical_tasks,
+        "critical_task_count": len(
+            critical_tasks
+        ),
+
+        # URL'ler
+        "managed_add_url": reverse(
+            "admin:core_adminmanagedceleryschedule_add"
+        ),
+        "managed_list_url": reverse(
+            "admin:core_adminmanagedceleryschedule_changelist"
+        ),
+
+        # Canlı task izleme
+        "watch_task": watch_task,
+
+        "task_status_url_template": reverse(
+            "admin:celery_task_status",
+            kwargs={
+                "task_id": "__TASK_ID__",
+            },
+        ),
     }
-    return TemplateResponse(request, "admin/celery_tasks.html", context)
+
+    return TemplateResponse(
+        request,
+        "admin/celery_tasks.html",
+        context,
+    )
 
 
 def auth_security_view(request):
@@ -2746,6 +3356,11 @@ def _professional_admin_urls():
             "celery-gorevleri/",
             staff_member_required(celery_tasks_view),
             name="celery_tasks",
+        ),
+        path(
+            "celery-gorevleri/status/<str:task_id>/",
+            staff_member_required(celery_task_status_view),
+            name="celery_task_status",
         ),
         path(
             "guvenlik-giris-ayarlari/",

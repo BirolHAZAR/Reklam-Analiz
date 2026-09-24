@@ -35,6 +35,51 @@
             </div>
         </section>
 
+        <section class="cu-section" aria-labelledby="company-contact-title">
+            <div class="cu-card cu-company">
+                <div class="cu-company-header">
+                <div class="cu-icon"><i class="fas fa-building" aria-hidden="true"></i></div>
+                <div>
+                <h2 id="company-contact-title">{% if current_language == "en" %}Company and Contact Details{% else %}Şirket ve İletişim Bilgileri{% endif %}</h2>
+                <p class="cu-company-name">HZRSoft Yazılım Dijital Pazarlama Danışmanlık ve Ticaret</p>
+                </div>
+                </div>
+                <address class="cu-company-details">
+                    <div class="cu-company-item">
+                        <span class="cu-detail-icon"><i class="fas fa-map-marker-alt" aria-hidden="true"></i></span>
+                        <div class="cu-detail-content">
+                        <h3>{% if current_language == "en" %}Head Office{% else %}Merkez Ofis{% endif %}</h3>
+                        <p>Yeni Mahalle Ahmet Kabaklı Cad. 1583. Sokak No:12/3<br>Bağcılar / İstanbul</p>
+                        </div>
+                    </div>
+                    <div class="cu-company-item cu-company-phones">
+                        <div class="cu-contact-row">
+                        <span class="cu-detail-icon"><i class="fas fa-phone" aria-hidden="true"></i></span>
+                        <div class="cu-detail-content">
+                        <h3>{% if current_language == "en" %}Phone{% else %}Telefon{% endif %}</h3>
+                        <a href="tel:+902126515253">0212 651 52 53</a>
+                        </div>
+                        </div>
+                        <div class="cu-contact-row">
+                        <span class="cu-detail-icon"><i class="fas fa-mobile-alt" aria-hidden="true"></i></span>
+                        <div class="cu-detail-content">
+                        <h3>{% if current_language == "en" %}Mobile{% else %}Mobil{% endif %}</h3>
+                        <a href="tel:+905545802136">0554 580 21 36</a><br>
+                        <a href="tel:+905016495959">0501 649 59 59</a>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="cu-company-item">
+                        <span class="cu-detail-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                        <div class="cu-detail-content">
+                        <h3>{% if current_language == "en" %}Email{% else %}E-posta{% endif %}</h3>
+                        <a href="mailto:info@reklamanaliz.net">info@reklamanaliz.net</a>
+                        </div>
+                    </div>
+                </address>
+            </div>
+        </section>
+
         <section class="cu-section">
             <div class="cu-grid-3">
                 <div class="cu-card"><div class="cu-icon"><i class="fas fa-envelope"></i></div><h3>{% if current_language == "en" %}Email{% else %}E-posta{% endif %}</h3><p>{% if current_language == "en" %}You can write to us for general information, demos, and support requests.{% else %}Genel bilgi, demo ve destek talepleriniz için bize yazabilirsiniz.{% endif %}</p><strong>info@reklamanaliz.net</strong><br><strong>destek@reklamanaliz.net</strong><span class="cu-small">{% if current_language == "en" %}The relevant team will respond based on your request.{% else %}Talebinize göre ilgili ekip dönüş yapar.{% endif %}</span></div>

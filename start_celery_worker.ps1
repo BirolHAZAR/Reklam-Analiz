@@ -13,14 +13,33 @@ if (-not (Test-Path -LiteralPath (Join-Path $ProjectDir "manage.py"))) {
 }
 
 $env:DJANGO_SETTINGS_MODULE = "config.settings"
-if (-not $env:REDIS_HOST) { $env:REDIS_HOST = "127.0.0.1" }
-if (-not $env:REDIS_PORT) { $env:REDIS_PORT = "6379" }
-if (-not $env:CACHE_REDIS_URL) { $env:CACHE_REDIS_URL = "redis://$($env:REDIS_HOST):$($env:REDIS_PORT)/3" }
-if (-not $env:CELERY_BROKER_URL) { $env:CELERY_BROKER_URL = "redis://$($env:REDIS_HOST):$($env:REDIS_PORT)/0" }
-if (-not $env:CELERY_RESULT_BACKEND) { $env:CELERY_RESULT_BACKEND = "redis://$($env:REDIS_HOST):$($env:REDIS_PORT)/1" }
-if (-not $env:CHANNEL_REDIS_URL) { $env:CHANNEL_REDIS_URL = "redis://$($env:REDIS_HOST):$($env:REDIS_PORT)/2" }
+
+if (-not $env:REDIS_HOST) {
+    $env:REDIS_HOST = "127.0.0.1"
+}
+
+if (-not $env:REDIS_PORT) {
+    $env:REDIS_PORT = "6379"
+}
+
+if (-not $env:CACHE_REDIS_URL) {
+    $env:CACHE_REDIS_URL = "redis://$($env:REDIS_HOST):$($env:REDIS_PORT)/3"
+}
+
+if (-not $env:CELERY_BROKER_URL) {
+    $env:CELERY_BROKER_URL = "redis://$($env:REDIS_HOST):$($env:REDIS_PORT)/0"
+}
+
+if (-not $env:CELERY_RESULT_BACKEND) {
+    $env:CELERY_RESULT_BACKEND = "redis://$($env:REDIS_HOST):$($env:REDIS_PORT)/1"
+}
+
+if (-not $env:CHANNEL_REDIS_URL) {
+    $env:CHANNEL_REDIS_URL = "redis://$($env:REDIS_HOST):$($env:REDIS_PORT)/2"
+}
 
 $PreviousLocation = Get-Location
+
 try {
     Set-Location -LiteralPath $ProjectDir
 
@@ -31,7 +50,8 @@ try {
         "--loglevel=info",
         "-Q",
         "default,sync,ai,marketplace,maintenance,billing,reports,notifications",
-        "--pool=solo"
+        "--pool=solo",
+        "-n", "reklamanaliz@%h"
     )
 
     if ($args.Count -gt 0) {
@@ -39,6 +59,7 @@ try {
     }
 
     & $PythonExe @CeleryArgs
+
     exit $LASTEXITCODE
 }
 finally {

@@ -1,7 +1,7 @@
 .glossary-page {
     width: min(1240px, 100%);
     margin: 0 auto;
-    color: #e8edf7;
+    color: var(--theme-page-text, #e8edf7);
 }
 
 .glossary-heading {
@@ -18,7 +18,7 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 10px;
-    color: #67e8f9;
+    color: var(--theme-page-info, #67e8f9);
     font-size: .76rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -26,7 +26,7 @@
 
 .glossary-heading h1 {
     margin: 0 0 8px;
-    color: #fff;
+    color: var(--theme-page-text, #fff);
     font-size: clamp(2rem, 4vw, 3.25rem);
     font-weight: 900;
     letter-spacing: 0;
@@ -35,7 +35,7 @@
 .glossary-heading p {
     max-width: 760px;
     margin: 0;
-    color: #aeb9cc;
+    color: var(--theme-page-muted, #aeb9cc);
     font-size: 1rem;
     line-height: 1.7;
 }
@@ -57,7 +57,7 @@
 .glossary-total span {
     display: block;
     margin-top: 6px;
-    color: #8f9bb0;
+    color: var(--theme-page-muted, #8f9bb0);
     font-size: .76rem;
     font-weight: 700;
 }
@@ -67,7 +67,7 @@
     z-index: 20;
     top: 88px;
     padding: 18px 0 14px;
-    background: rgba(6, 11, 25, .96);
+    background: var(--theme-page-surface, rgba(6, 11, 25, .96));
     backdrop-filter: blur(16px);
 }
 
@@ -81,7 +81,7 @@
 .glossary-search-wrap > i {
     position: absolute;
     left: 16px;
-    color: #67e8f9;
+    color: var(--theme-page-info, #67e8f9);
 }
 
 .glossary-search-wrap input {
@@ -91,8 +91,8 @@
     border: 1px solid rgba(103, 232, 249, .28);
     border-radius: 8px;
     outline: none;
-    background: #10192d;
-    color: #fff;
+    background: var(--theme-page-surface, #10192d);
+    color: var(--theme-page-text, #fff);
     font-size: .94rem;
 }
 
@@ -101,7 +101,7 @@
     box-shadow: 0 0 0 3px rgba(103, 232, 249, .12);
 }
 
-.glossary-search-wrap input::placeholder { color: #748197; }
+.glossary-search-wrap input::placeholder { color: var(--theme-page-muted, #748197); }
 
 .glossary-search-wrap button {
     position: absolute;
@@ -111,10 +111,10 @@
     border: 0;
     border-radius: 50%;
     background: transparent;
-    color: #aeb9cc;
+    color: var(--theme-page-muted, #aeb9cc);
 }
 
-.glossary-search-wrap button:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+.glossary-search-wrap button:hover { background: rgba(255, 255, 255, .08); color: var(--theme-page-text, #fff); }
 
 .glossary-categories {
     display: flex;
@@ -130,8 +130,8 @@
     padding: 7px 12px;
     border: 1px solid rgba(148, 163, 184, .24);
     border-radius: 6px;
-    background: #10192d;
-    color: #aeb9cc;
+    background: var(--theme-page-surface, #10192d);
+    color: var(--theme-page-muted, #aeb9cc);
     font-size: .76rem;
     font-weight: 750;
     white-space: nowrap;
@@ -141,7 +141,7 @@
 .glossary-category.active {
     border-color: #fbbf24;
     background: rgba(251, 191, 36, .13);
-    color: #fde68a;
+    color: var(--theme-page-warning, #fde68a);
 }
 
 .glossary-summary {
@@ -149,11 +149,11 @@
     justify-content: space-between;
     gap: 16px;
     padding: 5px 0 12px;
-    color: #8390a5;
+    color: var(--theme-page-muted, #8390a5);
     font-size: .78rem;
 }
 
-.glossary-summary strong { color: #e8edf7; }
+.glossary-summary strong { color: var(--theme-page-text, #e8edf7); }
 
 .glossary-list {
     border-top: 1px solid rgba(148, 163, 184, .18);
@@ -170,7 +170,7 @@
 
 .glossary-item:hover {
     border-color: rgba(103, 232, 249, .28);
-    background: rgba(22, 34, 57, .62);
+    background: var(--theme-page-surface, rgba(22, 34, 57, .62));
 }
 
 .glossary-category-label {
@@ -184,7 +184,7 @@
 
 .glossary-term h2 {
     margin: 0 0 5px;
-    color: #fff;
+    color: var(--theme-page-text, #fff);
     font-size: 1.28rem;
     font-weight: 900;
     letter-spacing: 0;
@@ -192,7 +192,7 @@
 
 .glossary-term strong {
     display: block;
-    color: #99a6ba;
+    color: var(--theme-page-muted, #99a6ba);
     font-size: .8rem;
     line-height: 1.45;
 }
@@ -200,7 +200,7 @@
 .glossary-meaning p,
 .glossary-example p {
     margin: 0;
-    color: #c3ccda;
+    color: var(--theme-page-text, #c3ccda);
     font-size: .88rem;
     line-height: 1.65;
 }
@@ -214,14 +214,14 @@
 
 .glossary-formula span,
 .glossary-example > span {
-    color: #67e8f9;
+    color: var(--theme-page-info, #67e8f9);
     font-size: .66rem;
     font-weight: 800;
     text-transform: uppercase;
 }
 
 .glossary-formula code {
-    color: #dbeafe;
+    color: var(--theme-page-text, #dbeafe);
     font-family: inherit;
     font-size: .8rem;
     font-weight: 700;
@@ -232,16 +232,16 @@
     border-left: 2px solid rgba(251, 191, 36, .34);
 }
 
-.glossary-example p { margin-top: 7px; color: #aeb9cc; }
+.glossary-example p { margin-top: 7px; color: var(--theme-page-muted, #aeb9cc); }
 
 .glossary-empty {
     padding: 72px 20px;
     text-align: center;
-    color: #8794a9;
+    color: var(--theme-page-muted, #8794a9);
 }
 
 .glossary-empty i { margin-bottom: 14px; color: #fbbf24; font-size: 1.8rem; }
-.glossary-empty h2 { margin: 0 0 7px; color: #fff; font-size: 1.15rem; }
+.glossary-empty h2 { margin: 0 0 7px; color: var(--theme-page-text, #fff); font-size: 1.15rem; }
 .glossary-empty p { margin: 0; }
 
 @media (max-width: 900px) {

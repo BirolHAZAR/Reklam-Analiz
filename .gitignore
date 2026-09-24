@@ -1,0 +1,3 @@
+# Local archives must not be committed. GitHub rejects files larger than 100 MB.
+/instagram_reklam_analiz.zip
+*.zip

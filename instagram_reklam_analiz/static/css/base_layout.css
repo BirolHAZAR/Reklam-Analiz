@@ -235,6 +235,19 @@
 .footer a:hover { color: var(--accent-cyan); }
 .footer hr { border-color:rgba(139,132,255,.18); }
 .footer-muted-note { color:var(--text-muted); }
+.footer-company { display:flex; flex-wrap:wrap; align-items:center; gap:8px 24px; margin:12px 0 0; padding-top:12px; border-top:1px solid rgba(139,132,255,.18); font-style:normal; font-size:.82rem; line-height:1.7; }
+.footer-company > strong { flex-basis:100%; color:var(--text); font-size:.84rem; font-weight:700; line-height:1.65; }
+.footer-company-row:first-of-type { flex:0 0 100%; }
+.footer-company-row { display:grid; grid-template-columns:26px minmax(0,1fr); align-items:start; column-gap:12px; min-width:0; max-width:100%; }
+.footer-company-row > i { display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:8px; background:rgba(108,99,255,.10); color:var(--accent-cyan); font-size:.75rem; line-height:1; }
+.footer-company-row > span,.footer-company-row > a { padding-top:2px; }
+.footer-company-row > span,.footer-company-row > a { min-width:0; overflow-wrap:anywhere; }
+.footer-company-mobiles { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; line-height:1.7; }
+.footer-phone-divider { color:var(--text-muted); }
+.footer-company a[href^="tel:"] { white-space:nowrap; font-variant-numeric:tabular-nums; }
+.footer a:focus-visible { outline:2px solid currentColor; outline-offset:3px; border-radius:2px; }
+html[data-theme="light"] .footer-company > strong { color:#1e293b; }
+html[data-theme="light"] .footer-company-row > i { color:#4338ca; background:#eeecff; }
 
         .toast-global-container { position: fixed; top: 104px; right: 20px; z-index: 9999; }
         .toast-global { background: rgba(10,16,40,.98); border-left: 4px solid var(--accent); border-radius: 16px; color:var(--text); box-shadow: var(--shadow-soft); margin-bottom:10px; overflow:hidden; }
@@ -968,12 +981,6 @@
         .ra-sidebar .nav-item.open .dropdown-menu-nav { display: block !important; }
         .ra-sidebar .nav-item.dropdown:hover .dropdown-menu-nav { display: none !important; }
         .ra-sidebar .nav-item.dropdown.open:hover .dropdown-menu-nav { display: block !important; }
-        .ra-sidebar .nav-item.public-corporate > .dropdown-menu-nav { display: block !important; }
-        .ra-sidebar .nav-item.public-corporate > .nav-link {
-            background: rgba(108,99,255,.18) !important;
-            color: #ffffff !important;
-            box-shadow: inset 0 0 0 1px rgba(139,132,255,.24);
-        }
         .ra-sidebar .dropdown-item-nav {
             padding: .62rem .68rem !important;
             border-radius: 13px !important;

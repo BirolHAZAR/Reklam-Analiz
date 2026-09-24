@@ -18,7 +18,7 @@
   border-radius: 999px;
   background: rgba(34, 197, 94, 0.10);
   border: 1px solid rgba(34, 197, 94, 0.18);
-  color: rgba(187, 247, 208, 0.94);
+  color: var(--theme-page-muted, rgba(187, 247, 208, 0.94));
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -45,7 +45,7 @@
 .octo-task-head small {
   display: block;
   margin-top: 5px;
-  color: rgba(226, 232, 240, 0.62);
+  color: var(--theme-page-text, rgba(226, 232, 240, 0.62));
   font-size: 11px;
   line-height: 1.25;
 }
@@ -56,7 +56,7 @@
   place-items: center;
   padding: 8px 10px;
   border-radius: 14px;
-  background: rgba(15, 23, 42, 0.36);
+  background: var(--theme-page-surface, rgba(15, 23, 42, 0.36));
   border: 1px solid rgba(148, 163, 184, 0.12);
   text-align: center;
 }
@@ -73,7 +73,7 @@
   margin-top: 4px;
   font-size: 9.5px;
   line-height: 1;
-  color: rgba(226, 232, 240, 0.58);
+  color: var(--theme-page-text, rgba(226, 232, 240, 0.58));
 }
 
 .octo-task-section-list {
@@ -88,7 +88,7 @@
   min-width: 0;
   border-radius: 18px;
   padding: 11px;
-  background: rgba(15, 23, 42, 0.30);
+  background: var(--theme-page-surface, rgba(15, 23, 42, 0.30));
   border: 1px solid rgba(148, 163, 184, 0.12);
   display: flex;
   flex-direction: column;
@@ -121,7 +121,7 @@
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.07);
-  color: rgba(248, 250, 252, 0.86);
+  color: var(--theme-page-text, rgba(248, 250, 252, 0.86));
   font-size: 13px;
 }
 
@@ -131,7 +131,7 @@
 
 .octo-task-section-title strong {
   display: block;
-  color: rgba(248, 250, 252, 0.96);
+  color: var(--theme-page-text, rgba(248, 250, 252, 0.96));
   font-size: 12.5px;
   line-height: 1.18;
   font-weight: 900;
@@ -143,7 +143,7 @@
 .octo-task-section-title span {
   display: block;
   margin-top: 3px;
-  color: rgba(226, 232, 240, 0.52);
+  color: var(--theme-page-text, rgba(226, 232, 240, 0.52));
   font-size: 10.5px;
   line-height: 1.2;
 }
@@ -167,13 +167,13 @@
   margin-top: 3px;
   font-size: 9px;
   line-height: 1;
-  color: rgba(226, 232, 240, 0.48);
+  color: var(--theme-page-text, rgba(226, 232, 240, 0.48));
 }
 
 .octo-task-section-note {
   min-height: 30px;
   margin: 8px 0 9px;
-  color: rgba(226, 232, 240, 0.55);
+  color: var(--theme-page-text, rgba(226, 232, 240, 0.55));
   font-size: 10.5px;
   line-height: 1.35;
 }
@@ -208,7 +208,7 @@
 
 .octo-task-campaign-card:hover {
   transform: translateY(-1px);
-  background: rgba(15, 23, 42, 0.42);
+  background: var(--theme-page-surface, rgba(15, 23, 42, 0.42));
   border-color: rgba(148, 163, 184, 0.20);
   color: inherit;
   text-decoration: none;
@@ -223,7 +223,7 @@
   align-items: center;
   gap: 5px;
   margin-bottom: 4px;
-  color: rgba(125, 211, 252, 0.82);
+  color: var(--theme-page-info, rgba(125, 211, 252, 0.82));
   font-size: 9.5px;
   line-height: 1;
   font-weight: 800;
@@ -234,7 +234,7 @@
 .octo-task-campaign-left strong {
   display: block;
   max-width: 100%;
-  color: rgba(248, 250, 252, 0.92);
+  color: var(--theme-page-text, rgba(248, 250, 252, 0.92));
   font-size: 11.5px;
   line-height: 1.2;
   font-weight: 850;
@@ -245,7 +245,7 @@
 
 .octo-task-campaign-left p {
   margin: 4px 0 0;
-  color: rgba(226, 232, 240, 0.58);
+  color: var(--theme-page-text, rgba(226, 232, 240, 0.58));
   font-size: 10.5px;
   line-height: 1.28;
   display: -webkit-box;
@@ -264,7 +264,7 @@
 }
 
 .octo-task-campaign-right em {
-  color: rgba(248, 250, 252, 0.94);
+  color: var(--theme-page-text, rgba(248, 250, 252, 0.94));
   font-size: 13px;
   line-height: 1;
   font-style: normal;
@@ -273,7 +273,7 @@
 
 .octo-task-campaign-right span {
   margin-top: 3px;
-  color: rgba(226, 232, 240, 0.44);
+  color: var(--theme-page-text, rgba(226, 232, 240, 0.44));
   font-size: 8.5px;
   line-height: 1;
   font-weight: 700;
@@ -288,7 +288,7 @@
   padding: 10px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.045);
-  color: rgba(226, 232, 240, 0.58);
+  color: var(--theme-page-text, rgba(226, 232, 240, 0.58));
   font-size: 11px;
   line-height: 1.3;
   text-align: center;
@@ -307,12 +307,12 @@
 
 .octo-task-empty.main strong {
   font-size: 13px;
-  color: rgba(248, 250, 252, 0.88);
+  color: var(--theme-page-text, rgba(248, 250, 252, 0.88));
 }
 
 .octo-task-empty.main span {
   font-size: 11px;
-  color: rgba(226, 232, 240, 0.54);
+  color: var(--theme-page-text, rgba(226, 232, 240, 0.54));
 }
 
 @media (max-width: 1280px) {
@@ -363,7 +363,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(2, 6, 23, 0.76);
+  background: var(--theme-page-surface, rgba(2, 6, 23, 0.76));
   backdrop-filter: blur(12px);
   box-sizing: border-box;
 }
@@ -381,7 +381,7 @@
   flex-direction: column;
   overflow: hidden;
   border-radius: 26px;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.99), rgba(2, 6, 23, 0.99));
+  background: linear-gradient(180deg, var(--theme-page-surface, rgba(15, 23, 42, 0.99)), var(--theme-page-surface, rgba(2, 6, 23, 0.99)));
   border: 1px solid rgba(148, 163, 184, 0.22);
   box-shadow: 0 44px 140px rgba(0, 0, 0, 0.64);
 }
@@ -400,7 +400,7 @@
 
 .octo-task-campaign-modal-head span {
   display: block;
-  color: rgba(148, 163, 184, 0.92);
+  color: var(--theme-page-muted, rgba(148, 163, 184, 0.92));
   font-size: 11px;
   font-weight: 900;
   letter-spacing: .08em;
@@ -411,7 +411,7 @@
   display: block;
   margin-top: 4px;
   max-width: min(690px, calc(100vw - 270px));
-  color: #fff;
+  color: var(--theme-page-text, #fff);
   font-size: 17px;
   line-height: 1.2;
   font-weight: 950;
@@ -436,7 +436,7 @@
   border-radius: 999px;
   background: rgba(34, 197, 94, 0.12);
   border: 1px solid rgba(34, 197, 94, 0.22);
-  color: rgba(187, 247, 208, 0.96);
+  color: var(--theme-page-muted, rgba(187, 247, 208, 0.96));
   font-size: 11px;
   font-weight: 900;
   text-decoration: none;
@@ -450,7 +450,7 @@
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.09);
-  color: #fff;
+  color: var(--theme-page-text, #fff);
   font-size: 24px;
   line-height: 1;
   cursor: pointer;
@@ -460,7 +460,7 @@
   min-height: 0;
   overflow: auto;
   padding: 18px;
-  color: #fff;
+  color: var(--theme-page-text, #fff);
 }
 
 .octo-task-campaign-loading,
@@ -469,7 +469,7 @@
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(148, 163, 184, 0.14);
-  color: rgba(226, 232, 240, 0.84);
+  color: var(--theme-page-text, rgba(226, 232, 240, 0.84));
   font-size: 13px;
   line-height: 1.5;
 }
@@ -500,14 +500,14 @@
 .octo-task-popup-score span,
 .octo-task-popup-label span {
   display: block;
-  color: rgba(226, 232, 240, .68);
+  color: var(--theme-page-text, rgba(226, 232, 240, .68));
   font-size: 11px;
   font-weight: 800;
 }
 
 .octo-task-popup-label strong {
   display: block;
-  color: #fff;
+  color: var(--theme-page-text, #fff);
   font-size: 16px;
   font-weight: 950;
   margin-bottom: 4px;
@@ -530,7 +530,7 @@
 
 .octo-task-popup-kpis span {
   display: block;
-  color: rgba(148, 163, 184, 0.9);
+  color: var(--theme-page-muted, rgba(148, 163, 184, 0.9));
   font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
@@ -539,7 +539,7 @@
 
 .octo-task-popup-kpis strong {
   display: block;
-  color: #fff;
+  color: var(--theme-page-text, #fff);
   font-size: 14px;
   font-weight: 950;
   white-space: nowrap;
@@ -555,7 +555,7 @@
 
 .octo-task-popup-box h4 {
   margin: 0 0 10px;
-  color: #fff;
+  color: var(--theme-page-text, #fff);
   font-size: 14px;
   font-weight: 950;
 }
@@ -563,7 +563,7 @@
 .octo-task-popup-box ul {
   margin: 0;
   padding-left: 18px;
-  color: rgba(226, 232, 240, 0.74);
+  color: var(--theme-page-text, rgba(226, 232, 240, 0.74));
   font-size: 12.5px;
   line-height: 1.6;
 }
@@ -610,7 +610,7 @@ body.octo-task-modal-lock {
   border-radius: 14px;
   background: rgba(59, 130, 246, 0.10);
   border: 1px solid rgba(96, 165, 250, 0.20);
-  color: rgba(219, 234, 254, 0.92);
+  color: var(--theme-page-text, rgba(219, 234, 254, 0.92));
   font-size: 12px;
   line-height: 1.45;
 }
@@ -637,7 +637,7 @@ body.octo-task-modal-lock {
   font-weight:900;
   letter-spacing:.05em;
   text-transform:uppercase;
-  color:rgba(226,232,240,.72);
+  color:var(--theme-page-text, rgba(226,232,240,.72));
 }
 
 .octo-task-source-head span{
@@ -653,9 +653,9 @@ body.octo-task-modal-lock {
   align-items:center;
   justify-content:center;
   border-radius:999px;
-  background:rgba(15,23,42,.82);
+  background:var(--theme-page-surface, rgba(15,23,42,.82));
   border:1px solid rgba(148,163,184,.18);
-  color:#f8fafc;
+  color:var(--theme-page-text, #f8fafc);
   font-style:normal;
 }
 

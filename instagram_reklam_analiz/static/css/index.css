@@ -46,7 +46,7 @@
     position: relative;
     z-index: 1;
     text-align: center;
-    color: white;
+    color: var(--theme-page-text, white);
     max-width: 900px;
     margin: 0 auto;
     padding: 4rem 2rem;
@@ -165,7 +165,7 @@
     border-radius: 50px;
     font-size: 0.875rem;
     font-weight: 600;
-    color: #667eea;
+    color: var(--theme-page-info, #667eea);
     margin-bottom: 1rem;
 }
 
@@ -233,7 +233,7 @@
 
 .feature-icon i {
     font-size: 2.5rem;
-    color: #667eea;
+    color: var(--theme-page-info, #667eea);
     position: relative;
     z-index: 1;
 }
@@ -337,7 +337,7 @@
 
 .step-icon i {
     font-size: 2rem;
-    color: #667eea;
+    color: var(--theme-page-info, #667eea);
 }
 
 .step-title {
@@ -354,14 +354,14 @@
 }
 
 .step-time {
-    color: #667eea;
+    color: var(--theme-page-info, #667eea);
     font-size: 0.875rem;
     font-weight: 600;
 }
 
 .step-arrow {
     font-size: 2rem;
-    color: #667eea;
+    color: var(--theme-page-info, #667eea);
 }
 
 /* ---------- Analiz Bölümü ---------- */
@@ -483,7 +483,7 @@
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-    background: linear-gradient(135deg, #0f172a, #1e1b4b);
+    background: linear-gradient(135deg, var(--theme-page-surface, #0f172a), var(--theme-page-surface, #1e1b4b));
     min-height: 400px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -512,7 +512,7 @@
     padding: 0.4rem 0.8rem;
     border-radius: 50px;
     font-size: 0.7rem;
-    color: white;
+    color: var(--theme-page-text, white);
     pointer-events: none;
 }
 
@@ -587,13 +587,13 @@
 
 .stat-icon i {
     font-size: 1.5rem;
-    color: #667eea;
+    color: var(--theme-page-info, #667eea);
 }
 
 .stat-card-big .stat-number {
     font-size: 2.5rem;
     font-weight: 800;
-    color: #667eea;
+    color: var(--theme-page-info, #667eea);
 }
 
 .stat-card-big .stat-label {
@@ -683,7 +683,7 @@
 
 .cta-card {
     text-align: center;
-    color: white;
+    color: var(--theme-page-text, white);
 }
 
 .cta-title {

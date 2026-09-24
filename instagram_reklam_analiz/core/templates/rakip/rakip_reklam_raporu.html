@@ -191,11 +191,11 @@
     
     .phone-frame {
         width: 390px; max-width: 95vw; height: 750px; max-height: 90vh;
-        background: #0f172a; border-radius: 40px; padding: 12px;
+        background: var(--theme-page-surface, #0f172a); border-radius: 40px; padding: 12px;
         box-shadow: 0 30px 60px rgba(0,0,0,0.4), 0 0 0 3px #1e293b, 0 0 0 6px #0f172a;
         position: relative;
     }
-    .phone-notch { width: 140px; height: 28px; background: #0f172a; border-radius: 0 0 18px 18px; margin: 0 auto 6px; }
+    .phone-notch { width: 140px; height: 28px; background: var(--theme-page-surface, #0f172a); border-radius: 0 0 18px 18px; margin: 0 auto 6px; }
     
     .phone-screen {
         background: white; border-radius: 28px;
@@ -214,7 +214,7 @@
     }
     .phone-app-header .back-btn, .phone-app-header .menu-dots {
         background: rgba(255,255,255,0.2); border: none;
-        color: white; width: 28px; height: 28px; border-radius: 50%;
+        color: var(--theme-page-text, white); width: 28px; height: 28px; border-radius: 50%;
         font-size: 0.9rem; cursor: pointer;
         display: flex; align-items: center; justify-content: center;
     }
@@ -228,7 +228,7 @@
         display: flex; align-items: center; justify-content: center;
     }
     .phone-media-area img, .phone-media-area video { width: 100%; height: 100%; object-fit: cover; }
-    .phone-media-area .no-media { color: #94a3b8; font-size: 0.8rem; text-align: center; }
+    .phone-media-area .no-media { color: var(--theme-page-muted, #94a3b8); font-size: 0.8rem; text-align: center; }
     
     .phone-ad-title { font-size: 1rem; font-weight: 700; color: #0f172a; margin-bottom: 2px; }
     .phone-ad-account { font-size: 0.75rem; color: var(--gray); margin-bottom: 8px; }
@@ -242,7 +242,7 @@
     }
     .accordion-header:hover { background: #f1f5f9; }
     .accordion-header .acc-title { font-size: 0.7rem; font-weight: 700; color: #334155; text-transform: uppercase; }
-    .accordion-header .acc-icon { font-size: 0.7rem; color: #64748b; transition: transform 0.3s; }
+    .accordion-header .acc-icon { font-size: 0.7rem; color: var(--theme-page-muted, #64748b); transition: transform 0.3s; }
     .accordion-section.open .accordion-header .acc-icon { transform: rotate(180deg); }
     .accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.35s; }
     .accordion-section.open .accordion-body { max-height: 800px; }
@@ -266,8 +266,8 @@
     .phone-metric-full .pmf-value { font-size: 0.9rem; font-weight: 700; color: #0f172a; }
     
     .heatmap-bar { display: flex; height: 28px; border-radius: 8px; overflow: hidden; gap: 2px; margin-bottom: 6px; }
-    .heatmap-segment { display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; color: white; }
-    .heatmap-labels { display: flex; justify-content: space-between; font-size: 0.6rem; color: #64748b; }
+    .heatmap-segment { display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; color: var(--theme-page-text, white); }
+    .heatmap-labels { display: flex; justify-content: space-between; font-size: 0.6rem; color: var(--theme-page-muted, #64748b); }
     
     .demographic-bar-container { margin-bottom: 6px; }
     .demographic-bar-label { display: flex; justify-content: space-between; font-size: 0.65rem; font-weight: 500; color: #475569; margin-bottom: 3px; }
@@ -281,12 +281,12 @@
     .close-phone-popup {
         position: absolute; top: -40px; right: 0;
         background: rgba(255,255,255,0.15); border: none;
-        color: white; width: 32px; height: 32px; border-radius: 50%;
+        color: var(--theme-page-text, white); width: 32px; height: 32px; border-radius: 50%;
         font-size: 1rem; cursor: pointer;
         display: flex; align-items: center; justify-content: center;
     }
     
-    .source-info { background: #f1f5f9; border-radius: 10px; padding: 10px; margin-top: 10px; text-align: center; font-size: 0.7rem; color: #64748b; }
+    .source-info { background: #f1f5f9; border-radius: 10px; padding: 10px; margin-top: 10px; text-align: center; font-size: 0.7rem; color: var(--theme-page-muted, #64748b); }
     
     @media (max-width: 768px) {
         .rapor-container { flex-direction: column; }

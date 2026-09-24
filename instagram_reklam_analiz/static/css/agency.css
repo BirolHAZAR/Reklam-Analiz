@@ -1,5 +1,5 @@
 .agency-page {
-    color: #f7f8ff;
+    color: var(--theme-page-text, #f7f8ff);
     padding: 28px 0 56px;
 }
 
@@ -25,7 +25,7 @@
 
 .agency-title p {
     margin: 0;
-    color: #aeb6cf;
+    color: var(--theme-page-muted, #aeb6cf);
 }
 
 .agency-actions {
@@ -45,7 +45,7 @@
     padding: 10px 14px;
     border: 1px solid rgba(139, 132, 255, 0.28);
     background: rgba(255, 255, 255, 0.06);
-    color: #fff;
+    color: var(--theme-page-text, #fff);
     text-decoration: none;
     font-weight: 850;
 }
@@ -71,7 +71,7 @@
 .agency-panel,
 .agency-client-card {
     border: 1px solid rgba(139, 132, 255, 0.18);
-    background: rgba(15, 20, 41, 0.82);
+    background: var(--theme-page-surface, rgba(15, 20, 41, 0.82));
     border-radius: 18px;
     box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
 }
@@ -82,7 +82,7 @@
 
 .agency-stat span {
     display: block;
-    color: #aeb6cf;
+    color: var(--theme-page-muted, #aeb6cf);
     font-size: .78rem;
     font-weight: 850;
     margin-bottom: 8px;
@@ -122,7 +122,7 @@
     align-items: center;
     padding: 14px;
     text-decoration: none;
-    color: #fff;
+    color: var(--theme-page-text, #fff);
 }
 
 .agency-client-logo,
@@ -147,7 +147,7 @@
 
 .agency-client-card p {
     margin: 0;
-    color: #aeb6cf;
+    color: var(--theme-page-muted, #aeb6cf);
     font-size: .82rem;
 }
 
@@ -161,7 +161,7 @@
     border-radius: 999px;
     padding: 6px 9px;
     background: rgba(255, 255, 255, 0.07);
-    color: #dfe4ff;
+    color: var(--theme-page-text, #dfe4ff);
     font-size: .72rem;
     font-weight: 850;
 }
@@ -175,13 +175,13 @@
 .agency-table td {
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     padding: 12px 8px;
-    color: #dfe4ff;
+    color: var(--theme-page-text, #dfe4ff);
     font-size: .86rem;
     text-align: left;
 }
 
 .agency-table th {
-    color: #aeb6cf;
+    color: var(--theme-page-muted, #aeb6cf);
     font-size: .74rem;
     text-transform: uppercase;
     letter-spacing: .04em;
@@ -191,7 +191,7 @@
     border: 1px dashed rgba(139, 132, 255, 0.28);
     border-radius: 16px;
     padding: 22px;
-    color: #aeb6cf;
+    color: var(--theme-page-muted, #aeb6cf);
     text-align: center;
 }
 
@@ -203,25 +203,25 @@
 .agency-form .form-select {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(139, 132, 255, 0.24);
-    color: #fff;
+    color: var(--theme-page-text, #fff);
 }
 
 .agency-form .form-select option,
 .agency-form select option {
-    background: #111832;
-    color: #f7f8ff;
+    background: var(--theme-page-surface, #111832);
+    color: var(--theme-page-text, #f7f8ff);
 }
 
 .agency-form .form-select option:checked,
 .agency-form select option:checked,
 .agency-form .form-select option:hover,
 .agency-form select option:hover {
-    background: #263168;
-    color: #ffffff;
+    background: var(--theme-page-surface, #263168);
+    color: var(--theme-page-text, #ffffff);
 }
 
 .agency-form label {
-    color: #dfe4ff;
+    color: var(--theme-page-text, #dfe4ff);
     font-weight: 850;
     margin-bottom: 6px;
 }
@@ -247,7 +247,7 @@
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.055);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #dfe4ff;
+    color: var(--theme-page-text, #dfe4ff);
     font-weight: 800;
 }
 
@@ -259,7 +259,7 @@
 
 .agency-menu-matrix h3 {
     margin: 0;
-    color: #fff;
+    color: var(--theme-page-text, #fff);
     font-size: 1rem;
     font-weight: 950;
 }
@@ -273,7 +273,7 @@
 
 .agency-menu-group > strong {
     display: block;
-    color: #fff;
+    color: var(--theme-page-text, #fff);
     margin-bottom: 10px;
     font-size: .9rem;
 }
@@ -289,7 +289,7 @@
     align-items: center;
     gap: 8px;
     margin: 0;
-    color: #dfe4ff;
+    color: var(--theme-page-text, #dfe4ff);
     font-size: .82rem;
     font-weight: 800;
 }

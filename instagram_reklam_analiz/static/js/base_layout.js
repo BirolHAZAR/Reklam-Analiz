@@ -249,6 +249,16 @@ function showToast(message, type = 'success', title = '') {
             document.querySelectorAll('.nav-item.dropdown.open, .user-menu.open').forEach(el => { if (el !== except) el.classList.remove('open'); });
         }
         document.addEventListener('DOMContentLoaded', function() {
+            // Keep content and mobile panels below every responsive header row.
+            const header = document.querySelector('.navbar');
+            if (header) {
+                const updateHeaderHeight = () => document.documentElement.style.setProperty(
+                    '--ra-header-height', `${Math.ceil(header.getBoundingClientRect().height)}px`
+                );
+                updateHeaderHeight();
+                if (window.ResizeObserver) new ResizeObserver(updateHeaderHeight).observe(header);
+                else window.addEventListener('resize', updateHeaderHeight);
+            }
             checkUrlForMessage();
             if (!window.__reklamAnalizNotificationsStarted) {
                 window.__reklamAnalizNotificationsStarted = true;

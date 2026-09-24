@@ -3,7 +3,7 @@
 /* Extracted from core/templates/rakip/rakip_analiz.html: rakip_analiz.html */
 .ad-type-badge {
         position: absolute; top: 10px; right: 10px;
-        background: rgba(0,0,0,0.7); color: white;
+        background: var(--theme-page-surface, rgba(0,0,0,0.7)); color: var(--theme-page-text, white);
         padding: 0.25rem 0.75rem; border-radius: 50px;
         font-size: 0.7rem; font-weight: 600; z-index: 10;
     }
@@ -11,7 +11,7 @@
         background: #f8f9ff; border-radius: 8px;
         padding: 5px 6px; text-align: center; font-size: 0.6rem;
     }
-    .metric-mini .label { color: #888; font-size: 0.55rem; }
+    .metric-mini .label { color: var(--theme-page-muted, #888); font-size: 0.55rem; }
     .metric-mini .value { font-weight: 700; font-size: 0.7rem; }
     .collapsible-section {
         border-top: 1px solid #eee; padding-top: 6px; margin-top: 6px;
@@ -23,7 +23,7 @@
     .demographic-row {
         display: flex; align-items: center; gap: 6px; margin-bottom: 2px; font-size: 0.55rem;
     }
-    .demographic-row .label { width: 35px; text-align: right; color: #888; }
+    .demographic-row .label { width: 35px; text-align: right; color: var(--theme-page-muted, #888); }
     .demographic-row .bar-container { flex: 1; background: #e5e7eb; border-radius: 3px; height: 12px; position: relative; }
     .demographic-row .bar-fill { height: 100%; border-radius: 3px; position: absolute; left: 0; top: 0; }
     .demographic-row .bar-value { width: 30px; font-weight: 600; font-size: 0.55rem; }
@@ -62,7 +62,7 @@
 /* Extracted from core/templates/rakip/rakip_analiz.html: rakip_analiz.html */
 .ad-type-badge {
         position: absolute; top: 10px; right: 10px;
-        background: rgba(0,0,0,0.7); color: white;
+        background: var(--theme-page-surface, rgba(0,0,0,0.7)); color: var(--theme-page-text, white);
         padding: 0.25rem 0.75rem; border-radius: 50px;
         font-size: 0.7rem; font-weight: 600; z-index: 10;
     }
@@ -70,7 +70,7 @@
         background: #f8f9ff; border-radius: 8px;
         padding: 5px 6px; text-align: center; font-size: 0.6rem;
     }
-    .metric-mini .label { color: #888; font-size: 0.55rem; }
+    .metric-mini .label { color: var(--theme-page-muted, #888); font-size: 0.55rem; }
     .metric-mini .value { font-weight: 700; font-size: 0.7rem; }
     .collapsible-section {
         border-top: 1px solid #eee; padding-top: 6px; margin-top: 6px;
@@ -82,7 +82,7 @@
     .demographic-row {
         display: flex; align-items: center; gap: 6px; margin-bottom: 2px; font-size: 0.55rem;
     }
-    .demographic-row .label { width: 35px; text-align: right; color: #888; }
+    .demographic-row .label { width: 35px; text-align: right; color: var(--theme-page-muted, #888); }
     .demographic-row .bar-container { flex: 1; background: #e5e7eb; border-radius: 3px; height: 12px; position: relative; }
     .demographic-row .bar-fill { height: 100%; border-radius: 3px; position: absolute; left: 0; top: 0; }
     .demographic-row .bar-value { width: 30px; font-weight: 600; font-size: 0.55rem; }
