@@ -51,7 +51,7 @@ class LegalDocumentTests(TestCase):
 
     def test_company_tokens_are_rendered_without_leaking_placeholders(self):
         settings_obj = LegalSiteSettings.load()
-        self.assertEqual(settings_obj.company_name, "HZR Yazılım Danışmanlık Dijital Paz. LTD ŞTİ")
+        self.assertEqual(settings_obj.company_name, "HZRSoft Yazılım Dijital Pazarlama Danışmanlık ve Ticaret")
         document = LegalDocument.objects.get(slug="mesafeli-satis-sozlesmesi")
         document.publish(self.staff)
 

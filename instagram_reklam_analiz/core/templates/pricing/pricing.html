@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block content %}
+<div class="container billing-terms">Yıllık seçimde gösterilen tutar 365 günlük dönemin tek seferde tahsil edilen toplamıdır. Aylık dönem 30 gündür. KDV dahil bedel ayrıca gösterilir. Otomatik yenileme yapılmaz. <a href="{% url 'delivery_terms' %}">Teslimat ve aktivasyon koşulları</a></div>
 <div class="pricing-page">
     <div class="pricing-wrap">
         <section class="pricing-hero">
@@ -77,9 +78,9 @@
                     {% endif %}
                 </p>
                 <div class="price-container">
-                    <div class="price-wrapper"><span class="currency">TL</span><span class="amount monthly-price">{{ plan.price|tr_int }}</span><span class="amount yearly-price">{{ plan.yearly_price|default:plan.price|tr_int }}</span><span class="period">/{% if current_language == "en" %}mo{% else %}ay{% endif %}</span></div>
-                    <div class="yearly-savings"><span class="original-price">TL {{ plan.price|tr_int }}</span><span class="save-badge">%20 {% if current_language == "en" %}discount{% else %}indirim{% endif %}</span></div>
-                    <div class="kdv-info">{% if current_language == "en" %}VAT included{% else %}KDV dahil{% endif %}: TL <span class="monthly-kdv">{{ plan.price_with_kdv|tr_int }}</span><span class="yearly-kdv">{{ plan.yearly_price_with_kdv|default:plan.price_with_kdv|tr_int }}</span> / {% if current_language == "en" %}month{% else %}ay{% endif %}</div>
+                    <div class="price-wrapper"><span class="currency">TL</span><span class="amount monthly-price">{{ plan.price|tr_decimal }}</span><span class="amount yearly-price">{{ plan.yearly_price|default:plan.price|tr_decimal }}</span><span class="period">/ <span class="billing-period-label">ay</span></span></div>
+                    <div class="yearly-savings"><span class="save-badge">%20 {% if current_language == "en" %}discount{% else %}indirim{% endif %}</span></div>
+                    <div class="kdv-info">{% if current_language == "en" %}VAT included{% else %}KDV dahil{% endif %}: TL <span class="monthly-kdv">{{ plan.price_with_kdv|tr_decimal }}</span><span class="yearly-kdv">{{ plan.yearly_price_with_kdv|default:plan.price_with_kdv|tr_decimal }}</span> / <span class="billing-period-label">ay</span></div>
                 </div>
                 <div class="plan-value-box">
                     {% if current_language == "en" %}
@@ -122,9 +123,9 @@
                 <div class="agency-card {% if plan.is_most_popular %}featured{% endif %}">
                     {% if plan.is_most_popular %}<div class="agency-ribbon">{% if current_language == "en" %}Ideal for agencies{% else %}Ajanslar iÃ§in ideal{% endif %}</div>{% endif %}
                     <div class="agency-card-head"><div class="agency-icon"><i class="fas fa-users-cog"></i></div><div><h3>{{ plan.display_name }}</h3><span>{{ plan.included_seats }} {% if current_language == "en" %}users{% else %}kullanÄ±cÄ±{% endif %} / {{ plan.client_limit_text }} {% if current_language == "en" %}client area{% else %}mÃ¼ÅŸteri alanÄ±{% endif %}</span></div></div>
-                    <div class="agency-price"><span>TL</span><strong class="monthly-price">{{ plan.price|tr_int }}</strong><strong class="yearly-price">{{ plan.yearly_price|default:plan.price|tr_int }}</strong><small>/{% if current_language == "en" %}mo{% else %}ay{% endif %}</small></div>
-                    <div class="yearly-savings agency-yearly-savings"><span class="original-price">TL {{ plan.price|tr_int }}</span><span class="save-badge">%20 {% if current_language == "en" %}discount{% else %}indirim{% endif %}</span></div>
-                    <div class="agency-kdv">{% if current_language == "en" %}VAT included{% else %}KDV dahil{% endif %}: TL <span class="monthly-kdv">{{ plan.price_with_kdv|tr_int }}</span><span class="yearly-kdv">{{ plan.yearly_price_with_kdv|default:plan.price_with_kdv|tr_int }}</span> / {% if current_language == "en" %}month{% else %}ay{% endif %}</div>
+                    <div class="agency-price"><span>TL</span><strong class="monthly-price">{{ plan.price|tr_decimal }}</strong><strong class="yearly-price">{{ plan.yearly_price|default:plan.price|tr_decimal }}</strong><small>/ <span class="billing-period-label">ay</span></small></div>
+                    <div class="yearly-savings agency-yearly-savings"><span class="save-badge">%20 {% if current_language == "en" %}discount{% else %}indirim{% endif %}</span></div>
+                    <div class="agency-kdv">{% if current_language == "en" %}VAT included{% else %}KDV dahil{% endif %}: TL <span class="monthly-kdv">{{ plan.price_with_kdv|tr_decimal }}</span><span class="yearly-kdv">{{ plan.yearly_price_with_kdv|default:plan.price_with_kdv|tr_decimal }}</span> / <span class="billing-period-label">ay</span></div>
                     <div class="plan-credit-box agency-credit-box"><i class="fas fa-bolt"></i><strong>{{ plan.ai_credits_per_month|tr_int }}</strong><span>{% if current_language == "en" %}monthly AI credits included{% else %}aylık AI kredi dahil{% endif %}</span></div>
                     <div class="plan-credit-box plan-product-box agency-credit-box"><i class="fas fa-magnifying-glass-chart"></i><strong>{{ plan.marketplace_product_research_per_month|tr_int }}</strong><span>{% if current_language == "en" %}monthly product research included{% else %}aylık ürün araştırma dahil{% endif %}</span></div>
                     <div class="plan-credit-box plan-price-check-box agency-credit-box"><i class="fas fa-chart-line"></i><strong>{{ plan.marketplace_price_check_per_month|tr_int }}</strong><span>{% if current_language == "en" %}monthly price checks included{% else %}aylık fiyat kontrol dahil{% endif %}</span></div>
@@ -144,8 +145,8 @@
                 <div class="credit-card product-credit-card">
                     <div class="credit-icon product-credit-icon"><i class="fas fa-magnifying-glass-chart"></i></div>
                     <h3>{{ package.display_name }}</h3>
-                    <div class="credit-price">TL {{ package.price|tr_int }} <span>+ KDV</span></div>
-                    <div class="credit-kdv">{% if current_language == "en" %}VAT included{% else %}KDV dahil{% endif %}: TL {{ package.price_with_kdv|tr_int }}</div>
+                    <div class="credit-price">TL {{ package.price|tr_decimal }} <span>+ KDV</span></div>
+                    <div class="credit-kdv">{% if current_language == "en" %}VAT included{% else %}KDV dahil{% endif %}: TL {{ package.price_with_kdv|tr_decimal }}</div>
                     {% if request.user.is_authenticated %}
                     <a href="{% url 'product_research_checkout' package.id %}" class="btn btn-select-plan btn-outline-gradient credit-buy-btn"><i class="fas fa-cart-shopping"></i> {% if current_language == "en" %}Buy{% else %}Satın Al{% endif %}</a>
                     {% else %}
@@ -167,8 +168,8 @@
                     <div class="credit-icon"><i class="fas fa-bolt"></i></div>
                     <h3>{{ package.display_name }}</h3>
                     <div class="credit-count">{{ package.credits }} {% if current_language == "en" %}credits{% else %}kredi{% endif %}</div>
-                    <div class="credit-price">TL {{ package.price|tr_int }} <span>+ KDV</span></div>
-                    <div class="credit-kdv">{% if current_language == "en" %}VAT included{% else %}KDV dahil{% endif %}: TL {{ package.price_with_kdv|tr_int }}</div>
+                    <div class="credit-price">TL {{ package.price|tr_decimal }} <span>+ KDV</span></div>
+                    <div class="credit-kdv">{% if current_language == "en" %}VAT included{% else %}KDV dahil{% endif %}: TL {{ package.price_with_kdv|tr_decimal }}</div>
                     {% if request.user.is_authenticated %}
                     <a href="{% url 'credit_checkout' package.id %}" class="btn btn-select-plan btn-outline-gradient credit-buy-btn"><i class="fas fa-cart-shopping"></i> {% if current_language == "en" %}Buy Credits{% else %}Satın Al{% endif %}</a>
                     {% else %}
@@ -193,5 +194,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{% static 'js/pricing.js' %}?v=20260701-agency-billing"></script>
+<script src="{% static 'js/pricing.js' %}?v=20260925-billing-period"></script>
 {% endblock %}

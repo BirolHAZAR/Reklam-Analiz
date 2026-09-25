@@ -1,9 +1,11 @@
 from django.urls import path
+from core.views.hosted_payment import hosted_payment_callback
 from core.views import payment, platform_connect
 from core.views.hesap_ekle import hesap_ekle_view, hesap_sil
 from core.views import platform_connect
 
 urlpatterns = [
+    path("payment/pos/callback/<uuid:session_id>/", hosted_payment_callback, name="hosted_payment_callback"),
     path(
         "platform-connections/",
         platform_connect.platform_connections,

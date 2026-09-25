@@ -6,12 +6,15 @@ from django.conf.urls.static import static
 from core.views.main import sentry_test_view
 from django.contrib import admin
 from django.views.generic import RedirectView
+from core.seo import robots_txt, sitemap_xml
 
 
 # Özel admin site'yi kullan
 
 
 urlpatterns = [
+    path('robots.txt', robots_txt, name='robots_txt'),
+    path('sitemap.xml', sitemap_xml, name='sitemap_xml'),
     path('admin/', admin.site.urls),
     #path('admin/', admin_site.urls), 
     path('', include('core.urls')),

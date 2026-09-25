@@ -482,7 +482,7 @@
                 <div>
                     <img src="{% static 'images/logo2.png' %}" alt="reklamanaliz.net" class="invoice-logo">
                     <p class="invoice-brand-sub mt-2 mb-0">Reklamlar&#305;n&#305;z&#305; veriyle g&#252;&#231;lendirin</p>
-                    <small class="invoice-brand-url">www.reklamanaliz.com</small>
+                    <small class="invoice-brand-url">www.reklamanaliz.net</small>
                 </div>
                 <div class="invoice-title">
                     <h2>Fatura</h2>
@@ -493,13 +493,13 @@
             <div class="info-section">
                 <div class="info-box">
                     <h6><i class="fas fa-building me-2"></i>Sat&#305;c&#305;</h6>
-                    <p class="company-name">HZR Bili&#351;im Yaz&#305;l&#305;m San. Tic. LTD &#350;T&#304;.</p>
-                    <p>Adres: Teknoloji Mah. &#304;novasyon Cad. No:42</p>
-                    <p>&#304;stanbul / T&#252;rkiye</p>
-                    <p>Vergi Dairesi: &#304;stanbul V.D.</p>
-                    <p>Vergi No: 1234567890</p>
-                    <p>Web: www.reklamanaliz.com</p>
-                    <p>E-posta: info@reklamanaliz.com</p>
+                    <p class="company-name">{{ company.company_name }}</p>
+                    <p>Adres: {{ company.address }}</p>
+
+                    {% if company.tax_office %}<p>Vergi Dairesi: {{ company.tax_office }}</p>{% endif %}
+                    {% if company.tax_number %}<p>Vergi No: {{ company.tax_number }}</p>{% endif %}
+                    <p>Web: www.reklamanaliz.net</p>
+                    <p>E-posta: {{ company.support_email }}</p>
                 </div>
 
                 <div class="info-box">
@@ -618,7 +618,7 @@
                 <i class="fas fa-shield-alt me-1"></i>
                 Bu fatura e-ar&#351;iv fatura olarak d&#252;zenlenmi&#351;tir. &#304;mza ve ka&#351;e gerektirmez.
                 <br>
-                <small>HZR Bili&#351;im Yaz&#305;l&#305;m San. Tic. LTD &#350;T&#304;. | www.reklamanaliz.com | info@reklamanaliz.com</small>
+                <small>{{ company.company_name }} | www.reklamanaliz.net | {{ company.support_email }}</small>
             </div>
         </div>
 

@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!toggles.length) return;
     function updateBilling(isYearly) {
         const billing = isYearly ? 'yearly' : 'monthly';
+        document.querySelectorAll('.billing-period-label').forEach(el => { el.textContent = isYearly ? 'yıl (toplam)' : 'ay'; });
         toggles.forEach(toggle => { toggle.checked = isYearly; });
         billingOptions.forEach(opt => {
             opt.classList.remove('active');

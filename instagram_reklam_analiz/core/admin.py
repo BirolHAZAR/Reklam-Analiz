@@ -160,15 +160,98 @@ class LegalDocumentAdmin(admin.ModelAdmin):
 @admin.register(LegalSiteSettings)
 class LegalSiteSettingsAdmin(admin.ModelAdmin):
     fieldsets = (
-        ("Şirket", {"fields": ("company_name", "brand_name", "address")}),
-        ("Resmi bilgiler", {"fields": ("tax_office", "tax_number", "mersis_number", "kep_address")}),
-        ("İletişim", {"fields": ("support_email", "kvkk_email", "phone")}),
+        ("Şirket", {"fields": ("company_name", "brand_name", "address"), "description": "Bu bilgiler footer, iletişim, sözleşmeler ve yeni ödeme belgelerinde ortak kullanılır. Resmi bilgileri doldurduktan sonra Hukuki Metinler sayfasından kontrol ettiğiniz belgeleri yayımlayın. Önceden kabul edilen sözleşme kopyaları değişmez."}),
+        ("Resmi bilgiler", {"fields": ("tax_office", "tax_number", "mersis_number", "trade_registry_number", "kep_address")}),
+        ("İletişim", {"fields": ("support_email", "kvkk_email", "phone", "mobile_phone", "secondary_phone")}),
+        ("Havale / EFT", {"fields": ("bank_name", "bank_account_holder", "bank_iban", "bank_transfer_days")}),
         ("Hizmet seviyesi", {"fields": ("sla_target",)}),
     )
     readonly_fields = ("updated_at",)
 
     def has_add_permission(self, request):
         return not LegalSiteSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+from core.models.payment_gateway import PaymentGatewaySettings, HostedPaymentSession
+
+
+class PaymentGatewaySettingsForm(forms.ModelForm):
+    secret_fields = ("iyzico_api_key", "iyzico_secret_key", "garanti_prov_password", "garanti_store_key")
+
+    class Meta:
+        model = PaymentGatewaySettings
+        fields = "__all__"
+        widgets = {name: forms.PasswordInput(render_value=False, attrs={"autocomplete": "new-password"}) for name in ("iyzico_api_key", "iyzico_secret_key", "garanti_prov_password", "garanti_store_key")}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in self.secret_fields:
+            self.fields[name].help_text = "Şifreli saklanır. Kayıtlı değeri korumak için boş bırakın; değiştirmek için yeni değeri girin."
+            self.initial[name] = ""
+
+    def clean(self):
+        cleaned = super().clean()
+        for name in self.secret_fields:
+            if not cleaned.get(name) and self.instance.pk:
+                cleaned[name] = getattr(self.instance, name)
+        return cleaned
+
+
+@admin.register(PaymentGatewaySettings)
+class PaymentGatewaySettingsAdmin(admin.ModelAdmin):
+    form = PaymentGatewaySettingsForm
+    fieldsets = (
+        ("Ödeme seçimi", {"fields": ("provider", "enabled", "sandbox", "public_origin"), "description": "Anlaştığınız sağlayıcıyı seçin. Test ortamı yalnızca personel kullanıcılarına açılır. Kart bilgileri sağlayıcının ödeme sayfasında girilir."}),
+        ("iyzico", {"fields": ("iyzico_api_key", "iyzico_secret_key")}),
+        ("Garanti BBVA Ortak Ödeme", {"fields": ("garanti_merchant_id", "garanti_terminal_id", "garanti_user_id", "garanti_prov_user", "garanti_prov_password", "garanti_store_key")}),
+    )
+
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return request.user.is_superuser and not PaymentGatewaySettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(HostedPaymentSession)
+class HostedPaymentSessionAdmin(admin.ModelAdmin):
+    fields = ("id", "payment", "provider", "verified", "created_at")
+    readonly_fields = fields
+    list_display = ("id", "payment", "provider", "verified", "created_at")
+    actions = ("recheck_payments",)
+
+    @admin.action(description="Seçili bekleyen işlemleri sağlayıcıdan tekrar doğrula", permissions=["recheck"])
+    def recheck_payments(self, request, queryset):
+        from core.services import hosted_gateway
+        from core.services.hosted_payment import complete_card_payment
+        for session in queryset.filter(verified=False, payment__status="pending")[:20]:
+            try:
+                complete_card_payment(session.pk, hosted_gateway.recheck(session))
+            except (hosted_gateway.GatewayError, ValueError):
+                self.message_user(request, f"{session.payment_id}: Ödeme onayı henüz doğrulanamadı.", messages.WARNING)
+            else:
+                self.message_user(request, f"{session.payment_id}: Ödeme doğrulandı.", messages.SUCCESS)
+
+    def has_recheck_permission(self, request):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
     def has_delete_permission(self, request, obj=None):
         return False

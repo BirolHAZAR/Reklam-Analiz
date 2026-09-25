@@ -9,7 +9,7 @@ class MaintenanceModeMiddleware:
     """Serve a 503 page for public requests while keeping administration usable."""
 
     CACHE_TIMEOUT = 10
-    EXEMPT_PREFIXES = ("/admin/", "/static/", "/media/", "/health/", "/healthz/")
+    EXEMPT_PREFIXES = ("/admin/", "/static/", "/media/", "/health/", "/healthz/", "/payment/pos/callback/")
     EXEMPT_PATHS = ("/favicon.ico", "/robots.txt")
 
     def __init__(self, get_response):

@@ -19,6 +19,8 @@ def _token_values(site_settings, document):
         "TAX_OFFICE": site_settings.tax_office,
         "TAX_NUMBER": site_settings.tax_number,
         "MERSIS_NUMBER": site_settings.mersis_number,
+        "TRADE_REGISTRY_NUMBER": site_settings.trade_registry_number,
+        "BANK_TRANSFER_DAYS": str(site_settings.bank_transfer_days),
         "KEP_ADDRESS": site_settings.kep_address,
         "SUPPORT_EMAIL": site_settings.support_email,
         "KVKK_EMAIL": site_settings.kvkk_email,
@@ -57,7 +59,7 @@ def legal_document_detail(request, slug):
         raise Http404
 
     site_settings = LegalSiteSettings.load()
-    return render(
+    response = render(
         request,
         "legal/detail.html",
         {
@@ -67,3 +69,6 @@ def legal_document_detail(request, slug):
             "is_preview": document.status != LegalDocument.STATUS_PUBLISHED,
         },
     )
+    if document.status != LegalDocument.STATUS_PUBLISHED:
+        response["X-Robots-Tag"] = "noindex, nofollow"
+    return response

@@ -32,6 +32,17 @@ from core.services.bank_transfer_approval import approve_bank_transfer_payment
 )
 class PurchaseFlowTests(TestCase):
     def setUp(self):
+        from core.models import LegalDocument, LegalSiteSettings, PaymentGatewaySettings
+        LegalDocument.objects.all().update(status="published")
+        company = LegalSiteSettings.load()
+        company.bank_name = "Test Bank"
+        company.bank_account_holder = "Test Company"
+        company.bank_iban = "TR330006100519786457841326"
+        company.save()
+        PaymentGatewaySettings.objects.create(enabled=True, sandbox=False, iyzico_api_key="test-key", iyzico_secret_key="test-secret")
+        initialization = patch("core.services.hosted_gateway.initialize", return_value={"redirect": "https://api.iyzipay.com/checkoutform/test"})
+        initialization.start()
+        self.addCleanup(initialization.stop)
         User = get_user_model()
         self.user = User.objects.create_user(
             username="buyer",
@@ -130,8 +141,13 @@ class PurchaseFlowTests(TestCase):
                 reverse("credit_checkout", args=[self.ai_package.id]),
                 self.card_payload(),
             )
-        self.assertRedirects(response, reverse("payment_success"), fetch_redirect_response=False)
+        self.assertRedirects(response, "https://api.iyzipay.com/checkoutform/test", fetch_redirect_response=False)
         payment = Payment.objects.get(ai_credit_package=self.ai_package, user=self.user)
+        self.assertEqual(payment.status, "pending")
+        from core.services.hosted_payment import complete_card_payment
+        with self.captureOnCommitCallbacks(execute=True):
+            complete_card_payment(payment.hosted_session.pk, {"reference": "test-ai"})
+        payment.refresh_from_db()
         self.assertEqual(payment.status, "completed")
         self.assertEqual(payment.amount, Decimal("120.00"))
         self.assertTrue(PaymentTransaction.objects.filter(payment=payment, status="success").exists())
@@ -161,8 +177,11 @@ class PurchaseFlowTests(TestCase):
             reverse("product_research_checkout", args=[self.research_package.id]),
             self.card_payload(),
         )
-        self.assertRedirects(response, reverse("payment_success"), fetch_redirect_response=False)
+        self.assertRedirects(response, "https://api.iyzipay.com/checkoutform/test", fetch_redirect_response=False)
         payment = Payment.objects.get(product_research_package=self.research_package, user=self.user)
+        from core.services.hosted_payment import complete_card_payment
+        complete_card_payment(payment.hosted_session.pk, {"reference": "test-research"})
+        payment.refresh_from_db()
         self.assertEqual(payment.status, "completed")
         self.assertTrue(PaymentTransaction.objects.filter(payment=payment, status="success").exists())
         self.assertTrue(Invoice.objects.filter(user=self.user, total_amount=payment.amount, is_paid=True).exists())
@@ -210,8 +229,10 @@ class PurchaseFlowTests(TestCase):
             reverse("checkout", args=[self.plan.id]),
             self.card_payload(referral_code=code.code),
         )
-        self.assertRedirects(response, reverse("payment_success"), fetch_redirect_response=False)
+        self.assertRedirects(response, "https://api.iyzipay.com/checkoutform/test", fetch_redirect_response=False)
         payment = Payment.objects.get(user=self.user, plan=self.plan)
+        from core.services.hosted_payment import complete_card_payment
+        complete_card_payment(payment.hosted_session.pk, {"reference": "test-plan"})
         self.assertEqual(payment.amount, Decimal("1080.00"))
         reward = ReferralReward.objects.get(referral_code=code, referred_user=self.user)
         self.assertEqual(reward.status, ReferralReward.STATUS_AWARDED)

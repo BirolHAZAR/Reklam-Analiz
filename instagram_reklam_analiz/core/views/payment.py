@@ -36,7 +36,7 @@ from core.services.entitlements import (
 )
 from core.services.cache_service import CacheService
 from core.services.product_research_credits import add_product_research_units
-from core.services.payment_methods import save_payment_method_from_checkout
+from core.services.hosted_payment import start_card_payment
 from core.services.legal_documents import queue_purchase_legal_email, record_purchase_acceptance
 from core.services.referrals import (
     award_referral_for_subscription,
@@ -49,7 +49,7 @@ from core.services.referrals import (
 
 
 PRICING_CACHE_TIMEOUT = 900
-BANK_TRANSFER_NOTICE_EMAIL = "birolhazar@gmail.com"
+
 
 
 def _invoice_text(value, fallback="-"):
@@ -128,6 +128,8 @@ def _draw_wrapped_text(canvas, text, x, y, max_width, font_name, font_size, lead
 
 
 def _build_invoice_pdf(invoice):
+    from core.models import LegalSiteSettings
+    company = LegalSiteSettings.load()
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
@@ -167,7 +169,7 @@ def _build_invoice_pdf(invoice):
         logo_height = 16 * mm
 
     text(margin, y - logo_height - 10, "Reklamlarınızı veriyle güçlendirin", 9, regular_font, muted)
-    text(margin, y - logo_height - 23, "www.reklamanaliz.com", 9, regular_font, muted)
+    text(margin, y - logo_height - 23, "reklamanaliz.net", 9, regular_font, muted)
 
     text(width - margin, y - 8, "FATURA", 25, bold_font, dark, right=True)
     text(width - margin, y - 26, f"#{invoice.invoice_number}", 11, bold_font, purple, right=True)
@@ -189,19 +191,13 @@ def _build_invoice_pdf(invoice):
     right_x = margin + box_width + box_gap + 5 * mm
     top_y = y - 7 * mm
     text(left_x, top_y, "SATICI", 9, bold_font, muted)
-    text(left_x, top_y - 14, "HZR Bilişim Yazılım San. Tic. LTD ŞTİ.", 10, bold_font, dark)
-    seller_lines = [
-        "Adres: Teknoloji Mah. İnovasyon Cad. No:42",
-        "İstanbul / Türkiye",
-        "Vergi Dairesi: İstanbul V.D.",
-        "Vergi No: 1234567890",
-        "Web: www.reklamanaliz.com",
-        "E-posta: info@reklamanaliz.com",
-    ]
-    line_y = top_y - 28
+    line_y = _draw_wrapped_text(pdf, company.company_name, left_x, top_y - 14, box_width - 10 * mm, bold_font, 8.5, 11)
+    seller_lines = [company.address]
+    if company.tax_office: seller_lines.append(f"Vergi Dairesi: {company.tax_office}")
+    if company.tax_number: seller_lines.append(f"Vergi No: {company.tax_number}")
+    seller_lines.append(f"reklamanaliz.net | {company.support_email}")
     for item in seller_lines:
-        text(left_x, line_y, item, 8.5, regular_font, dark)
-        line_y -= 11
+        line_y = _draw_wrapped_text(pdf, item, left_x, line_y, box_width - 10 * mm, regular_font, 7.5, 10)
 
     billing = invoice.billing_info
     customer_name = (
@@ -293,7 +289,7 @@ def _build_invoice_pdf(invoice):
     pdf.setFillColor(muted)
     pdf.setFont(regular_font, 8.5)
     pdf.drawCentredString(width / 2, footer_y, "Bu fatura e-arşiv fatura olarak düzenlenmiştir. İmza ve kaşe gerektirmez.")
-    pdf.drawCentredString(width / 2, footer_y - 11, "HZR Bilişim Yazılım San. Tic. LTD ŞTİ. | www.reklamanaliz.com | info@reklamanaliz.com")
+    pdf.drawCentredString(width / 2, footer_y - 11, f"{company.company_name} | reklamanaliz.net")
 
     pdf.showPage()
     pdf.save()
@@ -406,7 +402,8 @@ def _get_or_create_billing_info(user, cleaned_data):
 
 
 def _send_bank_transfer_notice(request, billing_info, payment, item_name, details):
-    recipient = getattr(settings, "BANK_TRANSFER_NOTICE_EMAIL", BANK_TRANSFER_NOTICE_EMAIL)
+    from core.models import LegalSiteSettings
+    recipient = LegalSiteSettings.load().support_email
     subject = f"Havale/EFT ödeme bildirimi - {item_name}"
     message = "\n".join([
         "Yeni havale/EFT ödeme bildirimi alındı.",
@@ -497,6 +494,8 @@ def _remember_payment_result(request, payment, *, title, detail, pending=False):
 
 @transaction.atomic
 def _create_addon_payment(*, user, billing_info, package, payment_method, kind):
+    if payment_method != "bank_transfer":
+        raise ValueError("Kart işlemleri doğrulanmış POS akışından tamamlanmalıdır.")
     if kind == "ai_credit":
         relation = {"ai_credit_package": package}
         note = f"AI kredi paketi: {package.display_name} ({package.credits} kredi)"
@@ -516,7 +515,7 @@ def _create_addon_payment(*, user, billing_info, package, payment_method, kind):
         amount=package.price_with_kdv,
         kdv_amount=package.price_with_kdv - package.price,
         payment_method=payment_method,
-        status="pending" if is_bank_transfer else "completed",
+        status="pending",
         notes=note,
         **relation,
     )
@@ -531,40 +530,13 @@ def _create_addon_payment(*, user, billing_info, package, payment_method, kind):
         )
         return payment
 
-    if kind == "ai_credit":
-        add_ai_credits(
-            user=user,
-            amount=package.credits,
-            action=AICreditLedger.ACTION_PURCHASE,
-            package=package,
-            reference=f"ai-credit-package:{package.id}:{payment.id}",
-            note=f"{package.display_name} satın alındı.",
-        )
-    else:
-        add_product_research_units(
-            user=user,
-            amount=package.units,
-            package=package,
-            reference=f"product-research-package:{package.id}:{payment.id}",
-            note=f"{package.display_name} satın alındı. Haklar yalnızca içinde bulunulan ay için geçerlidir.",
-        )
-
-    _payment_transaction(payment, f"Demo kart ödemesi - {description}")
-    _payment_invoice(
-        payment,
-        net_amount=package.price,
-        description=description,
-        is_paid=True,
-        notes=note,
-    )
-    return payment
 
 @capture_errors
 def pricing_view(request):
     referral_code = (request.GET.get("ref") or "").strip().upper()
     if referral_code:
         request.session["checkout_referral_code"] = referral_code
-    version = f"{CacheService.get_version('pricing_public')}:pricing-layout-v9-pdf-feature-order"
+    version = f"{CacheService.get_version('pricing_public')}:pricing-layout-v10-pos-terms"
     cached_context = CacheService.get("pricing_public", "plans", version=version)
     if cached_context is not None:
         return render(request, 'pricing/pricing.html', cached_context)
@@ -664,6 +636,8 @@ def checkout(request, plan_id):
                     discounted_base_amount = max(base_amount - discount_amount, Decimal("0"))
                     kdv_amount = discounted_base_amount * kdv_rate
                     total_amount = discounted_base_amount + kdv_amount
+            if form.cleaned_data.get('payment_method') == 'credit_card':
+                return start_card_payment(request, form, plan=plan, billing_period=billing_period, amount=total_amount, kdv_amount=kdv_amount, referral_code=referral_code_value, referral_benefits=referral_benefits)
             transfer_details = _bank_transfer_details(request)
             selected_payment_method = form.cleaned_data.get('payment_method', 'credit_card')
             if selected_payment_method == "bank_transfer":
@@ -700,9 +674,6 @@ def checkout(request, plan_id):
                     invoice_note_parts.append(f"Promosyon odulu: {referral_benefits.get('reward_amount')} {referral_benefits.get('reward_type')}")
                 invoice_notes = "\n".join(invoice_note_parts)
                 
-                payment_method_obj = None
-                if payment_method != "bank_transfer":
-                    payment_method_obj = save_payment_method_from_checkout(request.user, form.cleaned_data)
 
                 # Ödeme kaydı
                 payment = Payment.objects.create(
@@ -713,7 +684,7 @@ def checkout(request, plan_id):
                     amount=total_amount,
                     kdv_amount=kdv_amount,
                     payment_method=payment_method,
-                    status='pending' if payment_method == "bank_transfer" else 'completed',
+                    status='pending',
                 )
                 legal_acceptance = record_purchase_acceptance(
                     request,
@@ -766,89 +737,6 @@ def checkout(request, plan_id):
                     messages.success(request, "Havale/EFT bildiriminiz alındı. Ödeme kontrolünden sonra paketiniz manuel olarak aktif edilecektir.")
                     return redirect('payment_success')
 
-                organization = None
-                if is_agency_plan:
-                    agency_name = (
-                        request.POST.get("agency_name", "").strip()
-                        or form.cleaned_data.get("company_name", "").strip()
-                        or f"{request.user.get_full_name() or request.user.email} Ajansı"
-                    )
-                    organization, _ = Organization.objects.update_or_create(
-                        owner=request.user,
-                        name=agency_name,
-                        defaults={
-                            "active_plan": plan,
-                            "is_active": True,
-                            "report_brand_name": agency_name,
-                        },
-                    )
-                    OrganizationMember.objects.update_or_create(
-                        organization=organization,
-                        user=request.user,
-                        defaults={
-                            "role": OrganizationMember.ROLE_OWNER,
-                            "is_active": True,
-                            "invited_email": request.user.email or "",
-                        },
-                    )
-                    CacheService.bump_version("agency_dashboard", organization.id)
-
-                subscription, created = UserSubscription.objects.update_or_create(
-                    user=request.user,
-                    organization=organization,
-                    defaults={
-                        'plan': plan,
-                        'start_date': timezone.now().date(),
-                        'end_date': timezone.now().date() + (timedelta(days=365) if billing_period == UserSubscription.BILLING_YEARLY else timedelta(days=30)),
-                        'billing_period': billing_period,
-                        'auto_renew': request.POST.get("auto_renew", "on") == "on",
-                        'default_payment_method': payment_method_obj,
-                        'next_renewal_date': timezone.now().date() + (timedelta(days=365) if billing_period == UserSubscription.BILLING_YEARLY else timedelta(days=30)),
-                        'is_active': True,
-                    }
-                )
-                grant_plan_ai_credits(subscription)
-                referral_result = None
-                if referral_code_value:
-                    referral_result = award_referral_for_subscription(
-                        code=referral_code_value,
-                        referred_user=request.user,
-                        subscription=subscription,
-                        payment=payment,
-                        reward_type=referral_benefits.get("reward_type") if referral_benefits else None,
-                        reward_amount=referral_benefits.get("reward_amount") if referral_benefits else None,
-                    )
-                
-                # Fatura oluştur
-                Invoice.objects.create(
-                    user=request.user,
-                    subscription=subscription,
-                    billing_info=billing_info,
-                    invoice_number=f"INV-{timezone.now().strftime('%Y%m%d')}-{request.user.id}-{payment.id}",
-                    amount=discounted_base_amount,
-                    kdv_amount=kdv_amount,
-                    total_amount=total_amount,
-                    payment_method=payment_method,
-                    is_paid=True,
-                    payment_date=timezone.now(),
-                    due_date=timezone.now().date() + timedelta(days=30),
-                    status='paid',
-                    notes=invoice_notes or None,
-                    description=f"{plan.display_name} - {'Yıllık' if billing_period == UserSubscription.BILLING_YEARLY else 'Aylık'} Abonelik",
-                )
-                _payment_transaction(payment, f"Demo kart ödemesi - {plan.display_name} aboneliği")
-                queue_purchase_legal_email(legal_acceptance)
-                _remember_payment_result(
-                    request,
-                    payment,
-                    title="Abonelik aktif edildi",
-                    detail=f"{plan.display_name} paketiniz başarıyla aktif edildi.",
-                )
-                request.session.pop("checkout_referral_code", None)
-                
-                messages.success(request, f'✅ {plan.display_name} paketiniz başarıyla aktif edildi!')
-                return redirect('payment_success')
-                
             except Exception as e:
                 messages.error(request, f'❌ Ödeme işlemi sırasında bir hata oluştu: {str(e)}')
         else:
@@ -897,6 +785,8 @@ def credit_checkout(request, package_id):
     if request.method == 'POST':
         form = CheckoutForm(request.POST)
         if form.is_valid():
+            if form.cleaned_data.get('payment_method') == 'credit_card':
+                return start_card_payment(request, form, package=package, kind="ai_credit", amount=total_amount, kdv_amount=kdv_amount)
             transfer_details = _bank_transfer_details(request)
             selected_payment_method = form.cleaned_data.get('payment_method', 'credit_card')
             if selected_payment_method == "bank_transfer":
@@ -917,8 +807,6 @@ def credit_checkout(request, package_id):
             try:
                 payment_method = form.cleaned_data.get('payment_method', 'credit_card')
                 billing_info = _get_or_create_billing_info(request.user, form.cleaned_data)
-                if payment_method != "bank_transfer":
-                    save_payment_method_from_checkout(request.user, form.cleaned_data)
                 payment = _create_addon_payment(
                     user=request.user,
                     billing_info=billing_info,
@@ -1008,6 +896,8 @@ def product_research_checkout(request, package_id):
     if request.method == 'POST':
         form = CheckoutForm(request.POST)
         if form.is_valid():
+            if form.cleaned_data.get('payment_method') == 'credit_card':
+                return start_card_payment(request, form, package=package, kind="product_research", amount=total_amount, kdv_amount=kdv_amount)
             transfer_details = _bank_transfer_details(request)
             payment_method = form.cleaned_data.get('payment_method', 'credit_card')
             if payment_method == "bank_transfer":
@@ -1027,8 +917,6 @@ def product_research_checkout(request, package_id):
                     })
             try:
                 billing_info = _get_or_create_billing_info(request.user, form.cleaned_data)
-                if payment_method != "bank_transfer":
-                    save_payment_method_from_checkout(request.user, form.cleaned_data)
                 payment = _create_addon_payment(
                     user=request.user,
                     billing_info=billing_info,

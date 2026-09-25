@@ -1,0 +1,1 @@
+Resmi logo bandı, kullanıcının sağladığı iyzico-logo-pack.zip içindeki footer_iyzico_ile_ode/Colored/logo_band_colored@2x.png dosyasından değiştirilmeden alınmıştır. Kaynak: https://docs.iyzico.com/ek-bilgiler/iyzico-logo-paketi

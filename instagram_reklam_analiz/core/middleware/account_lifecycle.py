@@ -9,6 +9,8 @@ class PendingDeletionAccountMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        if request.path.startswith("/payment/pos/callback/"):
+            return self.get_response(request)
         user = getattr(request, "user", None)
         if user and user.is_authenticated:
             profile = getattr(user, "profile", None)

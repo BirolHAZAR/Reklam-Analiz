@@ -19,6 +19,8 @@ class ConcurrentSessionMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        if request.path.startswith("/payment/pos/callback/"):
+            return self.get_response(request)
         user = getattr(request, "user", None)
         if (
             not user

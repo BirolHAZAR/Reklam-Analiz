@@ -783,11 +783,6 @@ class CheckoutForm(forms.ModelForm):
             "autocomplete": "off",
         }),
     )
-    card_holder = forms.CharField(max_length=120, required=False)
-    card_number = forms.CharField(max_length=19, required=False)
-    expiry_month = forms.CharField(max_length=2, required=False)
-    expiry_year = forms.CharField(max_length=2, required=False)
-    cvv = forms.CharField(max_length=4, required=False)
     legal_acceptance = forms.BooleanField(
         required=True,
         label="Satış ve üyelik sözleşmelerini okudum ve kabul ediyorum.",
@@ -866,28 +861,9 @@ class CheckoutForm(forms.ModelForm):
         cleaned_data["tc_kimlik"] = tc_kimlik
         cleaned_data["tax_number"] = tax_number
         cleaned_data["tax_office"] = tax_office
-        cleaned_data["card_number"] = (cleaned_data.get("card_number") or "").replace(" ", "")
-        cleaned_data["expiry_month"] = (cleaned_data.get("expiry_month") or "").strip()
-        cleaned_data["expiry_year"] = (cleaned_data.get("expiry_year") or "").strip()
-        cleaned_data["cvv"] = (cleaned_data.get("cvv") or "").strip()
-        cleaned_data["referral_code"] = (cleaned_data.get("referral_code") or "").strip().upper()
-
-        if cleaned_data.get("payment_method") != "bank_transfer":
-            if not (cleaned_data.get("card_holder") or "").strip():
-                self.add_error("card_holder", "Kart üzerindeki isim zorunludur.")
-            if len(cleaned_data["card_number"]) != 16 or not cleaned_data["card_number"].isdigit():
-                self.add_error("card_number", "Kart numarası 16 haneden oluşmalıdır.")
-            month = int(cleaned_data["expiry_month"]) if cleaned_data["expiry_month"].isdigit() else 0
-            year = int(cleaned_data["expiry_year"]) if cleaned_data["expiry_year"].isdigit() else 0
-            if not 1 <= month <= 12:
-                self.add_error("expiry_month", "Geçerli bir son kullanma ayı girin.")
-            if year < 1:
-                self.add_error("expiry_year", "Son kullanma yılı zorunludur.")
-            else:
-                full_year = 2000 + year if year < 100 else year
-                today = timezone.localdate()
-                if full_year < today.year or (full_year == today.year and month < today.month):
-                    self.add_error("expiry_year", "Kartın son kullanma tarihi geçmiş.")
-            if len(cleaned_data["cvv"]) < 3 or not cleaned_data["cvv"].isdigit():
-                self.add_error("cvv", "CVV zorunludur.")
+        if cleaned_data.get("payment_method") == "bank_transfer":
+            from core.models import LegalSiteSettings
+            company = LegalSiteSettings.load()
+            if not (company.bank_name and company.bank_account_holder and company.bank_iban):
+                self.add_error(None, "Havale bilgileri henüz tanımlanmamış. Lütfen destek ekibine ulaşın.")
         return cleaned_data

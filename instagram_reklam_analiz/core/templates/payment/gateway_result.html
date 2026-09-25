@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Ödeme Durumu | ReklamAnaliz.net{% endblock %}
+{% block content %}
+<section class="container py-5" style="max-width:800px">
+  <h1>{% if success %}Ödeme tamamlandı{% else %}Ödeme durumu{% endif %}</h1>
+  <p>{{ message }}</p>
+  <a href="{% url 'my_payments' %}" class="btn btn-primary">Ödemelerim</a>
+  <a href="{% url 'contact' %}" class="btn btn-outline-secondary">Destek</a>
+</section>
+{% endblock %}

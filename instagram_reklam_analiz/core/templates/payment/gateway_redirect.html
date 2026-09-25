@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Güvenli Ödemeye Devam | ReklamAnaliz.net{% endblock %}
+{% block content %}
+<section class="container py-5" style="max-width:800px">
+  <h1>Garanti BBVA güvenli ödeme</h1>
+  <p>Kart bilgilerinizi bankanın ortak ödeme sayfasında gireceksiniz.</p>
+  <form method="post" action="{{ action }}">
+    {% for name, value in fields.items %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+    <button class="btn btn-primary" type="submit">Bankanın ödeme sayfasına geç</button>
+  </form>
+  {% include "includes/payment_logos.html" %}
+</section>
+{% endblock %}

@@ -69,17 +69,17 @@
 
                         <div class="payment-methods">
                             <label class="payment-method-card">
-                                <input type="radio" name="payment_method" value="credit_card" {% if request.POST.payment_method != "bank_transfer" %}checked{% endif %}>
+                                <input type="radio" name="payment_method" value="credit_card" {% if not card_payment_available %}disabled{% elif request.POST.payment_method != "bank_transfer" %}checked{% endif %}>
                                 <div class="payment-method-content">
                                     <div class="payment-method-icon"><i class="fas fa-credit-card"></i></div>
                                     <div class="payment-method-title">Kredi / Banka Kartı</div>
-                                    <div class="payment-method-desc">Simülasyon ödeme, anında aktivasyon</div>
+                                    <div class="payment-method-desc">{{ payment_provider_label }} güvenli ödeme</div>
                                 </div>
                                 <div class="payment-method-check"><i class="fas fa-check"></i></div>
                             </label>
 
                             <label class="payment-method-card">
-                                <input type="radio" name="payment_method" value="bank_transfer" {% if request.POST.payment_method == "bank_transfer" %}checked{% endif %}>
+                                <input type="radio" name="payment_method" value="bank_transfer" {% if not card_payment_available or request.POST.payment_method == "bank_transfer" %}checked{% endif %}>
                                 <div class="payment-method-content">
                                     <div class="payment-method-icon"><i class="fas fa-building-columns"></i></div>
                                     <div class="payment-method-title">Havale / EFT</div>
@@ -90,75 +90,23 @@
                         </div>
 
                         <div id="credit-card-section">
-                            <div class="credit-card-preview">
-                                <div class="credit-card-inner visa" id="cardPreview">
-                                    <div class="card-brand">VISA</div>
-                                    <div class="card-chip"></div>
-                                    <div class="card-number-display" id="cardNumberDisplay">•••• •••• •••• ••••</div>
-                                    <div class="card-details-row">
-                                        <div>
-                                            <small>KART SAHİBİ</small>
-                                            <div class="card-holder-display" id="cardHolderDisplay">AD SOYAD</div>
-                                        </div>
-                                        <div>
-                                            <small>SON KULLANMA</small>
-                                            <div class="card-expiry-display" id="cardExpiryDisplay">AA/YY</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-floating-custom">
-                                        <input type="text" class="form-control" id="card_holder" name="card_holder" placeholder="Kart üzerindeki isim" oninput="updateCardPreview()">
-                                        <label>Kart Üzerindeki İsim</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-12">
-                                    <div class="form-floating-custom">
-                                        <input type="text" class="form-control" id="card_number" name="card_number" placeholder="Kart numarası" maxlength="19" inputmode="numeric" oninput="formatCardNumber(this); updateCardPreview();">
-                                        <label>Kart Numarası</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-floating-custom">
-                                        <input type="text" class="form-control" id="expiry_month" name="expiry_month" placeholder="Ay" maxlength="2" inputmode="numeric" oninput="digitsOnly(this); updateCardPreview()">
-                                        <label>Ay</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-floating-custom">
-                                        <input type="text" class="form-control" id="expiry_year" name="expiry_year" placeholder="Yıl" maxlength="2" inputmode="numeric" oninput="digitsOnly(this); updateCardPreview()">
-                                        <label>Yıl</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-floating-custom">
-                                        <input type="text" class="form-control" id="cvv" name="cvv" placeholder="CVV" maxlength="4" inputmode="numeric" oninput="digitsOnly(this)">
-                                        <label>CVV</label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="secure-note"><i class="fas fa-shield-halved"></i> Tam kart numarası ve CVV saklanmaz; otomatik yenileme için yalnızca şifreli ödeme tokenı ve son 4 hane tutulur.</div>
-                            {% if plan %}
-                            <label class="secure-note" style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;">
-                                <input type="checkbox" name="auto_renew" checked style="margin-top:4px;">
-                                <span>Otomatik yenileme açık kalsın. Kapatılmadığı sürece dönem sonunda kayıtlı ödeme yöntemiyle otomatik tahsilat yapılır.</span>
-                            </label>
-                            {% endif %}
+                            {% if card_payment_available %}
+                            <p>Kart bilgilerinizi {{ payment_provider_label }} güvenli ödeme sayfasında gireceksiniz. Ödeme doğrulanınca hizmetiniz etkinleşir.</p>
+                            {% else %}<p>Kart ödemesi şu anda kullanıma açık değil.</p>{% endif %}
+                            <p>Bu sipariş tek dönem içindir. Otomatik yenileme veya sonraki dönemlerde otomatik kart tahsilatı yapılmaz.</p>
+                            {% include "includes/payment_logos.html" %}
                         </div>
 
                         <div id="bank-transfer-section" style="display:none;">
                             <div class="bank-panel">
                                 <div>
                                     <h5>Havale/EFT Bilgileri</h5>
-                                    <p>Ödemenizi yaptıktan sonra aşağıdaki bildirim formunu doldurun. Bildirim sistem yöneticisine e-posta olarak iletilir.</p>
+                                    <p>Ödemenizi yaptıktan sonra aşağıdaki bildirim formunu doldurun. Bildirim sistem yöneticisine e-posta olarak iletilir; hesaba geçen tutar en geç {{ company.bank_transfer_days }} takvim günü içinde kontrol edilir.</p>
                                 </div>
                                 <div class="bank-detail-grid">
-                                    <div><span>Banka</span><strong>Örnek Bankası A.Ş.</strong></div>
-                                    <div><span>Hesap Sahibi</span><strong>ReklamAnaliz.net</strong></div>
-                                    <div class="wide"><span>IBAN</span><strong>TR00 0000 0000 0000 0000 0000 00</strong></div>
+                                    <div><span>Banka</span><strong>{{ company.bank_name|default:"Henüz tanımlanmadı" }}</strong></div>
+                                    <div><span>Hesap Sahibi</span><strong>{{ company.bank_account_holder|default:"Henüz tanımlanmadı" }}</strong></div>
+                                    <div class="wide"><span>IBAN</span><strong>{{ company.bank_iban|default:"Henüz tanımlanmadı" }}</strong></div>
                                     <div class="wide"><span>Açıklama</span><strong>{{ request.user.email }} - {% if is_credit_package or is_product_research_package %}{{ package.display_name }}{% else %}{{ plan.display_name }}{% endif %}</strong></div>
                                 </div>
                             </div>
@@ -268,12 +216,14 @@
                         {% for error in form.immediate_service_consent.errors %}<div class="field-error legal-field-error">{{ error }}</div>{% endfor %}
                     </section>
 
+                    {% if form.non_field_errors %}<div class="checkout-alert">{{ form.non_field_errors }}</div>{% endif %}
+                    <p><a href="{% url 'delivery_terms' %}">Teslimat ve aktivasyon koşulları</a> · Otomatik yenileme yapılmaz.</p>
                     <button type="submit" class="btn btn-checkout" id="submitButton"><i class="fas fa-lock me-2"></i> Ödemeyi Tamamla</button>
                 </form>
 
                 <div class="secure-badge-footer">
                     <i class="fas fa-shield-alt me-2"></i>
-                    SSL korumalı ödeme akışı, profesyonel fatura bilgisi ve manuel havale kontrolü.
+                    Kart bilgileri ödeme kuruluşunda işlenir. Havale bildirimi manuel olarak doğrulanır.
                 </div>
             </div>
 
@@ -293,8 +243,8 @@
                     <button type="button" class="btn btn-checkout" onclick="document.getElementById('checkout-form').requestSubmit();"><i class="fas fa-lock me-2"></i> Ödemeyi Tamamla</button>
                     <ul class="guarantee-list">
                         <li><i class="fas fa-check-circle"></i> Fatura bilgisi zorunlu alan kontrolü</li>
-                        <li><i class="fas fa-check-circle"></i> Kartta anında aktivasyon</li>
-                        <li><i class="fas fa-check-circle"></i> Havalede manuel onay ve bildirim e-postası</li>
+                        <li><i class="fas fa-check-circle"></i> Doğrulanmış kart ödemesinde aktivasyon</li>
+                        <li><i class="fas fa-check-circle"></i> Havalede en geç {{ company.bank_transfer_days }} takvim gününde kontrol</li>
                         <li><i class="fas fa-check-circle"></i> 7/24 öncelikli destek</li>
                     </ul>
                 </aside>
@@ -306,30 +256,6 @@
 <script>
 function digitsOnly(input) {
     input.value = input.value.replace(/\D/g, "");
-}
-
-function formatCardNumber(input) {
-    let value = input.value.replace(/\D/g, "").slice(0, 16);
-    input.value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
-    const preview = document.getElementById("cardPreview");
-    const brand = document.querySelector(".card-brand");
-    if (value.startsWith("5")) {
-        preview.className = "credit-card-inner mastercard";
-        brand.textContent = "MC";
-    } else {
-        preview.className = "credit-card-inner visa";
-        brand.textContent = "VISA";
-    }
-}
-
-function updateCardPreview() {
-    const cardNumber = document.getElementById("card_number").value || "•••• •••• •••• ••••";
-    const cardHolder = document.getElementById("card_holder").value || "AD SOYAD";
-    const expMonth = document.getElementById("expiry_month").value || "AA";
-    const expYear = document.getElementById("expiry_year").value || "YY";
-    document.getElementById("cardNumberDisplay").textContent = cardNumber;
-    document.getElementById("cardHolderDisplay").textContent = cardHolder.toUpperCase();
-    document.getElementById("cardExpiryDisplay").textContent = `${expMonth}/${expYear}`;
 }
 
 function setRequired(selector, enabled) {
@@ -356,32 +282,14 @@ function syncPaymentSections() {
     const isBank = method === "bank_transfer";
     document.getElementById("credit-card-section").style.display = isBank ? "none" : "block";
     document.getElementById("bank-transfer-section").style.display = isBank ? "block" : "none";
-    setRequired("#card_holder, #card_number, #expiry_month, #expiry_year, #cvv", !isBank);
     setRequired(".transfer-required", isBank);
     document.getElementById("submitButton").innerHTML = isBank
         ? '<i class="fas fa-paper-plane me-2"></i> Havale Bildirimini Gönder'
-        : '<i class="fas fa-lock me-2"></i> Ödemeyi Tamamla';
+        : '<i class="fas fa-lock me-2"></i> Güvenli Ödemeye Geç';
 }
 
 document.querySelectorAll("input[name='payment_method']").forEach((radio) => {
     radio.addEventListener("change", syncPaymentSections);
-});
-
-document.getElementById("checkout-form").addEventListener("submit", function(e) {
-    const paymentMethod = document.querySelector("input[name='payment_method']:checked").value;
-    if (paymentMethod === "credit_card") {
-        const cardNumber = document.getElementById("card_number").value.replace(/\s/g, "");
-        const cvv = document.getElementById("cvv").value;
-        if (cardNumber.length !== 16) {
-            e.preventDefault();
-            alert("Lütfen 16 haneli geçerli bir kart numarası girin.");
-            return;
-        }
-        if (cvv.length < 3) {
-            e.preventDefault();
-            alert("Lütfen geçerli bir CVV girin.");
-        }
-    }
 });
 
 switchCustomerType(document.getElementById("customerType").value || "individual");

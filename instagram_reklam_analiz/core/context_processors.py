@@ -8,6 +8,20 @@ from django.conf import settings
 from core.services.alert_service import AlertService
 
 
+def company_identity(request):
+    from core.models import LegalDocument, LegalSiteSettings
+    policies = LegalDocument.objects.filter(status=LegalDocument.STATUS_PUBLISHED, slug__in=("gizlilik-politikasi", "mesafeli-satis-sozlesmesi", "iptal-ve-iade-politikasi")).only("slug", "title")
+    return {"company": LegalSiteSettings.load(), "footer_policies": policies}
+
+
+def payment_configuration(request):
+    if not request.path.startswith("/checkout/"):
+        return {}
+    from core.models.payment_gateway import PaymentGatewaySettings
+    gateway = PaymentGatewaySettings.load()
+    return {"card_payment_available": gateway.available_for(request.user), "payment_provider_label": gateway.get_provider_display()}
+
+
 def alert_notifications(request):
     """Tüm sayfalarda bildirimleri göster"""
     if request.user.is_authenticated:

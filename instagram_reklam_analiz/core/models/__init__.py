@@ -271,6 +271,8 @@ __all__ = [
     "AIRecommendationHistory",
 ]
 
+from .payment_gateway import PaymentGatewaySettings, HostedPaymentSession
+
 if AnalyticsProperty is not None:
     __all__ += [
         "AnalyticsProperty",

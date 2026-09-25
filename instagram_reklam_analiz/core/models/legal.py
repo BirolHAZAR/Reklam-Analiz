@@ -2,6 +2,8 @@ from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+from core.company import COMPANY_NAME, COMPANY_ADDRESS, COMPANY_PHONE
 
 
 class LegalSiteSettings(models.Model):
@@ -11,6 +13,13 @@ class LegalSiteSettings(models.Model):
     tax_office = models.CharField(max_length=120, blank=True, default="", verbose_name="Vergi dairesi")
     tax_number = models.CharField(max_length=32, blank=True, default="", verbose_name="Vergi numarası")
     mersis_number = models.CharField(max_length=32, blank=True, default="", verbose_name="MERSİS numarası")
+    trade_registry_number = models.CharField(max_length=80, blank=True, default="", verbose_name="Ticaret sicil numarası")
+    mobile_phone = models.CharField(max_length=32, blank=True, default="", verbose_name="Mobil telefon")
+    secondary_phone = models.CharField(max_length=32, blank=True, default="", verbose_name="İkinci telefon")
+    bank_name = models.CharField(max_length=160, blank=True, default="", verbose_name="Havale bankası")
+    bank_account_holder = models.CharField(max_length=240, blank=True, default="", verbose_name="Hesap sahibi")
+    bank_iban = models.CharField(max_length=34, blank=True, default="", verbose_name="IBAN")
+    bank_transfer_days = models.PositiveSmallIntegerField(default=3, verbose_name="Havale kontrol süresi (takvim günü)")
     kep_address = models.EmailField(blank=True, default="", verbose_name="KEP adresi")
     support_email = models.EmailField(default="info@reklamanaliz.net", verbose_name="Destek e-postası")
     kvkk_email = models.EmailField(default="info@reklamanaliz.net", verbose_name="KVKK başvuru e-postası")
@@ -19,11 +28,30 @@ class LegalSiteSettings(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Hukuki Metin Şirket Ayarı"
-        verbose_name_plural = "Hukuki Metin Şirket Ayarları"
+        verbose_name = "Şirket, İletişim ve Banka Ayarları"
+        verbose_name_plural = "Şirket, İletişim ve Banka Ayarları"
 
     def __str__(self):
         return self.company_name
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.bank_transfer_days < 1:
+            errors["bank_transfer_days"] = "En az 1 gün olmalıdır."
+        if self.tax_number and (not self.tax_number.isdigit() or len(self.tax_number) not in {10, 11}):
+            errors["tax_number"] = "10 veya 11 haneli numarayı girin."
+        if self.bank_iban:
+            self.bank_iban = "".join(self.bank_iban.split()).upper()
+            iban = self.bank_iban
+            if not (iban.startswith("TR") and len(iban) == 26 and iban[2:].isdigit()) or int(iban[4:] + "2927" + iban[2:4]) % 97 != 1:
+                errors["bank_iban"] = "Geçerli bir Türkiye IBAN numarası girin."
+        if any((self.bank_name, self.bank_account_holder, self.bank_iban)):
+            for field in ("bank_name", "bank_account_holder", "bank_iban"):
+                if not getattr(self, field):
+                    errors[field] = "Havale için banka, hesap sahibi ve IBAN birlikte girilmelidir."
+        if errors:
+            raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
         self.pk = 1
@@ -34,8 +62,9 @@ class LegalSiteSettings(models.Model):
         obj, _ = cls.objects.get_or_create(
             pk=1,
             defaults={
-                "company_name": "HZR Yazılım Danışmanlık Dijital Paz. LTD ŞTİ",
-                "address": "Bakırköy",
+                "company_name": COMPANY_NAME,
+                "address": COMPANY_ADDRESS,
+                "phone": COMPANY_PHONE,
             },
         )
         return obj

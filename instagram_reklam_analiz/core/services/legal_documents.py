@@ -60,6 +60,8 @@ def legal_token_values(site_settings, document):
         "TAX_OFFICE": site_settings.tax_office,
         "TAX_NUMBER": site_settings.tax_number,
         "MERSIS_NUMBER": site_settings.mersis_number,
+        "TRADE_REGISTRY_NUMBER": site_settings.trade_registry_number,
+        "BANK_TRANSFER_DAYS": str(site_settings.bank_transfer_days),
         "KEP_ADDRESS": site_settings.kep_address,
         "SUPPORT_EMAIL": site_settings.support_email,
         "KVKK_EMAIL": site_settings.kvkk_email,
@@ -87,6 +89,8 @@ def build_document_snapshot(document, site_settings=None):
         "effective_date": _effective_date(document).isoformat() if _effective_date(document) else "",
         "summary": document.summary,
         "content": rendered_content,
+        "company_name": site_settings.company_name,
+        "company_email": site_settings.support_email,
         "content_sha256": hashlib.sha256(rendered_content.encode("utf-8")).hexdigest(),
     }
 
@@ -239,11 +243,11 @@ def build_legal_pdf(snapshot, *, payment_reference=""):
         canvas.drawString(22 * mm, height - 13 * mm, "ReklamAnaliz.net")
         canvas.setFillColor(colors.HexColor("#7b8797"))
         canvas.setFont(regular_font, 7.5)
-        canvas.drawRightString(width - 22 * mm, height - 13 * mm, "HZR Yazılım Danışmanlık Dijital Paz. LTD ŞTİ")
+        canvas.drawRightString(width - 22 * mm, height - 13 * mm, snapshot.get("company_name", ""))
         canvas.setStrokeColor(colors.HexColor("#dbe4ee"))
         canvas.line(22 * mm, 15 * mm, width - 22 * mm, 15 * mm)
         canvas.setFillColor(colors.HexColor("#7b8797"))
-        canvas.drawString(22 * mm, 9 * mm, "www.reklamanaliz.net · info@reklamanaliz.net")
+        canvas.drawString(22 * mm, 9 * mm, "reklamanaliz.net · " + snapshot.get("company_email", ""))
         canvas.drawRightString(width - 22 * mm, 9 * mm, f"Sayfa {doc.page}")
         canvas.restoreState()
 
@@ -285,6 +289,7 @@ def send_purchase_legal_email(acceptance_id):
     recipient = acceptance.email_recipient or payment.user.email
     context = {
         "is_sample": False,
+        "company": LegalSiteSettings.load(),
         "recipient_name": payment.user.get_full_name() or payment.user.username,
         "item_name": payment_item_label(payment),
         "amount": payment.amount,
@@ -326,6 +331,7 @@ def send_sample_purchase_legal_email(recipient):
     snapshots = build_purchase_snapshots()
     context = {
         "is_sample": True,
+        "company": LegalSiteSettings.load(),
         "recipient_name": "Birol Bey",
         "item_name": "Örnek Silver Paketi",
         "amount": "1.200,00",

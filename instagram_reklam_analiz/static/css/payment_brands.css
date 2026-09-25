@@ -1,0 +1,5 @@
+.payment-brand-band { background:#fff; border:1px solid #dce3ec; border-radius:10px; padding:16px 20px; margin:18px auto; width:min(100%,640px); box-sizing:border-box; }
+.payment-brand-band img { display:block; width:100%; height:auto; object-fit:contain; }
+.payment-policy-links { display:flex; flex-wrap:wrap; justify-content:center; gap:10px 20px; margin:16px 0; font-size:.875rem; }
+.billing-terms { margin:16px 0; line-height:1.6; }
+@media(max-width:480px) { .payment-brand-band { padding:12px; } }

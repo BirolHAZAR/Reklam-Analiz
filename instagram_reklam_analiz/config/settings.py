@@ -656,6 +656,7 @@ INSTALLED_APPS = [
 # ============================================================
 
 MIDDLEWARE = [
+    'core.middleware.seo.SeoMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -705,6 +706,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.alert_notifications',
+                'core.context_processors.company_identity',
+                'core.context_processors.payment_configuration',
                 "core.context_processors.language_labels",
                 "core.context_processors.auth_security_links",
                 "core.context_processors.whatsapp_contact",

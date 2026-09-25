@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Teslimat ve Aktivasyon | ReklamAnaliz.net{% endblock %}
+{% block content %}
+<section class="container py-5" style="max-width:900px">
+  <h1>Teslimat ve Aktivasyon</h1>
+  <p>{{ company.company_name }}, ReklamAnaliz.net üzerinden dijital abonelik ve kullanım hakları sunar. Fiziksel ürün veya kargo gönderimi yapılmaz.</p>
+  <h2>Kart ödemesi</h2>
+  <p>Hizmet, ödeme kuruluşunun başarılı tahsilatı doğrulamasından sonra hesabınıza tanımlanır. Başarısız, yarım kalan veya incelemede olan işlemlerde aktivasyon yapılmaz.</p>
+  <h2>Havale / EFT</h2>
+  <p>Havale bildiriminiz ve hesaba geçen tutar en geç {{ company.bank_transfer_days }} takvim günü içinde kontrol edilir. Ödeme doğrulandıktan sonra hizmet hesabınıza tanımlanır.</p>
+  <h2>Kullanım süresi ve yenileme</h2>
+  <p>Aylık abonelik 30 gün, yıllık abonelik 365 gündür. Satın alma tek dönem içindir; otomatik kart tahsilatı yapılmaz. Devam etmek için dönem sonunda yeni sipariş verebilirsiniz. Ek kredi ve araştırma haklarının miktarı paket ve sipariş özetinde gösterilir.</p>
+  <h2>Gecikme, iptal ve iade</h2>
+  <p>Belirtilen sürede erişiminiz açılmadıysa ödeme referansınızla <a href="mailto:{{ company.support_email }}">{{ company.support_email }}</a> adresine başvurun. Kart numarası veya CVV göndermeyin.</p>
+  <p><a href="{% url 'legal_document_detail' slug='iptal-ve-iade-politikasi' %}">İptal ve iade koşullarını inceleyin.</a></p>
+  {% include "includes/payment_logos.html" %}
+</section>
+{% endblock %}

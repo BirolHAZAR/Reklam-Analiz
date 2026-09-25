@@ -3,6 +3,7 @@
 <!DOCTYPE html>
 <html lang="{{ current_language|default:'tr' }}">
 <head>
+    {% load seo_tags %}{% seo_meta %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>{% block title %}{{ labels.site_title }}{% endblock %}</title>
@@ -16,6 +17,7 @@
 {% load static %}
 {% load agency_permissions %}
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/payment_brands.css' %}">
     <link rel="stylesheet" href="{% static 'css/base_layout.css' %}?v=agency-identity-20260724-1">
     <link rel="shortcut icon" type="image/png" href="{% static 'images/favicon.png' %}">
     {% block extra_css %}{% endblock %}
@@ -369,20 +371,25 @@
                         <li><a href="{% url 'platform_connections' %}">{{ labels.platform_connections }}</a></li>
                         <li><a href="{% url 'notification_center' %}">{{ labels.notification_center }}</a></li>
                         <li><a href="{% url 'my_account' %}">{{ labels.my_account }}</a></li>
-                        <li><a href="mailto:info@reklamanaliz.net">info@reklamanaliz.net</a></li>
+                        <li><a href="mailto:{{ company.support_email }}">{{ company.support_email }}</a></li>
                     </ul>
                 </div>
             </div>
             <address class="footer-company">
-                <strong>HZRSoft Yazılım Dijital Pazarlama Danışmanlık ve Ticaret</strong>
-                <div class="footer-company-row"><i class="fas fa-map-marker-alt" aria-hidden="true"></i><span>{% if current_language == "en" %}Head Office{% else %}Merkez Ofis{% endif %}: Yeni Mahalle Ahmet Kabaklı Cad. 1583. Sokak No:12/3, Bağcılar / İstanbul</span></div>
-                <div class="footer-company-row"><i class="fas fa-phone" aria-hidden="true"></i><a href="tel:+902126515253" aria-label="{% if current_language == 'en' %}Office phone{% else %}Ofis telefonu{% endif %}: 0212 651 52 53">0212 651 52 53</a></div>
-                <div class="footer-company-row"><i class="fas fa-mobile-alt" aria-hidden="true"></i><span class="footer-company-mobiles"><a href="tel:+905545802136">0554 580 21 36</a><span class="footer-phone-divider" aria-hidden="true"> / </span><a href="tel:+905016495959">0501 649 59 59</a></span></div>
-                <div class="footer-company-row"><i class="fas fa-envelope" aria-hidden="true"></i><a href="mailto:info@reklamanaliz.net">info@reklamanaliz.net</a></div>
+                <strong>{{ company.company_name }}</strong>
+                <div class="footer-company-row"><i class="fas fa-map-marker-alt" aria-hidden="true"></i><span>{% if current_language == "en" %}Head Office{% else %}Merkez Ofis{% endif %}: {{ company.address }}</span></div>
+                <div class="footer-company-row"><i class="fas fa-phone" aria-hidden="true"></i><a href="tel:{{ company.phone }}" aria-label="{% if current_language == 'en' %}Office phone{% else %}Ofis telefonu{% endif %}: {{ company.phone }}">{{ company.phone }}</a></div>
+                {% if company.mobile_phone or company.secondary_phone %}<div class="footer-company-row"><i class="fas fa-mobile-alt" aria-hidden="true"></i><span class="footer-company-mobiles">{% if company.mobile_phone %}<a href="tel:{{ company.mobile_phone }}">{{ company.mobile_phone }}</a>{% endif %}{% if company.mobile_phone and company.secondary_phone %}<span class="footer-phone-divider" aria-hidden="true"> / </span>{% endif %}{% if company.secondary_phone %}<a href="tel:{{ company.secondary_phone }}">{{ company.secondary_phone }}</a>{% endif %}</span></div>{% endif %}
+                <div class="footer-company-row"><i class="fas fa-envelope" aria-hidden="true"></i><a href="mailto:{{ company.support_email }}">{{ company.support_email }}</a></div>
             </address>
+            {% include "includes/payment_logos.html" %}
+            <nav class="payment-policy-links" aria-label="Satış koşulları">
+                {% for policy in footer_policies %}<a href="{{ policy.get_absolute_url }}">{{ policy.title }}</a>{% endfor %}
+                <a href="{% url 'delivery_terms' %}">Teslimat ve Aktivasyon</a>
+            </nav>
             <hr>
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
-                <p class="mb-0">&copy; {% now "Y" %} ReklamAnaliz.net. {% if current_language == "en" %}All rights reserved by HZRSoft Yazılım.{% else %}Tüm hakları HZRSoft Yazılım'a aittir.{% endif %}</p>
+                <p class="mb-0">&copy; {% now "Y" %} ReklamAnaliz.net. {% if current_language == "en" %}All rights reserved by {{ company.company_name }}.{% else %}Tüm hakları {{ company.company_name }} firmasına aittir.{% endif %}</p>
                 <p class="mb-0 footer-muted-note"><a href="{% url 'legal_document_index' %}">Sözleşmeler ve Politikalar</a> · {{ labels.tr_en_ready }} · {{ labels.ai_supported_ad_platform }}</p>
             </div>
         </div>
