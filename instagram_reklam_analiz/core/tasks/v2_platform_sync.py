@@ -1,3 +1,4 @@
+from core.services.demo_policy import is_demo_object
 from celery import shared_task
 from django.utils import timezone
 import logging
@@ -128,7 +129,7 @@ def _should_skip_ad_sync(account, platform_code):
     if platform_code not in SUPPORTED_AD_SYNC_PLATFORMS:
         return "unsupported_for_ad_sync"
 
-    if (getattr(account, "extra_data", None) or {}).get("demo"):
+    if is_demo_object(account):
         return "demo_account"
 
     if platform_code == "instagram":

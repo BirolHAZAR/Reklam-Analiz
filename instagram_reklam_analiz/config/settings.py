@@ -1842,22 +1842,7 @@ CELERY_BEAT_SCHEDULE = {
         },
     },
 
-    "refresh-daily-demo-metrics": {
-        "task":
-            "core.tasks.metric_tasks."
-            "refresh_daily_demo_metrics",
-
-        "schedule":
-            crontab(
-                hour=0,
-                minute=10,
-            ),
-
-        "options": {
-            "expires": 60 * 60 * 6,
-            "queue": "sync",
-        },
-    },
+    # Demo metrics are scheduled only by AdminManagedCelerySchedule (migration 0073).
 
     "cleanup-old-metrics": {
         "task":

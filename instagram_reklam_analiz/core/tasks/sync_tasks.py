@@ -1,3 +1,4 @@
+from core.services.demo_policy import is_demo_object, demo_skip_result
 # core/tasks/sync_tasks.py
 """Platform senkronizasyon görevleri.
 
@@ -53,6 +54,8 @@ def sync_google_ads():
 
     results = []
     for account in PlatformAccount.objects.filter(is_active=True, platform__code="google_ads"):
+        if is_demo_object(account):
+            continue
         async_result = sync_v2_platform_account_ads.delay(account.id, "OWN")
         results.append({"account_id": account.id, "task_id": async_result.id})
     return results
@@ -65,6 +68,8 @@ def sync_tiktok():
 
     results = []
     for account in PlatformAccount.objects.filter(is_active=True, platform__code="tiktok"):
+        if is_demo_object(account):
+            continue
         async_result = sync_v2_platform_account_ads.delay(account.id, "OWN")
         results.append({"account_id": account.id, "task_id": async_result.id})
     return results
@@ -81,6 +86,8 @@ def sync_organic_account(account_id):
     ).first()
     if not account:
         return {"success": False, "skipped": True, "reason": "account_not_found"}
+    if is_demo_object(account):
+        return demo_skip_result()
     policy = policy_for_user(account.user)
     if not policy:
         return {"success": False, "skipped": True, "reason": "active_subscription_required"}
@@ -95,6 +102,8 @@ def sync_due_organic_accounts():
     queued = []
     accounts = PlatformAccount.objects.filter(is_active=True, platform__code="instagram").select_related("user")
     for account in accounts:
+        if is_demo_object(account):
+            continue
         last_sync = (account.extra_data or {}).get("organic_last_sync_at")
         if not is_sync_due(account.user, last_sync, kind="organic"):
             continue

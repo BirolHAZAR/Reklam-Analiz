@@ -1,3 +1,4 @@
+from core.services.demo_policy import is_demo_object, demo_skip_result
 from celery import shared_task
 
 from core.services.marketplace_sync import run_marketplace_sync
@@ -50,6 +51,10 @@ def run_product_research_agent(self, research_id):
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=300, name="core.tasks.marketplace_sync.sync_marketplace_account")
 def sync_marketplace_account(self, sync_run_id):
+    from core.models import MarketplaceSyncRun
+    run = MarketplaceSyncRun.objects.select_related("marketplace_account__user").filter(pk=sync_run_id).first()
+    if run and is_demo_object(run.marketplace_account):
+        return demo_skip_result()
     return run_marketplace_sync(sync_run_id)
 
 
@@ -101,6 +106,8 @@ def sync_due_marketplace_accounts():
     queued = []
     accounts = MarketplaceAccount.objects.filter(is_active=True).select_related("user", "marketplace")
     for account in accounts:
+        if is_demo_object(account):
+            continue
         plan = get_user_entitlement_plan(account.user)
         if not plan or (plan.name != "trial_14" and int(plan.marketplace_product_research_per_month or 0) <= 0):
             continue

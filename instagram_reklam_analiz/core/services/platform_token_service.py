@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from core.services.demo_policy import is_demo_object
+
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone as dt_timezone
@@ -251,6 +253,8 @@ def check_and_refresh_platform_tokens():
     results = []
     connections = PlatformConnection.objects.select_related("platform").filter(is_active=True)
     for connection in connections:
+        if is_demo_object(connection):
+            continue
         token = connection.access_token or ""
         row = {"connection_id": connection.id, "platform": connection.platform.code}
         try:

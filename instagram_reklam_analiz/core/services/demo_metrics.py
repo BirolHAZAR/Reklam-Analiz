@@ -242,6 +242,7 @@ def _base_metrics_for_ad(ad, metric_date: date):
             "leads": _ratio(Decimal(clicks) * Decimal(str(rng.uniform(0.02, 0.11)))),
         }
     data = _apply_demo_scenario(data, scenario, rng)
+    data = _normalize_demo_funnel(data)
     data["currency"] = getattr(ad.campaign, "currency", None) or "TRY"
     data.update(_calculate_derived_fields(data))
     data["raw_metrics"] = {"demo": True, "daily_refresh": True, "scenario": scenario}
@@ -287,6 +288,23 @@ def _apply_demo_scenario(data, scenario, rng):
         data["cpc"] = _ratio(Decimal(data.get("cpc") or 0) * Decimal(str(rng.uniform(1.12, 1.35))))
         data["spend"] = _money(Decimal(data["spend"]) * Decimal(str(rng.uniform(1.06, 1.24))))
         data["clicks"] = max(1, int(data["clicks"] * rng.uniform(0.82, 0.96)))
+    return data
+
+
+def _normalize_demo_funnel(data):
+    data = dict(data)
+    data["impressions"] = max(1, int(data["impressions"]))
+    for field in ("reach", "clicks", "video_views"):
+        data[field] = min(data["impressions"], max(0, int(data[field])))
+    for field in ("link_clicks", "unique_clicks", "outbound_clicks"):
+        data[field] = min(data["clicks"], max(0, int(data[field])))
+    data["landing_page_views"] = min(data["link_clicks"], max(0, int(data["landing_page_views"])))
+    data["conversions"] = min(Decimal(data["clicks"]), max(Decimal("0"), Decimal(data["conversions"])))
+    data["purchases"] = data["conversions"]
+    data["initiate_checkout"] = min(Decimal(data["clicks"]), max(data["purchases"], Decimal(data["initiate_checkout"])))
+    data["add_to_cart"] = min(Decimal(data["clicks"]), max(data["initiate_checkout"], Decimal(data["add_to_cart"])))
+    data["leads"] = min(Decimal(data["clicks"]), max(Decimal("0"), Decimal(data["leads"])))
+    data["engagement"] = sum(max(0, int(data[field])) for field in ("likes", "comments", "shares", "saves"))
     return data
 
 
@@ -569,6 +587,7 @@ def refresh_demo_metrics_for_date(metric_date=None):
     ad_count = 0
     competitor_ad_count = 0
     creative_count = 0
+    ads_by_creative = {}
     ads_by_campaign = {}
     ads_by_ad_group = {}
     demo_user = get_user_model().objects.filter(username="demo").first()
@@ -590,21 +609,9 @@ def refresh_demo_metrics_for_date(metric_date=None):
                 ad_count += 1
 
             if ad.creative_id:
-                creative_defaults = _copy_metric_fields(ad_metric)
-                rng = random.Random(f"demo-creative:{metric_date.isoformat()}:{ad.creative_id}")
-                creative_defaults.update({
-                    "thumbstop_rate": _ratio(Decimal(str(rng.uniform(0.22, 0.58)))),
-                    "hook_rate": _ratio(Decimal(str(rng.uniform(0.18, 0.46)))),
-                    "hold_rate": _ratio(Decimal(str(rng.uniform(0.12, 0.38)))),
-                })
-                CreativeMetricHistory.objects.update_or_create(
-                    creative=ad.creative,
-                    date=metric_date,
-                    defaults=creative_defaults,
-                )
+                ads_by_creative.setdefault(ad.creative_id, []).append(_copy_metric_fields(ad_metric))
                 ad.creative.last_seen_at = now
                 ad.creative.save(update_fields=["last_seen_at", "updated_at"])
-                creative_count += 1
 
             if ad.campaign_id:
                 ads_by_campaign.setdefault(ad.campaign_id, []).append(_copy_metric_fields(ad_metric))
@@ -621,6 +628,19 @@ def refresh_demo_metrics_for_date(metric_date=None):
             if ad.platform_account_id:
                 ad.platform_account.last_sync = now
                 ad.platform_account.save(update_fields=["last_sync"])
+
+        for creative_id, rows in ads_by_creative.items():
+            creative_defaults = _rollup_rows(rows)
+            rng = random.Random(f"demo-creative:{metric_date.isoformat()}:{creative_id}")
+            creative_defaults.update({
+                "thumbstop_rate": _ratio(Decimal(str(rng.uniform(0.22, 0.58)))),
+                "hook_rate": _ratio(Decimal(str(rng.uniform(0.18, 0.46)))),
+                "hold_rate": _ratio(Decimal(str(rng.uniform(0.12, 0.38)))),
+            })
+            CreativeMetricHistory.objects.update_or_create(
+                creative_id=creative_id, date=metric_date, defaults=creative_defaults,
+            )
+            creative_count += 1
 
         campaign_count = 0
         for campaign_id, rows in ads_by_campaign.items():

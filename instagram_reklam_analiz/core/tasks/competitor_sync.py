@@ -1,3 +1,4 @@
+from core.services.demo_policy import is_demo_object, demo_skip_result
 from celery import shared_task
 
 from core.models import Competitor
@@ -16,6 +17,8 @@ def sync_competitor_live_ads(competitor_id):
     )
     if not competitor:
         return {"success": False, "skipped": True, "reason": "competitor_not_found_or_inactive", "competitor_id": competitor_id}
+    if is_demo_object(competitor):
+        return demo_skip_result()
     try:
         policy = policy_for_user(competitor.user)
         if not policy:
@@ -47,6 +50,8 @@ def sync_all_live_competitors():
     )
     results = []
     for competitor in competitors:
+        if is_demo_object(competitor):
+            continue
         last_sync = (competitor.raw_data or {}).get("last_live_sync_at")
         if not is_sync_due(competitor.user, last_sync, kind="competitor"):
             continue

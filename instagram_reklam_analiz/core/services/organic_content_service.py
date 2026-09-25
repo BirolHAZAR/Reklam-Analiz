@@ -190,6 +190,9 @@ def _post_type_from_media(media):
 
 
 def sync_instagram_organic_content(account: PlatformAccount, *, limit: int = 50) -> dict:
+    from core.services.demo_policy import is_demo_object, demo_skip_result
+    if is_demo_object(account):
+        return demo_skip_result()
     if not account or getattr(account.platform, "code", "") != "instagram":
         return {"success": False, "created": 0, "updated": 0, "metrics": 0, "error": "Instagram hesabi bulunamadi."}
 
