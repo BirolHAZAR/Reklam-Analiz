@@ -1,8 +1,7 @@
 from .base import BasePlatformAPI
 from datetime import timedelta
 import json
-from django.utils import timezone
-from core.services.ads_integrations import account_token, meta_rows
+from core.services.ads_integrations import account_token, account_today, meta_rows
 
 
 def _distinct_actions(items):
@@ -25,7 +24,7 @@ def _distinct_actions(items):
 
 class FacebookAPI(BasePlatformAPI):
     def get_ads(self, since_days=30):
-        end = timezone.localdate()
+        end = account_today(self.account)
         start = end - timedelta(days=max(1, min(int(since_days), 365)) - 1)
         token = account_token(self.account)
         metadata = {row["id"]: row for row in meta_rows(token, f"{self.account.account_id}/ads", {

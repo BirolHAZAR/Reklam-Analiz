@@ -3,6 +3,7 @@
 {% block content %}
 <div class="container py-4">
   <h1>Entegrasyonlar</h1>
+  {% if request.user.is_superuser %}<p><a href="{% url 'admin:core_integrationapplication_changelist' %}">Platform uygulama ayarlarını yönet</a></p>{% endif %}
   <p class="text-muted">Platformda izin verin, reklam hesabınızı seçin, kampanyalarınızı ve performansını görüntüleyin.</p>
   <div class="row g-3 mb-4">
     {% for provider in providers %}

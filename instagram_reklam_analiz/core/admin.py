@@ -1,4 +1,5 @@
 import csv
+from core import integration_admin  # Register encrypted integration application settings.
 import re
 from datetime import timedelta
 from io import StringIO

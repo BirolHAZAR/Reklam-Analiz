@@ -98,6 +98,8 @@ class AdsIntegrationTests(TestCase):
         response = self.client.get(reverse("integration_campaign_detail", args=[account.pk, "100"]))
         self.assertEqual(response.status_code, 404)
         performance.assert_not_called()
+        response = self.client.get(reverse("integration_campaigns", args=[account.pk]))
+        self.assertContains(response, "SEARCH")
         performance.return_value = [{"date": "2026-09-28", "impressions": 100, "clicks": 4, "spend": Decimal("2.5"), "conversions": 1, "conversion_value": 3}]
         response = self.client.get(reverse("integration_campaign_detail", args=[account.pk, "99"]))
         self.assertContains(response, "Search")
@@ -220,3 +222,18 @@ class AdsIntegrationTests(TestCase):
         self.assertEqual(result["purchases"], 3)
         self.assertEqual(result["conversions"], 3)
         self.assertEqual(result["conversion_value"], 0)
+
+    def test_verified_account_identity_cannot_be_manually_replaced(self):
+        account = PlatformAccount.objects.create(user=self.user, platform=self.platform, connection=self.connection(), account_id="123", access_token="secret", extra_data={"source": "ads_oauth"})
+        response = self.client.post(reverse("platform_account_update", args=[account.pk]), {
+            "account_id": "forged", "connection": str(account.connection_id), "is_active": "on",
+        })
+        self.assertEqual(response.status_code, 302)
+        account.refresh_from_db()
+        self.assertEqual(account.account_id, "123")
+
+    def test_report_date_uses_advertiser_timezone(self):
+        from datetime import datetime, date, timezone as dt_timezone
+        account = Mock(extra_data={"timezone": "America/Los_Angeles"})
+        with patch("django.utils.timezone.now", return_value=datetime(2026, 9, 28, 1, tzinfo=dt_timezone.utc)):
+            self.assertEqual(api.account_today(account), date(2026, 9, 27))

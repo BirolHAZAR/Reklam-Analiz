@@ -4,6 +4,7 @@ from decimal import Decimal
 import json
 import re
 from urllib.parse import urlencode
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import requests
 from django.conf import settings
@@ -18,17 +19,30 @@ class IntegrationError(ValueError):
     pass
 
 
-def configuration(provider):
+def application_values(provider):
     if provider == "google_ads":
         names = ("GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_ADS_REDIRECT_URI", "GOOGLE_ADS_DEVELOPER_TOKEN")
     elif provider == "facebook":
         names = ("FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET", "FACEBOOK_REDIRECT_URI")
     else:
         raise IntegrationError("Bu platform için reklam OAuth bağlantısı henüz desteklenmiyor.")
-    values = [getattr(settings, name, "") or "" for name in names]
+    from core.models import IntegrationApplication
+    application = IntegrationApplication.objects.filter(provider=provider).first()
+    if application is not None:
+        if not application.enabled:
+            raise IntegrationError("Yönetici bu platformun bağlantısını kapattı.")
+        values = [application.client_id, application.client_secret, application.redirect_uri]
+        if provider == "google_ads":
+            values.append(application.developer_token)
+    else:
+        values = [getattr(settings, name, "") or "" for name in names]
     if not all(values):
         raise IntegrationError("Platform bağlantısı sunucuda henüz yapılandırılmamış. Yöneticiyle iletişime geçin.")
-    return values[:3]
+    return values
+
+
+def configuration(provider):
+    return application_values(provider)[:3]
 
 
 def authorization_url(provider, state):
@@ -130,7 +144,7 @@ def connection_token(connection):
 
 
 def _google_headers(token, manager_id=""):
-    headers = {"Authorization": f"Bearer {token}", "developer-token": settings.GOOGLE_ADS_DEVELOPER_TOKEN}
+    headers = {"Authorization": f"Bearer {token}", "developer-token": application_values("google_ads")[3]}
     if manager_id:
         headers["login-customer-id"] = str(manager_id)
     return headers
@@ -207,6 +221,14 @@ def account_token(account):
     if not account.connection_id or (account.connection.extra_data or {}).get("source") != "ads_oauth":
         raise IntegrationError("Bu hesabı Entegrasyonlar ekranından yeniden yetkilendirin.")
     return connection_token(account.connection)
+
+
+def account_today(account):
+    zone = (account.extra_data or {}).get("timezone")
+    try:
+        return timezone.localdate(timezone=ZoneInfo(zone)) if zone else timezone.localdate()
+    except (ZoneInfoNotFoundError, ValueError):
+        return timezone.localdate()
 
 
 def campaigns(account):

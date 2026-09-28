@@ -4,7 +4,8 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from core.models import OctoRuleEngineRun, Platform, PlatformAccount
+from core.models import OctoRuleEngineRun, Platform, PlatformAccount, PlatformConnection
+from types import SimpleNamespace
 
 
 class OctoRuleAutomationTests(TestCase):
@@ -52,12 +53,17 @@ class OctoRuleAutomationTests(TestCase):
 
     def test_successful_ad_sync_queues_rule_engine_for_same_account(self):
         from core.tasks.v2_platform_sync import sync_v2_platform_account_ads
+        self.account.connection = PlatformConnection.objects.create(
+            user=self.user, platform=self.platform, access_token="verified-token",
+            extra_data={"source": "ads_oauth"},
+        )
+        self.account.save(update_fields=["connection"])
 
         class FakeAPI:
             def __init__(self, account):
                 self.account = account
 
-            def get_ads(self):
+            def get_ads(self, since_days=30):
                 return [{
                     "id": "ad-001",
                     "campaign_id": "campaign-001",
@@ -72,7 +78,7 @@ class OctoRuleAutomationTests(TestCase):
                     "clicks": 50,
                 }]
 
-        with patch("core.tasks.v2_platform_sync._get_api_class", return_value=FakeAPI), patch(
+        with patch("core.services.sync_policy.policy_for_user", return_value=SimpleNamespace(history_days=30, max_records=100)), patch("core.tasks.v2_platform_sync._get_api_class", return_value=FakeAPI), patch(
             "core.tasks.admin_ops.generate_octo_tasks.apply_async"
         ) as enqueue:
             enqueue.return_value.id = "octo-task-001"
@@ -85,4 +91,3 @@ class OctoRuleAutomationTests(TestCase):
         self.assertEqual(kwargs["user_id"], self.user.id)
         self.assertEqual(kwargs["account_id"], self.account.id)
         self.assertEqual(kwargs["trigger"], "ad_sync")
-

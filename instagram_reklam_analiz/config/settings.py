@@ -890,6 +890,9 @@ ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
 
 SOCIALACCOUNT_AUTO_SIGNUP = True
+# Login-only allauth tokens must not be persisted in its plaintext token fields.
+# Advertising OAuth credentials use core.fields.EncryptedTextField instead.
+SOCIALACCOUNT_STORE_TOKENS = False
 SOCIALACCOUNT_EMAIL_REQUIRED = True
 
 SOCIALACCOUNT_EMAIL_VERIFICATION = config(

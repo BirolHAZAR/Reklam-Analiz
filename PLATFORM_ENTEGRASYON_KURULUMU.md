@@ -87,3 +87,59 @@ developer token eksik. Meta uygulama bilgileri var; dönüş adresi localhost.
 Canlı konsol yapılandırması ve gerçek hesapla kullanıcı onayı bu çalışma sırasında
 doğrulanmadı. Gerçek kabul testi: izin reddi → tekrar bağlantı → hesap seçimi →
 kampanya listesi → hesap arayüzüyle aynı tarih/para biriminde performans karşılaştırması.
+
+## Veritabanı token şifreleme denetimi
+
+Yerel ham kolon denetimi: 68 platform access/refresh tokenı ve 13 pazaryeri/ödeme
+gizli alanı, toplam 81 dolu değer şifreli. Düz metin ve çözülemeyen değer sayısı
+sıfır. `TOKEN_ENCRYPTION_KEY` mevcut; anahtar değeri veya tokenlar yazdırılmadı.
+Bağlantı/hesap metadata JSON alanlarında bilinen token/secret anahtarları altında
+düz metin kopya bulunmadı. Allauth SocialToken tablosu boş; giriş tokenlarının düz
+metin tabloda gelecekte saklanmaması için `SOCIALACCOUNT_STORE_TOKENS=False` açıkça ayarlandı.
+
+Canlıda aynı kod ve mevcut şifreleme anahtarıyla:
+
+```sh
+python manage.py audit_token_encryption
+```
+
+Komut yalnızca alan adları ve sayıları gösterir; okunamayan veya düz metin değer
+varsa başarısız çıkış kodu verir. Eski EncryptedTextField kolonlarında düz metin
+bulunursa mevcut anahtarı değiştirmeden:
+
+```sh
+python manage.py audit_token_encryption --encrypt-legacy
+python manage.py audit_token_encryption
+```
+
+Dönüşüm tek transaction içinde yapılır, her değerin şifreleme/çözme eşitliği
+kontrol edilir. Mevcut şifreli değerler yeniden şifrelenmez. Okunamayan şifreli
+veri veya şifrelemeyi desteklemeyen dolu token kolonu varsa dönüşüm geri alınır.
+Şifreleme anahtarını yenilemek bu komutun görevi değildir; eski anahtar olmadan
+mevcut şifreli kayıtlar çözülemez. Bu komut JSON/log/backupların tamamını taramaz.
+
+## Test notu
+
+Entegrasyon, Octo senkronizasyonu, demo arka plan ve senkronizasyon politikası için
+36 test geçti. Geniş ajans paketindeki iki eski test 13 Temmuz 2026 tarihli veri
+kullandığından güncel 30 günlük rapor penceresinde başarısız; ilgili rapor tarihi
+13 Temmuz'a sabitlenerek ikisi de doğrulandı. Üretim rapor tarihleri değiştirilmedi.
+# Canlı yönetim panelinden uygulama ayarları
+
+`core.0076_integrationapplication` migration'ından sonra süper yönetici,
+`/admin/core/integrationapplication/` üzerinden Google Ads ve Meta uygulama
+ayarlarını yönetebilir. Entegrasyonlar sayfasında bu bölüme bağlantı bulunur.
+Uygulama gizli anahtarı ve Google geliştirici tokenı mevcut `EncryptedTextField`
+ile şifrelenir; düzenleme formunda kayıtlı değer gösterilmez. Boş bırakmak
+kayıtlı gizli değeri korur. Bu ekran yalnızca süper yöneticiye açıktır.
+
+Platform için bir veritabanı ayarı varsa ortam değişkenlerinden önce kullanılır.
+Kaydın kapatılması ortam değişkenine geri dönmez; yeni bağlantıyı durdurur.
+Kayıt yoksa mevcut ortam değişkenleri kullanılmaya devam eder.
+Bu ayarlar geliştirici hesabını, platform API onayını veya kullanıcı OAuth
+iznini oluşturmaz; gerçek platform uygulama bilgileri gereklidir.
+
+28 Eylül 2026 canlı panel kontrolünde Google Ads kurulumu eksik, Meta bağlantı
+düğmesi kullanılabilir ve allauth sosyal uygulama listesi boştu. OAuth ile
+bağlanmış reklam hesabı görünmedi. Bu bulgu Meta API erişiminin doğrulandığı
+anlamına gelmez. Bu değişiklik henüz canlıya dağıtılmadı.

@@ -272,6 +272,7 @@ __all__ = [
 ]
 
 from .payment_gateway import PaymentGatewaySettings, HostedPaymentSession
+from .integration_application import IntegrationApplication
 
 if AnalyticsProperty is not None:
     __all__ += [

@@ -1,12 +1,11 @@
 from .base import BasePlatformAPI
 from datetime import timedelta
-from django.utils import timezone
-from core.services.ads_integrations import account_token, google_search, google_metrics
+from core.services.ads_integrations import account_token, account_today, google_search, google_metrics
 
 
 class GoogleAdsAPI(BasePlatformAPI):
     def get_ads(self, since_days=30):
-        end = timezone.localdate()
+        end = account_today(self.account)
         start = end - timedelta(days=max(1, min(int(since_days), 365)) - 1)
         rows = google_search(account_token(self.account), self.account.account_id,
             "SELECT campaign.id, campaign.name, campaign.status, ad_group.id, ad_group.name, "

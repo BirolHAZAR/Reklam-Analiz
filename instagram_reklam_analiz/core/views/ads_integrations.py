@@ -21,6 +21,8 @@ def _client(request, client_id):
         if get_agency_scope(request).is_agency:
             raise api.IntegrationError("Önce hesabın bağlanacağı ajans müşterisini seçin.")
         return None
+    if not str(client_id).isdigit():
+        raise api.IntegrationError("Geçerli bir ajans müşterisi seçin.")
     client = get_object_or_404(AgencyClient, pk=client_id, is_active=True, organization__is_active=True)
     from core.views.agency import _user_has_permission
     if not _user_has_permission(client.organization, request.user, "manage_accounts"):
@@ -118,6 +120,11 @@ def select_accounts(request, provider):
                 # Serialize selections and enforce the existing subscription limit.
                 from django.contrib.auth import get_user_model
                 get_user_model().objects.select_for_update().get(pk=request.user.pk)
+                if client:
+                    from core.models import Organization
+                    Organization.objects.select_for_update().get(pk=client.organization_id)
+                    if PlatformAccount.objects.filter(agency_client__organization=client.organization, platform=connection.platform, account_id__in=selected).exclude(user=request.user).exists():
+                        raise api.IntegrationError("Bu reklam hesabı ajansınızda zaten kayıtlı. Mevcut müşteri hesabını kullanın.")
                 connection = PlatformConnection.objects.select_for_update().get(pk=connection.pk)
                 if not connection.extra_data.get("pending"):
                     raise api.IntegrationError("Bu hesap seçimi zaten tamamlandı.")
@@ -161,7 +168,7 @@ def account_campaigns(request, account_id, campaign_id=None):
             if not campaign:
                 from django.http import Http404
                 raise Http404
-            end = timezone.localdate()
+            end = api.account_today(account)
             start = end - timedelta(days=29)
             context.update(campaign=campaign, start=start, end=end, metrics=api.campaign_performance(account, campaign_id, start, end))
     except api.IntegrationError as exc:

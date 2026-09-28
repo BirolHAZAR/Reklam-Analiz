@@ -2,10 +2,8 @@
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.conf import settings
 from django.db import IntegrityError
 from django.views.decorators.http import require_POST
-import requests
 
 from core.models import PlatformAccount, Platform
 from core.services.notification_helper import NotificationHelper
@@ -97,6 +95,12 @@ def platform_account_update(request, account_id):
     account_name = request.POST.get("account_name", "").strip()
     external_account_id = request.POST.get("account_id", "").strip()
     connection_id = request.POST.get("connection", "").strip()
+
+    if (account.extra_data or {}).get("source") == "ads_oauth" and (
+        external_account_id != account.account_id or connection_id != str(account.connection_id or "")
+    ):
+        messages.error(request, "Yetkilendirilmiş reklam hesabının ID veya bağlantısı elle değiştirilemez. Entegrasyonlar ekranından yeniden bağlayın.")
+        return redirect("platform_connections")
 
     if not external_account_id:
         messages.error(request, "Platform ID boş bırakılamaz.")
