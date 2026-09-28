@@ -836,6 +836,9 @@
             <a href="/admin/guvenlik-giris-ayarlari/" class="nav-link {% if '/admin/guvenlik-giris-ayarlari/' in request.path %}active{% endif %}">Güvenlik</a>
             <a href="/admin/core/platformsyncjob/" class="nav-link {% if '/admin/core/platformsyncjob/' in request.path %}active{% endif %}">Senkronlar</a>
             <a href="/admin/core/systemerrorlog/" class="nav-link {% if '/admin/core/systemerrorlog/' in request.path %}active{% endif %}">Sistem</a>
+            {% if request.user.is_superuser %}
+            <a href="{% url 'admin:core_integrationapplication_changelist' %}" class="nav-link {% if '/admin/core/integrationapplication/' in request.path %}active{% endif %}">Hesap Ayarları</a>
+            {% endif %}
         </nav>
     </div>
 </div>
