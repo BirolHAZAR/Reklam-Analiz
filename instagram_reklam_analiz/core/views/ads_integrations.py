@@ -36,15 +36,25 @@ def integrations(request):
     scope = get_agency_scope(request)
     providers = []
     for code, name in api.PROVIDERS.items():
+        setup_error = ""
         try:
             api.configuration(code)
             ready = True
-        except api.IntegrationError:
+        except api.IntegrationError as exc:
             ready = False
-        providers.append({"code": code, "name": name, "ready": ready})
+            setup_error = str(exc)
+        providers.append({"code": code, "name": name, "ready": ready, "setup_error": setup_error})
+    accounts = list(platform_accounts_for_request(request).filter(platform__code__in=api.PROVIDERS).select_related("platform", "connection", "agency_client"))
+    for account in accounts:
+        connection = account.connection
+        account.ads_authorized = bool(
+            connection and (connection.extra_data or {}).get("source") == "ads_oauth"
+            and account.is_active and connection.is_active and connection.status == "active"
+            and (not connection.is_token_expired or (account.platform.code == "google_ads" and connection.refresh_token))
+        )
     return render(request, "platforms/integrations.html", {
         "providers": providers, "clients": scope.clients, "selected_client": scope.selected_client,
-        "accounts": platform_accounts_for_request(request).filter(platform__code__in=api.PROVIDERS).select_related("platform", "connection", "agency_client"),
+        "accounts": accounts,
     })
 
 

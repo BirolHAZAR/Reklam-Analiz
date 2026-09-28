@@ -4,10 +4,12 @@ from decimal import Decimal
 import json
 import re
 from urllib.parse import urlencode
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import requests
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
@@ -36,8 +38,20 @@ def application_values(provider):
             values.append(application.developer_token)
     else:
         values = [getattr(settings, name, "") or "" for name in names]
+    values = [value.strip() if isinstance(value, str) else value for value in values]
     if not all(values):
         raise IntegrationError("Platform bağlantısı sunucuda henüz yapılandırılmamış. Yöneticiyle iletişime geçin.")
+    candidate = IntegrationApplication(
+        provider=provider, client_id=values[0], client_secret=values[1],
+        redirect_uri=values[2], enabled=True,
+        developer_token=values[3] if provider == "google_ads" else "",
+    )
+    try:
+        candidate.clean()
+    except ValidationError:
+        raise IntegrationError("Platformun OAuth dönüş adresi geçersiz. Yönetici uygulama ayarlarını kontrol etmeli.") from None
+    if not settings.DEBUG and urlsplit(values[2]).hostname in {"localhost", "127.0.0.1"}:
+        raise IntegrationError("Canlı ortam için HTTPS site dönüş adresi gerekli. Yönetici uygulama ayarlarını kontrol etmeli.")
     return values
 
 

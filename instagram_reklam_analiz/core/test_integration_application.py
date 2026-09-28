@@ -45,6 +45,25 @@ class IntegrationApplicationTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("redirect_uri", form.errors)
 
+    @override_settings(DEBUG=False)
+    def test_production_rejects_local_callback(self):
+        self.application.redirect_uri = "http://localhost:8000/connect/google-ads/callback/"
+        self.application.save()
+        with self.assertRaisesMessage(IntegrationError, "Canlı ortam"):
+            application_values("google_ads")
+
+    @override_settings(DEBUG=True)
+    def test_development_accepts_local_callback(self):
+        self.application.redirect_uri = "http://localhost:8000/connect/google-ads/callback/"
+        self.application.save()
+        self.assertEqual(application_values("google_ads")[2], self.application.redirect_uri)
+
+    def test_runtime_rejects_invalid_callback_even_if_saved_without_validation(self):
+        self.application.redirect_uri = "https://attacker.example/connect/google-ads/callback/"
+        self.application.save()
+        with self.assertRaises(IntegrationError):
+            application_values("google_ads")
+
     def test_ordinary_staff_cannot_read_or_edit_secrets(self):
         user = get_user_model().objects.create_user(username="staff-settings", is_staff=True)
         self.client.force_login(user)

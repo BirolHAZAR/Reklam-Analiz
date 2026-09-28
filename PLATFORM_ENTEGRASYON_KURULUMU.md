@@ -1,5 +1,25 @@
 # Platform entegrasyonları
 
+## Bu sürümün canlıya geçişi
+
+- `python manage.py migrate --noinput` ile mevcut `core.0076` dahil migration'ları uygulayın.
+- `python manage.py collectstatic --noinput` çalıştırın; web ve Celery süreçlerini yeniden başlatın.
+- Canlıda `DEBUG=False` kullanın. Meta dönüş adresinin varsayılanı bu modda
+  `https://reklamanaliz.net/connect/facebook/callback/` olur. Ortam değişkeni veya
+  yönetici kaydı bu varsayılanı geçersiz kılar; geliştirme ortamının localhost
+  değerini canlıya taşımayın. Canlıda localhost adresiyle yeni reklam OAuth akışı başlatılmaz.
+- Google Ads ve Meta uygulama bilgilerini ortam değişkenlerinden veya süper yöneticiye
+  açık `/admin/core/integrationapplication/` ekranından tamamlayın. Veritabanı ayarı
+  varsa önceliklidir. Platform konsolundaki izinli dönüş adresiyle birebir eşleştirin.
+- `/integrations/` ekranında iki sağlayıcının bağlantı düğmesini, ardından gerçek
+  kullanıcı izni → hesap seçimi → kampanya okuma akışını doğrulayın.
+
+Dağıtım, eksik platform anahtarlarını veya sağlayıcı izinlerini oluşturmaz.
+Geliştirme ortamında localhost kullanılabilir. Süresi dolan Meta bağlantıları
+yeniden yetkilendirme ister; yenileme tokenı olan Google bağlantıları yenilenebilir.
+Bu sürüm için 30 entegrasyon testi izole test veritabanında geçti; gerçek sağlayıcı
+izinleri bu testlerin kapsamı dışındadır.
+
 Giriş → `/integrations/` → Google Ads veya Meta Ads → resmi izin ekranı →
 erişilebilir reklam hesabı seçimi → Kampanyalar → Kampanya detayı → son 30 günün
 gerçek performans verileri. Ajans kullanıcıları önce müşteriyi seçer.

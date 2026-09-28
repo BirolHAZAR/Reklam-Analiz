@@ -37,6 +37,23 @@ class AdsIntegrationTests(TestCase):
         session[f"ads_oauth:{provider}"] = {"state": "nonce", "user": self.user.pk, "created": time.time(), "client": None, **overrides}
         session.save()
 
+    def test_expired_meta_requires_reconnection_but_google_can_refresh(self):
+        meta, _ = Platform.objects.get_or_create(code="facebook", defaults={"name": "Meta"})
+        google_connection = self.connection()
+        meta_connection = PlatformConnection.objects.create(
+            user=self.user, platform=meta, access_token="private-meta",
+            extra_data={"source": "ads_oauth"}, token_expiry=timezone.now()-timedelta(hours=1),
+        )
+        google_connection.token_expiry = timezone.now()-timedelta(hours=1)
+        google_connection.save()
+        for connection in (google_connection, meta_connection):
+            PlatformAccount.objects.create(user=self.user, platform=connection.platform,
+                connection=connection, account_id="123", access_token="private-access")
+        response = self.client.get(reverse("integrations"))
+        states = {a.platform.code: a.ads_authorized for a in response.context["accounts"]}
+        self.assertEqual(states, {"google_ads": True, "facebook": False})
+        self.assertNotContains(response, "private-meta")
+
     def test_connect_requires_post_and_creates_unpredictable_state(self):
         url = reverse("integration_connect", args=["google_ads"])
         self.assertEqual(self.client.get(url).status_code, 405)

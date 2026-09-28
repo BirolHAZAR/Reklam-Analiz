@@ -1,13 +1,15 @@
 {% extends 'base.html' %}
 {% block title %}Entegrasyonlar · ReklamAnaliz{% endblock %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/integrations.css' %}?v=20260928">{% endblock %}
 {% block content %}
-<div class="container py-4">
+<div class="container py-4 integrations-page">
   <h1>Entegrasyonlar</h1>
   {% if request.user.is_superuser %}<p><a href="{% url 'admin:core_integrationapplication_changelist' %}">Platform uygulama ayarlarını yönet</a></p>{% endif %}
-  <p class="text-muted">Platformda izin verin, reklam hesabınızı seçin, kampanyalarınızı ve performansını görüntüleyin.</p>
+  <p class="integrations-intro">Platformda izin verin, reklam hesabınızı seçin, kampanyalarınızı ve performansını görüntüleyin.</p>
   <div class="row g-3 mb-4">
     {% for provider in providers %}
-    <div class="col-md-6"><section class="card h-100"><div class="card-body">
+    <div class="col-md-6"><section class="card h-100 integration-card"><div class="card-body">
       <h2 class="h4">{{ provider.name }}</h2>
       <p>{% if provider.code == 'google_ads' %}Arama, görüntülü reklam, alışveriş ve YouTube kampanyaları. Google hesabınızla devam edin.{% else %}Facebook ve Instagram reklamları için Meta reklam hesabınızı seçin. Kişisel profil ve sayfa hesaplarından ayrıdır.{% endif %}</p>
       {% if provider.ready %}
@@ -17,15 +19,22 @@
         <select class="form-select mb-3" id="client-{{ provider.code }}" name="agency_client" required><option value="">Müşteri seçin</option>{% for client in clients %}<option value="{{ client.pk }}" {% if selected_client.pk == client.pk %}selected{% endif %}>{{ client.name }}</option>{% endfor %}</select>{% endif %}
         <button class="btn btn-primary" type="submit">{% if provider.code == 'google_ads' %}Google Ads'i bağla{% else %}Meta Ads'i bağla{% endif %}</button>
       </form>
-      {% else %}<p class="alert alert-warning mb-0">Bağlantı kurulumu bekleniyor. Yönetici platform uygulama ayarlarını tamamlamalı.</p>{% endif %}
+      {% else %}
+      <div class="alert alert-warning mb-0" role="status">
+        <strong>Bağlantı kurulumu bekleniyor</strong>
+        {% if request.user.is_superuser %}
+        <p class="mb-2">{{ provider.setup_error }}</p>
+        <a class="btn btn-outline-dark btn-sm" href="{% url 'admin:core_integrationapplication_changelist' %}?provider__exact={{ provider.code }}">Uygulama ayarlarını tamamla</a>
+        {% else %}<p class="mb-0">Bu platform henüz bağlantıya hazır değil. Kurulum tamamlandığında hesabınızı buradan bağlayabilirsiniz.</p>{% endif %}
+      </div>{% endif %}
     </div></section></div>
     {% endfor %}
   </div>
   <h2 class="h4">Reklam hesapları</h2>
-  <div class="table-responsive"><table class="table"><thead><tr><th>Platform / Hesap</th><th>Müşteri</th><th>Durum</th><th></th></tr></thead><tbody>
+  <div class="table-responsive integration-accounts"><table class="table"><thead><tr><th>Platform / Hesap</th><th>Müşteri</th><th>Durum</th><th><span class="visually-hidden">İşlem</span></th></tr></thead><tbody>
   {% for account in accounts %}<tr><td>{{ account.platform.name }} · {{ account.account_name }}<br><small>{{ account.account_id }}</small></td><td>{{ account.agency_client.name|default:'—' }}</td>
-  <td>{% if account.connection.extra_data.source == 'ads_oauth' and account.is_active and account.connection.is_active %}Yetkilendirildi{% else %}Yeniden bağlantı gerekli{% endif %}</td>
-  <td>{% if account.connection.extra_data.source == 'ads_oauth' and account.is_active and account.connection.is_active %}<a class="btn btn-outline-primary btn-sm" href="{% url 'integration_campaigns' account.pk %}">Kampanyalar</a>{% endif %}</td></tr>
+  <td>{% if account.ads_authorized %}Yetkilendirildi{% else %}Yeniden bağlantı gerekli{% endif %}</td>
+  <td>{% if account.ads_authorized %}<a class="btn btn-outline-primary btn-sm" href="{% url 'integration_campaigns' account.pk %}">Kampanyalar</a>{% endif %}</td></tr>
   {% empty %}<tr><td colspan="4">Henüz OAuth ile bağlanmış reklam hesabı yok.</td></tr>{% endfor %}
   </tbody></table></div>
   <h2 class="h4 mt-4">Diğer platformlar</h2>

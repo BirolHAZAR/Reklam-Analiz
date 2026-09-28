@@ -349,8 +349,8 @@ FACEBOOK_APP_SECRET = os.getenv(
 FACEBOOK_REDIRECT_URI = config(
     'FACEBOOK_REDIRECT_URI',
     default=(
-        'http://localhost:8000/'
-        'connect/facebook/callback/'
+        'http://localhost:8000/connect/facebook/callback/' if DEBUG
+        else 'https://reklamanaliz.net/connect/facebook/callback/'
     ),
 )
 
