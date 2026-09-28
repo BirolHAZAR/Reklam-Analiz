@@ -11,109 +11,11 @@ from core.models import PlatformAccount, Platform
 from core.services.notification_helper import NotificationHelper
 
 
-# ==================== FACEBOOK OAUTH ====================
+# Legacy entry point now leads to the consent-based integrations screen.
 @login_required
 def facebook_login(request):
-    redirect_uri = settings.FACEBOOK_REDIRECT_URI
-    params = {
-        'client_id': settings.FACEBOOK_APP_ID,
-        'redirect_uri': redirect_uri,
-        'scope': 'ads_management,ads_read,business_management',
-        'response_type': 'code',
-        'state': str(request.user.id),
-    }
-    url = 'https://www.facebook.com/v25.0/dialog/oauth?' + '&'.join(f'{k}={v}' for k, v in params.items())
-    return redirect(url)
+    return redirect("integrations")
 
-
-@login_required
-def facebook_callback(request):
-    code = request.GET.get('code')
-    if not code:
-        messages.error(request, 'Facebook bağlantısı tamamlanamadı. Yetkilendirme kodu alınamadı.')
-        return redirect('dashboard')
-
-    token_url = 'https://graph.facebook.com/v25.0/oauth/access_token'
-    params = {
-        'client_id': settings.FACEBOOK_APP_ID,
-        'client_secret': settings.FACEBOOK_APP_SECRET,
-        'redirect_uri': settings.FACEBOOK_REDIRECT_URI,
-        'code': code,
-    }
-
-    try:
-        resp = requests.get(token_url, params=params, timeout=20)
-        data = resp.json()
-        access_token = data.get('access_token')
-
-        if not access_token:
-            messages.error(request, 'Facebook access token alınamadı.')
-            return redirect('hesap_ekle')
-
-        me_url = 'https://graph.facebook.com/me'
-        me_resp = requests.get(
-            me_url,
-            params={'access_token': access_token, 'fields': 'id,name'},
-            timeout=20,
-        )
-        me_data = me_resp.json()
-        account_id = me_data.get('id')
-        account_name = me_data.get('name') or 'Facebook Hesabı'
-
-        if not account_id:
-            messages.error(request, 'Facebook hesap bilgileri alınamadı.')
-            return redirect('hesap_ekle')
-
-        platform, _ = Platform.objects.get_or_create(
-            code='facebook',
-            defaults={'name': 'Facebook', 'is_active': True}
-        )
-
-        from core.services.plan_limits import ensure_platform_account_capacity
-        ensure_platform_account_capacity(request.user, [(platform.code, account_id)])
-
-        account, created = PlatformAccount.objects.update_or_create(
-            user=request.user,
-            platform=platform,
-            account_id=account_id,
-            defaults={
-                'account_name': account_name,
-                'access_token': access_token,
-                'is_active': True,
-            }
-        )
-
-        NotificationHelper.platform_account_connected(
-            user=request.user,
-            account=account,
-            created=created,
-        )
-
-        try:
-            from core.tasks import sync_facebook_ads
-            sync_facebook_ads.delay(account_id)
-        except Exception:
-            # Senkronizasyon task'ı hata verse bile hesap bağlantısı ve bildirimi bozulmasın.
-            pass
-
-        messages.success(request, f'Facebook hesabı {"bağlandı" if created else "güncellendi"}: {account_name}')
-        return redirect('hesap_ekle')
-
-    except ValueError as exc:
-        messages.error(request, str(exc))
-        return redirect('hesap_ekle')
-    except Exception as exc:
-        NotificationHelper.notify(
-            user=request.user,
-            title='Facebook bağlantı hatası',
-            message=f'Facebook hesabı bağlanırken hata oluştu: {str(exc)[:140]}',
-            level='warning',
-            icon='⚠️',
-            link='/hesap-ekle/',
-            dedupe_minutes=5,
-        )
-        messages.error(request, 'Facebook bağlantısı sırasında hata oluştu.')
-        return redirect('hesap_ekle')
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render

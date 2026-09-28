@@ -252,6 +252,9 @@ def hesap_ekle_view(request):
         return redirect("agency_dashboard_org", organization_id=agency_scope.organization_ids[0])
     if request.method == "POST":
         platform_code = request.POST.get("platform")
+        if platform_code in {"google_ads", "facebook", "google_analytics"}:
+            messages.info(request, "Reklam hesaplarını Entegrasyonlar ekranından bağlayın. GA4 bağlantısı henüz desteklenmiyor.")
+            return redirect("integrations")
         account_name = request.POST.get("account_name", "").strip()
         account_id = request.POST.get("account_id", "").strip()
         access_token = request.POST.get("access_token", "").strip()

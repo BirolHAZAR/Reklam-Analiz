@@ -37,6 +37,8 @@ def sync_analytics_account(self, account_id):
     ).get(id=account_id, is_active=True)
 
     platform_code = _normalize_analytics_code(account.platform)
+    if platform_code == "google_analytics":
+        return {"account_id": account.id, "skipped": True, "reason": "analytics_provider_not_implemented"}
     api_class = _get_analytics_api_class(platform_code)
 
     if not api_class:

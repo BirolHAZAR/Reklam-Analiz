@@ -7,6 +7,13 @@ from core.services.agency_permission_matrix import (
 
 
 URL_PERMISSION_ALIASES = {
+    "integrations": "platform_connections",
+    "integration_connect": "hesap_ekle",
+    "integration_select": "hesap_ekle",
+    "google_ads_callback": "hesap_ekle",
+    "facebook_callback": "hesap_ekle",
+    "integration_campaigns": "campaign_center",
+    "integration_campaign_detail": "campaign_center",
     "agency_dashboard_org": "agency_dashboard",
     "agency_members": "agency_members",
     "agency_member_invite": "agency_members",

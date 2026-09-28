@@ -220,7 +220,7 @@ def normalize_metric_payload(data: Mapping[str, Any] | None) -> dict[str, Any]:
     meta_roas = _first_roas_value(data)
     if not conversion_value and meta_roas and spend:
         conversion_value = spend * meta_roas
-    if not conversion_value and conversions:
+    if not conversion_value and conversions and data.get("allow_estimated_conversion_value", True):
         estimated_per_conversion = _estimated_value_per_conversion(data)
         conversion_value = conversions * estimated_per_conversion
         data["conversion_value_estimated"] = True

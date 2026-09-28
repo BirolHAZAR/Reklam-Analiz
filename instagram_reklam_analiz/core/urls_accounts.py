@@ -3,8 +3,15 @@ from core.views.hosted_payment import hosted_payment_callback
 from core.views import payment, platform_connect
 from core.views.hesap_ekle import hesap_ekle_view, hesap_sil
 from core.views import platform_connect
+from core.views import ads_integrations
 
 urlpatterns = [
+    path('integrations/', ads_integrations.integrations, name='integrations'),
+    path('integrations/<str:provider>/connect/', ads_integrations.connect, name='integration_connect'),
+    path('integrations/<str:provider>/accounts/', ads_integrations.select_accounts, name='integration_select'),
+    path('integrations/accounts/<int:account_id>/campaigns/', ads_integrations.account_campaigns, name='integration_campaigns'),
+    path('integrations/accounts/<int:account_id>/campaigns/<str:campaign_id>/', ads_integrations.account_campaigns, name='integration_campaign_detail'),
+    path('connect/google-ads/callback/', ads_integrations.callback, {'provider': 'google_ads'}, name='google_ads_callback'),
     path("payment/pos/callback/<uuid:session_id>/", hosted_payment_callback, name="hosted_payment_callback"),
     path(
         "platform-connections/",
@@ -30,5 +37,5 @@ urlpatterns = [
     path('platform-connections/accounts/<int:account_id>/update/', platform_connect.platform_account_update, name='platform_account_update'),
     path('platform-connections/accounts/<int:account_id>/delete/', platform_connect.platform_account_delete, name='platform_account_delete'),
     path('connect/facebook/', platform_connect.facebook_login, name='facebook_login'),
-    path('connect/facebook/callback/', platform_connect.facebook_callback, name='facebook_callback'),
+    path('connect/facebook/callback/', ads_integrations.callback, {'provider': 'facebook'}, name='facebook_callback'),
 ]

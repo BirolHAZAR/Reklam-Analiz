@@ -139,8 +139,8 @@
         <div class="octo-hero-inner">
             <div>
                 <span class="octo-kicker"><i class="fas fa-plug"></i> Octo Entegrasyon Merkezi</span>
-                <h1>Reklam hesaplarınızı ve Google Analytics verilerinizi tek merkeze bağlayın.</h1>
-                <p>ReklamAnaliz.net’in en güçlü tarafı burada başlar: Meta, Instagram, Facebook, Google Ads, TikTok, LinkedIn, X, YouTube ve GA4 verilerini birleştirerek AI analiz, öneri ve reklam oluşturma sürecini güçlendirir.</p>
+                <h1>Platform hesaplarınızı bağlayın.</h1>
+                <p>Google Ads ve Meta reklam hesapları için <a href="{% url 'integrations' %}">Entegrasyonlar</a> ekranından izin verin ve hesap seçin. Organik profil bağlantıları reklam hesabı erişiminden ayrıdır.</p>
                 <div class="octo-chip-row"><span class="octo-chip"><i class="fas fa-link"></i> Hesap Bağlama</span><span class="octo-chip"><i class="fas fa-database"></i> Veri Toplama</span><span class="octo-chip"><i class="fas fa-robot"></i> AI Analiz</span></div>
             </div>
             <div class="octo-visual"><img src="{% static 'images/octo-nexus.webp' %}" alt="Octo Nexus"></div>
@@ -170,7 +170,7 @@
                         <div class="platform-icon instagram me-3"><i class="fab fa-instagram"></i></div>
                         <div><h5 class="card-title fw-bold mb-0">Instagram</h5><small class="text-muted">Organik & Reklam verileri</small></div>
                     </div>
-                    <p class="card-text small text-muted mb-3">Instagram Business hesabınızı bağlayarak gönderi, reklam ve etkileşim verilerinizi çekin.</p>
+                    <p class="card-text small text-muted mb-3">Profesyonel profilinizin organik içerik bağlantısını kurun. Reklamlar için Meta Ads entegrasyonunu kullanın.</p>
                     <button class="btn btn-outline-dark w-100 btn-connect" onclick="openOctoPopup('modalInstagram')" type="button">
                         <i class="fas fa-plus-circle me-2"></i> Hesap Bağla
                     </button>
@@ -186,9 +186,7 @@
                         <div><h5 class="card-title fw-bold mb-0">Facebook</h5><small class="text-muted">Ads Manager</small></div>
                     </div>
                     <p class="card-text small text-muted mb-3">Facebook Reklam hesabınızı bağlayarak kampanya, reklam seti ve metriklerinizi getirin.</p>
-                    <button class="btn btn-outline-primary w-100 btn-connect" onclick="openOctoPopup('modalFacebook')" type="button">
-                        <i class="fas fa-plus-circle me-2"></i> Hesap Bağla
-                    </button>
+                    <a class="btn btn-outline-primary w-100" href="{% url 'integrations' %}">Meta Ads'i bağla</a>
                 </div>
             </div>
         </div>
@@ -200,10 +198,8 @@
                         <div class="platform-icon google-ads me-3"><i class="fab fa-google"></i></div>
                         <div><h5 class="card-title fw-bold mb-0">Google Ads</h5><small class="text-muted">Search, Display, Shopping</small></div>
                     </div>
-                    <p class="card-text small text-muted mb-3">Google Ads hesabınızı bağlayarak arama, görüntülü ve alışveriş kampanyalarınızı yönetin.</p>
-                    <button class="btn btn-outline-danger w-100 btn-connect" onclick="openOctoPopup('modalGoogleAds')" type="button">
-                        <i class="fas fa-plus-circle me-2"></i> Hesap Bağla
-                    </button>
+                    <p class="card-text small text-muted mb-3">Google hesabınızla izin verin, reklam hesabınızı seçin ve kampanya performansını görüntüleyin.</p>
+                    <a class="btn btn-outline-primary w-100" href="{% url 'integrations' %}">Google Ads'i bağla</a>
                 </div>
             </div>
         </div>
@@ -215,7 +211,7 @@
                         <div class="platform-icon youtube me-3"><i class="fab fa-youtube"></i></div>
                         <div><h5 class="card-title fw-bold mb-0">YouTube</h5><small class="text-muted">Video Ads</small></div>
                     </div>
-                    <p class="card-text small text-muted mb-3">YouTube kanalınızı veya reklam hesabınızı bağlayarak video performansınızı izleyin.</p>
+                    <p class="card-text small text-muted mb-3">Kanal bağlantısı organik içerik içindir. YouTube reklamları için Google Ads bağlantısını kullanın.</p>
                     <button class="btn btn-outline-danger w-100 btn-connect" onclick="openOctoPopup('modalYouTube')" type="button">
                         <i class="fas fa-plus-circle me-2"></i> Hesap Bağla
                     </button>
@@ -230,7 +226,7 @@
                         <div class="platform-icon tiktok me-3"><i class="fab fa-tiktok"></i></div>
                         <div><h5 class="card-title fw-bold mb-0">TikTok</h5><small class="text-muted">For Business</small></div>
                     </div>
-                    <p class="card-text small text-muted mb-3">TikTok Reklam hesabınızı bağlayarak video reklam performansınızı izleyin.</p>
+                    <p class="card-text small text-muted mb-3">Profil kimliğini doğrulayın. Reklam hesabı ve reklam performansı aktarımı henüz desteklenmiyor.</p>
                     <button class="btn btn-outline-dark w-100 btn-connect" onclick="openOctoPopup('ModalTikTok')" type="button">
                         <i class="fas fa-plus-circle me-2"></i> Hesap Bağla
                     </button>
@@ -245,7 +241,7 @@
                         <div class="platform-icon linkedin me-3"><i class="fab fa-linkedin-in"></i></div>
                         <div><h5 class="card-title fw-bold mb-0">LinkedIn</h5><small class="text-muted">Marketing Solutions</small></div>
                     </div>
-                    <p class="card-text small text-muted mb-3">LinkedIn reklam hesabınızı bağlayarak B2B kampanyalarınızı analiz edin.</p>
+                    <p class="card-text small text-muted mb-3">Profil kimliğini doğrulayın. Reklam hesabı ve reklam performansı aktarımı henüz desteklenmiyor.</p>
                     <button class="btn btn-outline-primary w-100 btn-connect" onclick="openOctoPopup('modalLinkedin')" type="button">
                         <i class="fas fa-plus-circle me-2"></i> Hesap Bağla
                     </button>
@@ -260,7 +256,7 @@
                         <div class="platform-icon x me-3"><i class="fab fa-twitter"></i></div>
                         <div><h5 class="card-title fw-bold mb-0">X (Twitter)</h5><small class="text-muted">Ads API</small></div>
                     </div>
-                    <p class="card-text small text-muted mb-3">X reklam hesabınızı bağlayarak tweet promosyonlarınızı takip edin.</p>
+                    <p class="card-text small text-muted mb-3">Profil kimliğini doğrulayın. Reklam hesabı ve reklam performansı aktarımı henüz desteklenmiyor.</p>
                     <button class="btn btn-outline-info w-100 btn-connect" onclick="openOctoPopup('modalX')" type="button">
                         <i class="fas fa-plus-circle me-2"></i> Hesap Bağla
                     </button>
@@ -275,10 +271,8 @@
                         <div class="platform-icon google-analytics me-3"><i class="fab fa-google"></i></div>
                         <div><h5 class="card-title fw-bold mb-0">Google Analytics 4</h5><small class="text-muted">Web & Uygulama metrikleri</small></div>
                     </div>
-                    <p class="card-text small text-muted mb-3">GA4 mülkünüzü bağlayarak kullanıcı, oturum, sayfa görüntüleme verilerini çekin.</p>
-                    <button class="btn btn-outline-primary w-100 btn-connect" onclick="openOctoPopup('modalGoogleAnalytics')" type="button">
-                        <i class="fas fa-plus-circle me-2"></i> Hesap Bağla
-                    </button>
+                    <p class="card-text small text-muted mb-3">Mülk yetkilendirmesi ve gerçek performans aktarımı henüz tamamlanmadı.</p>
+                    <button class="btn btn-outline-secondary w-100" disabled>Bağlantı henüz desteklenmiyor</button>
                 </div>
             </div>
         </div>
@@ -392,54 +386,6 @@
     </div>
 </div>
 
-<!-- Facebook Modal -->
-<div class="octo-popup" id="modalFacebook" aria-hidden="true">
-    <div class="octo-popup-dialog">
-        <div class="octo-popup-content">
-            <form method="post" action="{% url 'hesap_ekle' %}">
-                {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fab fa-facebook me-2"></i> Facebook Hesabı Bağla</h5>
-                    <button type="button" class="btn-close" data-octo-close></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" name="platform" value="facebook">
-                    <div class="mb-3"><label class="form-label">Access Token</label><input type="text" class="form-control" name="access_token" required><div class="form-text">Erişilebilen reklam hesapları ve ID’leri otomatik bulunur.</div></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>
-                    <button type="submit" class="btn btn-modal-submit rounded-pill">Bağla</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Google Ads Modal -->
-<div class="octo-popup" id="modalGoogleAds" aria-hidden="true">
-    <div class="octo-popup-dialog">
-        <div class="octo-popup-content">
-            <form method="post" action="{% url 'hesap_ekle' %}">
-                {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fab fa-google me-2"></i> Google Ads Bağla</h5>
-                    <button type="button" class="btn-close" data-octo-close></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" name="platform" value="google_ads">
-                    <div class="mb-3"><label class="form-label">Hesap Adı</label><input type="text" class="form-control" name="account_name" required></div>
-                    <div class="mb-3"><label class="form-label">Müşteri ID</label><input type="text" class="form-control" name="account_id" placeholder="123-456-7890" required></div>
-                    <div class="mb-3"><label class="form-label">Developer Token</label><input type="text" class="form-control" name="access_token" required></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>
-                    <button type="submit" class="btn btn-modal-submit rounded-pill">Bağla</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <!-- YouTube Modal -->
 <div class="octo-popup" id="modalYouTube" aria-hidden="true">
     <div class="octo-popup-dialog">
@@ -522,31 +468,6 @@
                 <div class="modal-body">
                     <input type="hidden" name="platform" value="x">
                     <div class="mb-3"><label class="form-label">Kullanıcı OAuth Tokenı</label><input type="text" class="form-control" name="access_token" required><div class="form-text">X kullanıcı adı ve hesap ID’si otomatik doğrulanır. Uygulama-only bearer tokenı kullanıcı hesabını tanımlamaz.</div></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>
-                    <button type="submit" class="btn btn-modal-submit rounded-pill">Bağla</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Google Analytics Modal -->
-<div class="octo-popup" id="modalGoogleAnalytics" aria-hidden="true">
-    <div class="octo-popup-dialog">
-        <div class="octo-popup-content">
-            <form method="post" action="{% url 'hesap_ekle' %}">
-                {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fab fa-google me-2"></i> Google Analytics 4 Bağla</h5>
-                    <button type="button" class="btn-close" data-octo-close></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" name="platform" value="google_analytics">
-                    <div class="mb-3"><label class="form-label">Hesap Adı</label><input type="text" class="form-control" name="account_name" required></div>
-                    <div class="mb-3"><label class="form-label">GA4 Property ID</label><input type="text" class="form-control" name="account_id" placeholder="123456789" required></div>
-                    <div class="mb-3"><label class="form-label">Servis Hesabı JSON</label><textarea class="form-control" name="access_token" rows="4" required></textarea></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>

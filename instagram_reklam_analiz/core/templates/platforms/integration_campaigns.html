@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Kampanya performansı · ReklamAnaliz{% endblock %}
+{% block content %}<div class="container py-4">
+<a href="{% url 'integrations' %}">Entegrasyonlar</a> / <a href="{% url 'integration_campaigns' account.pk %}">{{ account.account_name }}</a>
+{% if error %}<div class="alert alert-danger mt-3" role="alert">{{ error }}</div>
+{% elif campaign %}
+<h1 class="mt-3">{{ campaign.name }}</h1><p>{{ campaign.status }} · {{ start }} – {{ end }} · {{ account.extra_data.currency }}</p>
+<h2 class="h4">Performans verileri</h2>
+<p class="text-muted">Platformdan alınan günlük değerler. Bugünün verileri henüz tamamlanmamış olabilir.</p>
+<div class="table-responsive"><table class="table"><thead><tr><th>Tarih</th><th>Gösterim</th><th>Tıklama</th><th>Harcama ({{ account.extra_data.currency }})</th>{% if account.platform.code == 'google_ads' %}<th>Dönüşüm</th><th>Dönüşüm değeri</th>{% endif %}</tr></thead><tbody>
+{% for row in metrics %}<tr><td>{{ row.date }}</td><td>{{ row.impressions }}</td><td>{{ row.clicks }}</td><td>{{ row.spend|floatformat:2 }}</td>{% if account.platform.code == 'google_ads' %}<td>{{ row.conversions|floatformat:2 }}</td><td>{{ row.conversion_value|floatformat:2 }}</td>{% endif %}</tr>
+{% empty %}<tr><td colspan="6">Bu tarih aralığında platformdan performans kaydı dönmedi.</td></tr>{% endfor %}
+</tbody></table></div>
+{% else %}<h1 class="mt-3">Kampanyalar</h1><p>{{ account.account_name }} · {{ account.account_id }}</p>
+<div class="table-responsive"><table class="table"><thead><tr><th>Kampanya</th><th>Durum</th><th>Kanal / Amaç</th></tr></thead><tbody>
+{% for row in campaigns %}<tr><td><a href="{% url 'integration_campaign_detail' account.pk row.id %}">{{ row.name }}</a></td><td>{{ row.status }}</td><td>{{ row.channel|default:row.objective }}</td></tr>
+{% empty %}<tr><td colspan="3">Bu hesapta erişilebilir kampanya bulunamadı.</td></tr>{% endfor %}
+</tbody></table></div>{% endif %}</div>{% endblock %}

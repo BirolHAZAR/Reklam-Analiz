@@ -51,10 +51,6 @@ SUPPORTED_AD_SYNC_PLATFORMS = {
     "facebook",
     "google_ads",
     "instagram",
-    "linkedin",
-    "tiktok",
-    "x",
-    "youtube",
 }
 
 
@@ -131,6 +127,11 @@ def _should_skip_ad_sync(account, platform_code):
 
     if is_demo_object(account):
         return "demo_account"
+
+    if platform_code in {"google_ads", "facebook"}:
+        connection = getattr(account, "connection", None)
+        if not connection or not connection.is_active or (connection.extra_data or {}).get("source") != "ads_oauth":
+            return "oauth_reconnection_required"
 
     if platform_code == "instagram":
         if _is_placeholder_token(_get_account_token(account)):
@@ -240,19 +241,29 @@ def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=
                 )
 
             api = api_class(account)
-            ads_data = api.get_ads()
+            ads_data = api.get_ads(since_days=days_back)
 
         created_or_updated = 0
+        if platform_code in {"google_ads", "facebook"} and len(ads_data or []) > policy.max_records:
+            return _skip_result(account, platform_code, source_type, "record_limit_exceeded", failed=True,
+                                error="Veri aralığı planın kayıt sınırını aşıyor; daha kısa bir tarih aralığı seçin.")
+        synced_dates = set()
 
         for item in (ads_data or [])[:policy.max_records]:
             item = _normalize_item(platform_code, item)
-            upsert_v2_ad_snapshot(
+            snapshot = upsert_v2_ad_snapshot(
                 user=account.user,
                 platform_account=account,
                 payload=item,
                 source_type=source_type,
             )
+            if platform_code in {"google_ads", "facebook"}:
+                synced_dates.add(snapshot["metric"].date)
             created_or_updated += 1
+
+        if synced_dates:
+            from core.services.v2_ad_sync import rebuild_ad_metric_rollups
+            rebuild_ad_metric_rollups(account, synced_dates)
 
         account.last_sync = timezone.now()
         account.save(update_fields=["last_sync"])

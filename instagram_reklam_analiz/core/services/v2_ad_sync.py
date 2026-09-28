@@ -182,3 +182,24 @@ def upsert_v2_ad_snapshot(*, user, platform_account, payload: Dict[str, Any], so
     CreativeMetricHistory.objects.update_or_create(creative=creative, date=snapshot_date, defaults=md)
 
     return {"campaign": campaign, "ad_group": ad_group, "creative": creative, "ad": ad, "metric": ad_metric}
+
+
+def rebuild_ad_metric_rollups(platform_account, dates):
+    """Rebuild additive totals after all ad rows, not from the last ad only.
+
+    Reach and unique clicks are not additive across ads and remain unavailable.
+    Account/campaign API reports remain authoritative for those measurements.
+    """
+    from django.db.models import Sum
+    fields = ("impressions", "clicks", "spend", "conversions", "conversion_value",
+              "purchases", "add_to_cart", "initiate_checkout", "leads", "likes",
+              "comments", "shares", "saves", "video_views", "engagement")
+    metrics = AdMetricHistory.objects.filter(ad__platform_account=platform_account, date__in=dates)
+    for relation, model, field in (("campaign", CampaignMetricHistory, "campaign_id"),
+                                   ("ad_group", AdGroupMetricHistory, "ad_group_id"),
+                                   ("creative", CreativeMetricHistory, "creative_id")):
+        lookup = f"ad__{relation}_id"
+        for row in metrics.exclude(**{lookup: None}).values(lookup, "date").annotate(**{key: Sum(key) for key in fields}):
+            defaults = metric_defaults({**row, "currency": platform_account.extra_data.get("currency", ""), "allow_estimated_conversion_value": False})
+            defaults["raw_metrics"] = {"source": "ad_rollup", "non_additive_metrics_unavailable": True}
+            model.objects.update_or_create(**{field: row[lookup], "date": row["date"]}, defaults=defaults)

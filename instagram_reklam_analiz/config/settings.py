@@ -332,6 +332,12 @@ META_AD_LIBRARY_LIMIT = config(
 # FACEBOOK OAUTH
 # ============================================================
 
+GOOGLE_ADS_CLIENT_ID = config('GOOGLE_ADS_CLIENT_ID', default='')
+GOOGLE_ADS_CLIENT_SECRET = config('GOOGLE_ADS_CLIENT_SECRET', default='')
+GOOGLE_ADS_DEVELOPER_TOKEN = config('GOOGLE_ADS_DEVELOPER_TOKEN', default='')
+GOOGLE_ADS_REDIRECT_URI = config('GOOGLE_ADS_REDIRECT_URI', default='https://reklamanaliz.net/connect/google-ads/callback/')
+GOOGLE_ADS_API_VERSION = config('GOOGLE_ADS_API_VERSION', default='v25')
+
 FACEBOOK_APP_ID = os.getenv(
     'FACEBOOK_APP_ID'
 )

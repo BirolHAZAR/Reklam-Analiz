@@ -90,6 +90,10 @@ def _validate_connection(connection):
         return {"valid": False, "error": "Access token yok."}
     if (connection.extra_data or {}).get("demo"):
         return {"valid": True, "expires_at": connection.token_expiry, "validation": "demo"}
+    if connection.platform.code == "google_ads" and (connection.extra_data or {}).get("source") == "ads_oauth":
+        from core.services.ads_integrations import connection_token
+        connection_token(connection)
+        return {"valid": True, "expires_at": connection.token_expiry, "validation": "oauth_refresh"}
     if connection.platform.code in {"instagram", "facebook"}:
         try:
             return _debug_meta_token(token, connection.platform.code)
