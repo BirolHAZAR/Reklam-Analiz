@@ -3,7 +3,7 @@ from django.shortcuts import render
 from django.apps import apps
 from django.utils import timezone
 from django.db.models import Sum
-from django.http import HttpResponseForbidden
+from django.views.decorators.http import require_GET
 from datetime import datetime, time
 
 
@@ -117,10 +117,8 @@ def _date_range_filter(field_name, day):
 
 
 @login_required
+@require_GET
 def sync_center(request):
-    if not (request.user.is_staff or request.user.is_superuser):
-        return HttpResponseForbidden("Bu ekran yalnızca teknik yöneticiler içindir.")
-
     Platform = _model("Platform")
     PlatformConnection = _model("PlatformConnection")
     PlatformAccount = _model("PlatformAccount")
@@ -174,13 +172,11 @@ def sync_center(request):
         last_job = None
         if PlatformSyncJob:
             try:
-                job_filters = {}
-                if _field(PlatformSyncJob, "user"):
-                    job_filters["user"] = request.user
-                if _field(PlatformSyncJob, "platform"):
-                    job_filters["platform"] = platform
-                elif _field(PlatformSyncJob, "connection") and connection:
-                    job_filters["connection"] = connection
+                job_filters = {
+                    "user": request.user,
+                    "platform_account__user": request.user,
+                    "platform_account__platform": platform,
+                }
                 last_job = PlatformSyncJob.objects.filter(**job_filters).order_by("-id").first()
             except Exception:
                 last_job = None
@@ -196,7 +192,6 @@ def sync_center(request):
 
         if last_job:
             raw_status = (getattr(last_job, "status", "") or "").lower()
-            error_message = getattr(last_job, "error_message", "") or getattr(last_job, "error", "") or ""
 
             last_sync_value = (
                 getattr(last_job, "finished_at", None)
@@ -210,6 +205,7 @@ def sync_center(request):
             if raw_status in ["failed", "error"]:
                 status = "error"
                 status_label = "Hata"
+                error_message = "Senkronizasyon tamamlanamadı. Hesap bağlantısını kontrol edip tekrar deneyin."
             elif raw_status in ["running", "processing", "started", "pending"]:
                 status = "running"
                 status_label = "İşleniyor"
@@ -235,15 +231,15 @@ def sync_center(request):
 
     context = {
         "platforms": platforms,
-        "today_campaigns": _safe_count(Campaign, _date_range_filter(created_field_campaign, today)),
-        "today_adgroups": _safe_count(AdGroup, _date_range_filter(created_field_adgroup, today)),
-        "today_ads": _safe_count(Ad, _date_range_filter(created_field_ad, today)),
-        "today_creatives": _safe_count(Creative, _date_range_filter(created_field_creative, today)),
-        "today_metrics": _safe_count(AdMetricHistory, _date_range_filter(date_field_metric, today)),
+        "today_campaigns": _safe_count(Campaign, {"user": request.user, **(_date_range_filter(created_field_campaign, today) or {})}),
+        "today_adgroups": _safe_count(AdGroup, {"user": request.user, **(_date_range_filter(created_field_adgroup, today) or {})}),
+        "today_ads": _safe_count(Ad, {"user": request.user, **(_date_range_filter(created_field_ad, today) or {})}),
+        "today_creatives": _safe_count(Creative, {"user": request.user, **(_date_range_filter(created_field_creative, today) or {})}),
+        "today_metrics": _safe_count(AdMetricHistory, {"ad__user": request.user, **(_date_range_filter(date_field_metric, today) or {})}),
         "total_accounts": _safe_count(PlatformAccount, user_filter),
-        "total_campaigns": _safe_count(Campaign),
-        "total_ads": _safe_count(Ad),
-        "total_metrics": _safe_count(AdMetricHistory),
+        "total_campaigns": _safe_count(Campaign, {"user": request.user}),
+        "total_ads": _safe_count(Ad, {"user": request.user}),
+        "total_metrics": _safe_count(AdMetricHistory, {"ad__user": request.user}),
     }
 
     return render(request, "reports/sync_center.html", context)

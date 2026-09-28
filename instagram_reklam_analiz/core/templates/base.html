@@ -275,7 +275,6 @@
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#"><i class="fas fa-gear"></i><span>{{ labels.system_center }}</span><i class="fas fa-chevron-down ms-1"></i></a>
                     <div class="dropdown-menu-nav">
-                        {% can_agency_menu user 'platform_connections' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'integrations' %}"><i class="fas fa-plug"></i> Entegrasyonlar</a>{% endif %}
                         {% can_agency_menu user 'platform_connections' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'platform_connections' %}"><i class="fas fa-plug"></i> {{ labels.platform_connections }}</a>{% endif %}
                         {% can_agency_menu user 'hesap_ekle' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'hesap_ekle' %}"><i class="fas fa-circle-plus"></i> {{ labels.connect_account }}</a>{% endif %}
                         {% can_agency_menu user 'agency_dashboard' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'agency_dashboard' %}"><i class="fas fa-users-cog"></i> {{ labels.agency_management }}</a>{% endif %}

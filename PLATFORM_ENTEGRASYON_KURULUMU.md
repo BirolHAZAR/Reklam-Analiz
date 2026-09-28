@@ -1,5 +1,30 @@
 # Platform entegrasyonları
 
+## Sekiz platform için merkezi admin ayarları
+
+`/admin/core/integrationapplication/` ekranında Meta, Google Ads, Instagram,
+YouTube, TikTok, LinkedIn, X ve GA4 sıralı kartlar olarak sunulur. Platforma özel
+kimlik/gizli anahtar etiketleri, sağlayıcı paneli, resmi belge ve gerçek uygulama
+desteği gösterilir. Boş veya eksik bilgiler etkin olmayan taslak olarak kaydedilebilir.
+Gizli değerler şifreli saklanır; boş bırakmak mevcut değeri korur. Bu modelde
+genel CSV dışa aktarma ve toplu etkinleştirme eylemleri kapalıdır.
+
+`core.0077_expand_platform_application_settings` migration'ı yerelde uygulandı;
+canlıya dağıtımda `python manage.py migrate --noinput` çalıştırılmalıdır.
+Google Ads ve Meta mevcut OAuth servislerini kullanır. Instagram ayarı mevcut
+token bakım servisinin uygulama kimliği/gizli anahtar kaynağıdır; kayıt yoksa
+ortam değişkenleri kullanılır. Diğer beş platformun uygulama OAuth akışı bu
+çalışmayla eklenmedi: ayarlar hazırlık olarak saklanır ve etkinleştirme engellenir.
+Çalışmayan callback adresleri otomatik üretilmez. Sosyal oturum açma ayarları
+(allauth) ve kullanıcıya ait hesap/token kayıtları bu ayarlardan ayrıdır.
+
+Güncel kullanıcı akışı: `/platform-connections/` → **Hesap ekle** →
+Google Ads veya Meta **Bağla** → resmi izin ekranı → hesap seçimi → bağlı hesaplar.
+Kampanyalar hesap satırından açılır. Ayrı Entegrasyonlar sayfası kaldırıldı;
+eski `/integrations/` adresi bağlı hesaplara yönlenir. Uygulama ayarları
+süper yöneticiye hem bağlı hesaplar hem hesap ekleme ekranında sunulur.
+Ajans kullanıcıları reklam hesabını bağlamadan önce müşteri seçer.
+
 ## Bu sürümün canlıya geçişi
 
 - `python manage.py migrate --noinput` ile mevcut `core.0076` dahil migration'ları uygulayın.

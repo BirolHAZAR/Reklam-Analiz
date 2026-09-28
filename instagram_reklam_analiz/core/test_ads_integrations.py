@@ -37,6 +37,15 @@ class AdsIntegrationTests(TestCase):
         session[f"ads_oauth:{provider}"] = {"state": "nonce", "user": self.user.pk, "created": time.time(), "client": None, **overrides}
         session.save()
 
+    def test_legacy_integrations_redirects_to_accounts(self):
+        self.assertRedirects(self.client.get(reverse("integrations")), reverse("platform_connections"))
+
+    def test_add_account_starts_oauth_without_intermediate_screen(self):
+        response = self.client.get(reverse("hesap_ekle"))
+        self.assertContains(response, reverse("integration_connect", args=["facebook"]))
+        self.assertContains(response, reverse("integration_connect", args=["google_ads"]))
+        self.assertNotContains(response, 'href="' + reverse("integrations") + '"')
+
     def test_expired_meta_requires_reconnection_but_google_can_refresh(self):
         meta, _ = Platform.objects.get_or_create(code="facebook", defaults={"name": "Meta"})
         google_connection = self.connection()
@@ -49,7 +58,7 @@ class AdsIntegrationTests(TestCase):
         for connection in (google_connection, meta_connection):
             PlatformAccount.objects.create(user=self.user, platform=connection.platform,
                 connection=connection, account_id="123", access_token="private-access")
-        response = self.client.get(reverse("integrations"))
+        response = self.client.get(reverse("platform_connections"))
         states = {a.platform.code: a.ads_authorized for a in response.context["accounts"]}
         self.assertEqual(states, {"google_ads": True, "facebook": False})
         self.assertNotContains(response, "private-meta")
@@ -100,7 +109,7 @@ class AdsIntegrationTests(TestCase):
         account = PlatformAccount.objects.get()
         self.assertEqual(account.account_id, "1234567890")
         self.assertTrue(account.connection.is_active)
-        self.assertNotContains(self.client.get(reverse("integrations")), "private-access")
+        self.assertNotContains(self.client.get(reverse("platform_connections")), "private-access")
 
     @patch("core.services.ads_integrations.campaigns")
     def test_other_users_account_is_inaccessible(self, campaigns):
@@ -196,7 +205,7 @@ class AdsIntegrationTests(TestCase):
     def test_legacy_manual_ad_registration_does_not_create_account(self):
         for platform in ("google_ads", "facebook", "google_analytics"):
             response = self.client.post(reverse("hesap_ekle"), {"platform": platform, "account_id": "unverified", "access_token": "developer-token"})
-            self.assertRedirects(response, reverse("integrations"), fetch_redirect_response=False)
+            self.assertRedirects(response, reverse("hesap_ekle"), fetch_redirect_response=False)
         self.assertFalse(PlatformAccount.objects.exists())
 
     def test_agency_client_requires_management_permission(self):

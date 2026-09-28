@@ -69,3 +69,32 @@ class IntegrationApplicationTests(TestCase):
         self.client.force_login(user)
         result = self.client.get(reverse("admin:core_integrationapplication_change", args=[self.application.pk]))
         self.assertEqual(result.status_code, 403)
+
+    def test_superuser_gets_direct_settings_links_for_existing_and_new_apps(self):
+        user = get_user_model().objects.create_user(username="integration-admin", is_staff=True, is_superuser=True)
+        self.client.force_login(user)
+        response = self.client.get(reverse("platform_connections"))
+        self.assertContains(response, reverse("admin:core_integrationapplication_change", args=[self.application.pk]))
+        self.assertContains(response, reverse("admin:core_integrationapplication_add") + "?provider=facebook")
+        self.assertContains(response, "uygulama ayarları")
+        add_response = self.client.get(reverse("hesap_ekle"))
+        self.assertContains(add_response, reverse("admin:core_integrationapplication_add") + "?provider=facebook")
+        self.assertNotContains(response, self.data["client_secret"])
+
+    def test_regular_user_has_no_application_settings_links(self):
+        user = get_user_model().objects.create_user(username="integration-customer")
+        self.client.force_login(user)
+        response = self.client.get(reverse("platform_connections"))
+        self.assertNotContains(response, reverse("admin:core_integrationapplication_add"))
+
+    def test_admin_setup_hub_and_local_callback_defaults(self):
+        user = get_user_model().objects.create_user(username="setup-admin", is_staff=True, is_superuser=True)
+        self.client.force_login(user)
+        response = self.client.get(reverse("admin:core_integrationapplication_changelist"))
+        self.assertContains(response, "Hesap bağlantı ayarları")
+        self.assertContains(response, "Google Ads ayarları")
+        response = self.client.get(reverse("admin:core_integrationapplication_add"), {"provider": "facebook"}, HTTP_HOST="127.0.0.1:8000")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "http://127.0.0.1:8000/connect/facebook/callback/")
+        self.assertContains(response, "Meta Uygulama Kimliği (App ID)")
+        self.assertNotContains(response, self.data["client_secret"])

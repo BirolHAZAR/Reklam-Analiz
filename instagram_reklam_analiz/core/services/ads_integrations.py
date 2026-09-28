@@ -233,7 +233,7 @@ def discover_accounts(provider, token):
 
 def account_token(account):
     if not account.connection_id or (account.connection.extra_data or {}).get("source") != "ads_oauth":
-        raise IntegrationError("Bu hesabı Entegrasyonlar ekranından yeniden yetkilendirin.")
+        raise IntegrationError("Bu hesabı Hesap Ekle ekranından yeniden bağlayın.")
     return connection_token(account.connection)
 
 

@@ -15,7 +15,7 @@
       <a class="agency-btn" href="{% url 'agency_dashboard_org' organization.id %}"><i class="fas fa-arrow-left"></i> Geri</a>
     </div>
     <section class="agency-panel agency-form">
-      <p>Google Ads ve Meta reklam hesaplarını <a href="{% url 'integrations' %}{% if selected_client %}?agency_client={{ selected_client.pk }}{% endif %}">Entegrasyonlar</a> ekranından bağlayın. Aşağıdaki form organik profil doğrulaması içindir; TikTok, LinkedIn ve X reklam performansı ile GA4 aktarımı henüz desteklenmiyor.</p>
+      <p>Google Ads ve Meta reklam hesaplarını <a href="{% url 'hesap_ekle' %}{% if selected_client %}?agency_client={{ selected_client.pk }}{% endif %}">Hesaplar</a> ekranından bağlayın. Aşağıdaki form organik profil doğrulaması içindir; TikTok, LinkedIn ve X reklam performansı ile GA4 aktarımı henüz desteklenmiyor.</p>
       <form method="post">
         {% csrf_token %}
         <div class="agency-form-row">
@@ -45,7 +45,7 @@
     accountId.required = false;
     help.textContent = usesTokenVerification
       ? 'Bu platformda access token zorunludur. Token platform API’sinde doğrulanır ve erişilebilen gerçek hesaplar otomatik bağlanır.'
-      : 'Google Ads ve Meta için Entegrasyonlar ekranını kullanın. GA4 bağlantısı henüz desteklenmiyor.';
+      : 'Google Ads ve Meta için Hesaplar ekranını kullanın. GA4 bağlantısı henüz desteklenmiyor.';
   };
   platform.addEventListener('change', update);
   update();

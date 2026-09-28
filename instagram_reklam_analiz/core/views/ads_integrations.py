@@ -7,11 +7,12 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
-from core.models import AgencyClient, Platform, PlatformAccount, PlatformConnection
+from core.models import AgencyClient, IntegrationApplication, Platform, PlatformAccount, PlatformConnection
 from core.services import ads_integrations as api
 from core.services.agency_scope import get_agency_scope, platform_accounts_for_request
 
@@ -33,6 +34,11 @@ def _client(request, client_id):
 @login_required
 @require_GET
 def integrations(request):
+    get_agency_scope(request)
+    return redirect("platform_connections")
+
+
+def account_connection_context(request):
     scope = get_agency_scope(request)
     providers = []
     for code, name in api.PROVIDERS.items():
@@ -43,7 +49,14 @@ def integrations(request):
         except api.IntegrationError as exc:
             ready = False
             setup_error = str(exc)
-        providers.append({"code": code, "name": name, "ready": ready, "setup_error": setup_error})
+        settings_url = ""
+        if request.user.is_superuser:
+            application = IntegrationApplication.objects.filter(provider=code).only("pk").first()
+            settings_url = (
+                reverse("admin:core_integrationapplication_change", args=[application.pk])
+                if application else reverse("admin:core_integrationapplication_add") + f"?provider={code}"
+            )
+        providers.append({"code": code, "name": name, "ready": ready, "setup_error": setup_error, "settings_url": settings_url})
     accounts = list(platform_accounts_for_request(request).filter(platform__code__in=api.PROVIDERS).select_related("platform", "connection", "agency_client"))
     for account in accounts:
         connection = account.connection
@@ -52,10 +65,10 @@ def integrations(request):
             and account.is_active and connection.is_active and connection.status == "active"
             and (not connection.is_token_expired or (account.platform.code == "google_ads" and connection.refresh_token))
         )
-    return render(request, "platforms/integrations.html", {
+    return {
         "providers": providers, "clients": scope.clients, "selected_client": scope.selected_client,
         "accounts": accounts,
-    })
+    }
 
 
 @login_required
@@ -68,7 +81,7 @@ def connect(request, provider):
         url = api.authorization_url(provider, state)
     except api.IntegrationError as exc:
         messages.error(request, str(exc))
-        return redirect("integrations")
+        return redirect("platform_connections")
     request.session[f"ads_oauth:{provider}"] = {
         "state": state, "user": request.user.pk, "created": time.time(), "client": client.pk if client else None,
     }
@@ -82,10 +95,10 @@ def callback(request, provider):
     flow = request.session.pop(f"ads_oauth:{provider}", None)
     if not flow or flow.get("user") != request.user.pk or time.time() - flow["created"] > 600 or not secrets.compare_digest(flow["state"], request.GET.get("state", "")):
         messages.error(request, "Bağlantı isteği geçersiz veya süresi dolmuş. Yeniden başlatın.")
-        return redirect("integrations")
+        return redirect("platform_connections")
     if request.GET.get("error") or not request.GET.get("code"):
         messages.warning(request, "Platform izni verilmedi; hesap bağlanmadı.")
-        return redirect("integrations")
+        return redirect("platform_connections")
     try:
         client = _client(request, flow.get("client"))
         token = api.exchange_code(provider, request.GET["code"])
@@ -105,7 +118,7 @@ def callback(request, provider):
         return redirect("integration_select", provider=provider)
     except api.IntegrationError as exc:
         messages.error(request, str(exc))
-        return redirect("integrations")
+        return redirect("platform_connections")
 
 
 @login_required
@@ -115,7 +128,7 @@ def select_accounts(request, provider):
     connection = get_object_or_404(PlatformConnection, pk=request.session.get(f"ads_pending:{provider}"), user=request.user, platform__code=provider)
     if not connection.extra_data.get("pending") or connection.created_at < timezone.now() - timedelta(minutes=15):
         messages.error(request, "Hesap seçiminin süresi doldu. Bağlantıyı yeniden başlatın.")
-        return redirect("integrations")
+        return redirect("platform_connections")
     choices = connection.extra_data.get("choices", [])
     error = ""
     if request.method == "POST":
@@ -158,7 +171,7 @@ def select_accounts(request, provider):
                 PlatformConnection.objects.filter(pk__in=replaced_connections, user=request.user, accounts__isnull=True).update(is_active=False, status="disconnected")
             request.session.pop(f"ads_pending:{provider}", None)
             messages.success(request, f"{len(selected)} reklam hesabı bağlandı. Kampanyaları görüntüleyebilirsiniz.")
-            return redirect("integrations")
+            return redirect("platform_connections")
         except (api.IntegrationError, ValueError) as exc:
             error = str(exc)
     return render(request, "platforms/integration_select.html", {"provider_name": api.PROVIDERS.get(provider), "choices": choices, "error": error})

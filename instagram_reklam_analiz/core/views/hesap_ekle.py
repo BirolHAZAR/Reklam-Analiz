@@ -247,14 +247,14 @@ def _save_verified_token_accounts(user, platform, access_token, agency_client=No
 def hesap_ekle_view(request):
     from core.services.agency_scope import get_agency_scope
     agency_scope = get_agency_scope(request)
-    if agency_scope.is_agency:
+    if agency_scope.is_agency and request.method == "POST":
         messages.warning(request, "Ajans hesapları bu ekrandan bağlanamaz. Önce ajans müşterisini seçip müşteri detayındaki Hesap Bağla alanını kullanın.")
         return redirect("agency_dashboard_org", organization_id=agency_scope.organization_ids[0])
     if request.method == "POST":
         platform_code = request.POST.get("platform")
         if platform_code in {"google_ads", "facebook", "google_analytics"}:
-            messages.info(request, "Reklam hesaplarını Entegrasyonlar ekranından bağlayın. GA4 bağlantısı henüz desteklenmiyor.")
-            return redirect("integrations")
+            messages.info(request, "Reklam hesaplarını Hesap Ekle ekranından bağlayın. GA4 bağlantısı henüz desteklenmiyor.")
+            return redirect("hesap_ekle")
         account_name = request.POST.get("account_name", "").strip()
         account_id = request.POST.get("account_id", "").strip()
         access_token = request.POST.get("access_token", "").strip()
@@ -357,7 +357,10 @@ def hesap_ekle_view(request):
         .select_related("platform", "agency_client")
         .order_by("platform__name", "account_name", "account_id")
     )
-    return render(request, "hesap_ekle.html", {"platform_accounts": platform_accounts})
+    from core.views.ads_integrations import account_connection_context
+    context = account_connection_context(request)
+    context.update(platform_accounts=platform_accounts)
+    return render(request, "hesap_ekle.html", context)
 
 
 @login_required

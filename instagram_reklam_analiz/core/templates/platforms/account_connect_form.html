@@ -1,0 +1,18 @@
+{% if provider.settings_url %}
+<p><a href="{{ provider.settings_url }}">Uygulama ayarlarını düzenle</a><br><small>Uygulama kimliği, gizli anahtar ve dönüş adresi.</small></p>
+{% endif %}
+{% if provider.ready %}
+<form method="post" action="{% url 'integration_connect' provider.code %}">
+  {% csrf_token %}
+  {% if clients %}
+  <label for="client-{{ provider.code }}">Ajans müşterisi</label>
+  <select class="form-select mb-3" id="client-{{ provider.code }}" name="agency_client" required>
+    <option value="">Müşteri seçin</option>
+    {% for client in clients %}<option value="{{ client.pk }}" {% if selected_client.pk == client.pk %}selected{% endif %}>{{ client.name }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  <button class="btn btn-outline-primary w-100" type="submit">{% if provider.code == 'facebook' %}Meta Ads'i bağla{% else %}Google Ads'i bağla{% endif %}</button>
+</form>
+{% else %}
+<p class="alert alert-warning" role="status">{% if request.user.is_superuser %}{{ provider.setup_error }}{% else %}Bu platformun bağlantı kurulumu henüz tamamlanmadı.{% endif %}</p>
+{% endif %}

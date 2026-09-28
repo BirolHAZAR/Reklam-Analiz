@@ -1,0 +1,20 @@
+{% extends "admin/change_list.html" %}
+{% block content %}
+<div class="module" style="padding:20px;margin-bottom:20px">
+  <h2>Tüm platformların bağlantı ayarları</h2>
+  <p>Platformları sırayla açıp uygulama bilgilerini kaydedin. Gerekli bilgiler eksikken taslak kaydedebilirsiniz. Ayarın kaydedilmesi API erişiminin doğrulandığı anlamına gelmez.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:20px 0">
+  {% for item in setup_links %}
+    <section style="padding:16px;border:1px solid var(--hairline-color);border-radius:8px">
+      <h3>{{ forloop.counter }}. {{ item.name }}</h3>
+      <p><strong>{{ item.status }}</strong></p>
+      <p>{{ item.capability }}</p>
+      <a class="button" href="{{ item.url }}" style="display:inline-block">{{ item.name }} ayarları{% if not item.saved %} — Yeni kayıt{% endif %}</a>
+    </section>
+  {% endfor %}
+  </div>
+  <p>Desteklenen bağlantılarda son adım: <a href="{% url 'hesap_ekle' %}">Hesap Ekle</a> üzerinden kendi hesabınız için izin verin. Kullanıcı hesap ID'leri ve tokenları bu uygulama ayarlarından ayrıdır.</p>
+  <p>Uygulama bilgileri sunucuda şifreli saklanır. Bunlar kullanıcıların kendi reklam hesabına vereceği iznin yerine geçmez.</p>
+</div>
+{{ block.super }}
+{% endblock %}

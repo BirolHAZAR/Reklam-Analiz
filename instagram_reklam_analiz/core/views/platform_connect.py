@@ -12,7 +12,7 @@ from core.services.notification_helper import NotificationHelper
 # Legacy entry point now leads to the consent-based integrations screen.
 @login_required
 def facebook_login(request):
-    return redirect("integrations")
+    return redirect("hesap_ekle")
 
 
 from django.contrib.auth.decorators import login_required
@@ -24,6 +24,9 @@ from core.models import Platform, PlatformAccount, PlatformConnection
 @login_required
 def platform_connections(request):
     user = request.user
+    from core.views.ads_integrations import account_connection_context
+    integration_context = account_connection_context(request)
+    ads_accounts = {account.pk: account for account in integration_context["accounts"]}
 
     platforms = Platform.objects.filter(is_active=True).order_by("name")
     platform_data = []
@@ -48,6 +51,8 @@ def platform_connections(request):
         )
 
         account_count = len(accounts)
+        for account in accounts:
+            account.ads_authorized = bool(ads_accounts.get(account.pk) and ads_accounts[account.pk].ads_authorized)
         active_account_count = sum(1 for account in accounts if account.is_active)
         connection_count = len(connections)
         active_connection_count = sum(
@@ -76,6 +81,7 @@ def platform_connections(request):
             "active_token_count": active_token_count,
         })
     return render(request, "platforms/platform_connections.html", {
+        **integration_context,
         "platform_data": platform_data,
         "total_account_count": total_account_count,
         "total_active_account_count": total_active_account_count,
@@ -99,7 +105,7 @@ def platform_account_update(request, account_id):
     if (account.extra_data or {}).get("source") == "ads_oauth" and (
         external_account_id != account.account_id or connection_id != str(account.connection_id or "")
     ):
-        messages.error(request, "Yetkilendirilmiş reklam hesabının ID veya bağlantısı elle değiştirilemez. Entegrasyonlar ekranından yeniden bağlayın.")
+        messages.error(request, "Yetkilendirilmiş reklam hesabının ID veya bağlantısı elle değiştirilemez. Hesap Ekle ekranından yeniden bağlayın.")
         return redirect("platform_connections")
 
     if not external_account_id:

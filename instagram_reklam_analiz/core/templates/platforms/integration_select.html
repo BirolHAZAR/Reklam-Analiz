@@ -6,5 +6,5 @@
 <form method="post">{% csrf_token %}
 {% for choice in choices %}<label class="card p-3 mb-2 d-block"><input type="checkbox" name="accounts" value="{{ choice.id }}"> <strong>{{ choice.name }}</strong> · {{ choice.id }} · {{ choice.currency }}</label>{% endfor %}
 <button type="submit" class="btn btn-primary mt-3">Seçilen hesapları bağla</button>
-<a class="btn btn-link" href="{% url 'integrations' %}">İptal</a>
+<a class="btn btn-link" href="{% url 'platform_connections' %}">İptal</a>
 </form></div>{% endblock %}

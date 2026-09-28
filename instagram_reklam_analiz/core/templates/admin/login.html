@@ -549,6 +549,9 @@
             {% endfor %}
         {% endif %}
 
+        {% if request.GET.csrf_refreshed %}
+        <p class="errornote" role="alert">Giriş formunun güvenlik kodu yenilendi. Lütfen bilgilerinizi yeniden girin. Diğer sekmelerde oturum açtıysanız bu güncel formu kullanın.</p>
+        {% endif %}
         <form action="{{ app_path }}" method="post" id="login-form">
             {% csrf_token %}
             <div class="form-row">

@@ -39,7 +39,8 @@ def _expiry_from_timestamp(value):
 
 def _debug_meta_token(token, platform_code):
     if platform_code == "instagram":
-        app_id, app_secret = settings.INSTAGRAM_APP_ID, settings.INSTAGRAM_APP_SECRET
+        from core.services.platform_application import instagram_application_credentials
+        app_id, app_secret = instagram_application_credentials()
     else:
         app_id, app_secret = settings.FACEBOOK_APP_ID, settings.FACEBOOK_APP_SECRET
     response = requests.get(
@@ -67,12 +68,14 @@ def _refresh_instagram_token(token):
             timeout=30,
         )
     else:
+        from core.services.platform_application import instagram_application_credentials
+        app_id, app_secret = instagram_application_credentials()
         response = requests.get(
             f"{settings.FACEBOOK_GRAPH_URL}/oauth/access_token",
             params={
                 "grant_type": "fb_exchange_token",
-                "client_id": settings.INSTAGRAM_APP_ID,
-                "client_secret": settings.INSTAGRAM_APP_SECRET,
+                "client_id": app_id,
+                "client_secret": app_secret,
                 "fb_exchange_token": token,
             },
             timeout=30,

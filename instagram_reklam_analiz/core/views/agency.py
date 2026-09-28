@@ -462,8 +462,8 @@ def _connect_agency_platform_account(request, organization, client_id=None):
     platform_code = (request.POST.get("platform") or "").strip()
     if platform_code in {"google_ads", "facebook", "google_analytics"}:
         request.session["active_agency_client_id"] = client.pk
-        messages.info(request, "Google Ads ve Meta hesaplarını Entegrasyonlar ekranından izin vererek bağlayın. GA4 henüz desteklenmiyor.")
-        return redirect("integrations")
+        messages.info(request, "Google Ads ve Meta hesaplarını Hesap Ekle ekranından izin vererek bağlayın. GA4 henüz desteklenmiyor.")
+        return redirect("hesap_ekle")
     account_name = (request.POST.get("account_name") or "").strip()
     account_id = (request.POST.get("account_id") or "").strip()
     access_token = (request.POST.get("access_token") or "").strip()
