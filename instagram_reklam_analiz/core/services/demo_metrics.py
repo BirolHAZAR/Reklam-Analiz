@@ -404,7 +404,8 @@ def _refresh_demo_marketplace_metrics(metric_date, now):
         rng = random.Random(f"demo-marketplace:{metric_date.isoformat()}:{listing.pk}")
         scenario = _scenario_for_object("listing", listing.pk, metric_date)
         previous = listing.metric_history.filter(date__lt=metric_date).order_by("-date").first()
-        base_price = Decimal(previous.discounted_price or previous.sale_price) if previous else Decimal(listing.effective_sale_price or listing.sale_price or 0)
+        # Discounts must not compound into the next day's list price.
+        base_price = Decimal(previous.sale_price) if previous else Decimal(listing.sale_price or 0)
         if base_price <= 0:
             base_price = Decimal("299.90")
 
@@ -423,14 +424,15 @@ def _refresh_demo_marketplace_metrics(metric_date, now):
             stock_delta = -rng.randint(1, 9)
             order_factor = rng.uniform(0.85, 1.3)
 
-        sale_price = _money(base_price * price_factor)
+        purchase_price = Decimal(listing.purchase_price or 0)
+        # Recover old synthetic prices that already drifted towards zero.
+        sale_price = _money(max(base_price * price_factor, purchase_price * Decimal("0.5"), Decimal("0.01")))
         discounted_price = _money(sale_price * Decimal(str(rng.uniform(0.86, 0.98))))
         stock = max(0, int((previous.stock if previous else listing.stock) + stock_delta + rng.randint(0, 5)))
         views = max(20, int((previous.view_count if previous else listing.view_count or 120) * rng.uniform(0.9, 1.22)))
         orders = max(0, int((views * rng.uniform(0.008, 0.038)) * order_factor))
         units_sold = max(orders, orders + rng.randint(0, max(1, orders // 3 + 1)))
         revenue = _money(discounted_price * Decimal(units_sold))
-        purchase_price = Decimal(listing.purchase_price or 0)
         gross_profit = _money(discounted_price - purchase_price)
         gross_margin = _ratio((gross_profit / discounted_price) * Decimal("100")) if discounted_price else Decimal("0")
 
@@ -579,7 +581,7 @@ def _create_daily_demo_signal(user, metric_date):
     return {"alerts": alerts, "notifications": notifications}
 
 
-def refresh_demo_metrics_for_date(metric_date=None):
+def refresh_demo_metrics_for_date(metric_date=None, *, create_signals=True):
     from django.contrib.auth import get_user_model
 
     metric_date = metric_date or timezone.localdate()
@@ -662,7 +664,10 @@ def refresh_demo_metrics_for_date(metric_date=None):
 
         marketplace_listing_count, marketplace_sync_count = _refresh_demo_marketplace_metrics(metric_date, now)
         organic_metric_count = _refresh_demo_organic_metrics(demo_user, metric_date)
-        signal_counts = _create_daily_demo_signal(demo_user, metric_date)
+        signal_counts = (
+            _create_daily_demo_signal(demo_user, metric_date)
+            if create_signals else {"alerts": 0, "notifications": 0}
+        )
 
     return {
         "success": True,

@@ -189,15 +189,26 @@ def _validate_meta_ad_library_token(token):
     )
     payload = response.json()
     error = payload.get("error") or {}
+    details = {
+        field: str(error[field]).replace(token, "[ACCESS_TOKEN]") if token else str(error[field])
+        for field in ("code", "error_subcode", "error_user_title", "error_user_msg", "fbtrace_id")
+        if error.get(field) is not None
+    }
+    message = str(error.get("message") or "")
+    if token:
+        message = message.replace(token, "[ACCESS_TOKEN]")
+    diagnostic = "\n".join([message] + [f"{key}: {value}" for key, value in details.items()])
     return {
         "valid": response.ok and not error,
         "error_code": error.get("code"),
-        "error": error.get("message", "") if error else "",
+        "error_subcode": details.get("error_subcode"),
+        "error_user_msg": details.get("error_user_msg", ""),
+        "error": diagnostic,
     }
 
 
 def _record_env_failure(label, message):
-    diagnostic_message = str(message or "ENV token kontrolu basarisiz oldu.")[:500]
+    diagnostic_message = str(message or "ENV token kontrolu basarisiz oldu.")
     full_message = f"{label}: {diagnostic_message}"
     since = timezone.now() - ENV_FAILURE_DEDUPE_WINDOW
     existing = SystemErrorLog.objects.filter(
@@ -240,7 +251,7 @@ def _notify_admins_for_env_failure(label, message):
         NotificationHelper.notify(
             user,
             f"Kritik ENV token hatası: {label}",
-            message[:300],
+            message,
             "critical",
             "🚨",
             target_link,

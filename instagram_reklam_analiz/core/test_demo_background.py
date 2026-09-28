@@ -3,6 +3,8 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.conf import settings
+from django.core.management import call_command
+from io import StringIO
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
@@ -16,6 +18,35 @@ from core.tasks.sync_tasks import sync_due_organic_accounts, sync_organic_accoun
 
 
 class DemoBackgroundTests(TestCase):
+    def test_marketplace_refresh_recovers_tiny_prices_without_margin_overflow(self):
+        from core.models import Marketplace, MarketplaceAccount, MarketplaceListing, Product
+        from core.services.demo_metrics import _refresh_demo_marketplace_metrics
+
+        market, _ = Marketplace.objects.get_or_create(code="demo-test", defaults={"name": "Demo"})
+        account = MarketplaceAccount.objects.create(user=self.demo, marketplace=market, store_name="Demo")
+        product = Product.objects.create(user=self.demo, sku="test", name="Demo", purchase_price=1000)
+        listing = MarketplaceListing.objects.create(
+            marketplace_account=account, marketplace=market, product=product,
+            sale_price=Decimal("0.01"), discounted_price=Decimal("0.01"),
+        )
+        for offset in range(3):
+            _refresh_demo_marketplace_metrics(date(2026, 9, 10) + timedelta(days=offset), timezone.now())
+        self.assertEqual(listing.metric_history.count(), 3)
+        for row in listing.metric_history.all():
+            self.assertGreater(row.discounted_price, 0)
+            self.assertLess(abs(row.gross_margin_rate), Decimal("10000"))
+            row._meta.get_field("gross_margin_rate").clean(row.gross_margin_rate, row)
+
+    def test_backfill_skips_complete_days_and_suppresses_historical_signals(self):
+        ad = Ad.objects.create(user=self.demo, name="History demo")
+        end = timezone.localdate() - timedelta(days=1)
+        AdMetricHistory.objects.create(ad=ad, date=end)
+        with patch("core.services.demo_metrics.refresh_demo_metrics_for_date", return_value={"success": True}) as refresh:
+            call_command("update_demo_daily", days=3, metric_date=end.isoformat(), missing_only=True, stdout=StringIO())
+        self.assertEqual(refresh.call_count, 2)
+        self.assertEqual([call.kwargs["metric_date"] for call in refresh.call_args_list], [end-timedelta(days=2), end-timedelta(days=1)])
+        self.assertTrue(all(call.kwargs["create_signals"] is False for call in refresh.call_args_list))
+
     def setUp(self):
         self.demo = User.objects.create_user(username="demo")
         self.real = User.objects.create_user(username="real-background")

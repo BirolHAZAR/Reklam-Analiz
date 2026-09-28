@@ -1,10 +1,12 @@
+from unittest.mock import Mock, patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from core.models import ActivityLog, Ad, Notification, SystemErrorLog
 from core.services.activity_service import object_activity_link, record_activity_from_notification
-from core.services.platform_token_service import _notify_admins_for_env_failure
+from core.services.platform_token_service import _notify_admins_for_env_failure, _validate_meta_ad_library_token
 
 
 @override_settings(
@@ -53,6 +55,30 @@ class NotificationTargetTests(TestCase):
 
         self.assertEqual(SystemErrorLog.objects.filter(tags__token_label="META_AD_LIBRARY_ACCESS_TOKEN").count(), 1)
         self.assertEqual(Notification.objects.filter(user=self.admin).count(), 1)
+
+    @patch("core.services.platform_token_service.requests.get")
+    def test_meta_details_reach_notification_without_truncation_or_token(self, get):
+        token = "secret-test-token"
+        explanation = "Complete API registration. " * 30 + token
+        get.return_value = Mock(ok=False)
+        get.return_value.json.return_value = {"error": {
+            "message": "Application does not have permission for this action",
+            "code": 10,
+            "error_subcode": 2332004,
+            "error_user_title": "Access required",
+            "error_user_msg": explanation,
+            "fbtrace_id": "test-trace",
+        }}
+        result = _validate_meta_ad_library_token(token)
+        self.assertFalse(result["valid"])
+        _notify_admins_for_env_failure("META_AD_LIBRARY_ACCESS_TOKEN", result["error"])
+        notification = Notification.objects.get(user=self.admin)
+        error_log = SystemErrorLog.objects.get(tags__token_label="META_AD_LIBRARY_ACCESS_TOKEN")
+        for message in (notification.message, error_log.extra_data["diagnostic_message"]):
+            self.assertIn("error_subcode: 2332004", message)
+            self.assertIn(explanation.replace(token, "[ACCESS_TOKEN]"), message)
+            self.assertIn("fbtrace_id: test-trace", message)
+            self.assertNotIn(token, message)
 
     def test_generic_dashboard_notification_resolves_named_ad(self):
         ad = Ad.objects.create(user=self.admin, name="Yaz İndirimi Reklamı", source_type="OWN")
