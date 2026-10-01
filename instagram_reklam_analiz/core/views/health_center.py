@@ -889,11 +889,11 @@ def health_center(request):
             "platform_account_id": ad.platform_account_id,
             "campaign_id": ad.campaign_id,
             "ad_group_id": ad.ad_group_id,
-            "name": ad.name or ad.headline or f"Reklam #{ad.id}",
+            "name": ad.display_name or ad.headline or f"Reklam #{ad.id}",
             "status": ad.status or "UNKNOWN",
             "platform": ad.platform_account.platform.name if ad.platform_account and ad.platform_account.platform else "Platform yok",
-            "account": ad.platform_account.account_name or ad.platform_account.account_id if ad.platform_account else "Hesap yok",
-            "campaign": ad.campaign.name if ad.campaign else "Kampanya yok",
+            "account": ad.platform_account.display_name or ad.platform_account.account_id if ad.platform_account else "Hesap yok",
+            "campaign": ad.campaign.display_name if ad.campaign else "Kampanya yok",
             "ad_group": ad.ad_group.name if ad.ad_group else "Reklam grubu yok",
             "creative_type": ad.creative.creative_type if ad.creative else "UNKNOWN",
             "last_metric_date": ad.last_metric_date,
@@ -970,7 +970,7 @@ def health_center(request):
     if account_id:
         selected_account = next((acc for acc in platform_accounts if str(acc.id) == str(account_id)), None)
         if selected_account:
-            account_label = selected_account.account_name or selected_account.account_id or f"Hesap #{selected_account.id}"
+            account_label = selected_account.display_name
 
     recommendations = _global_recommendations(totals, parts, active_count, measured_count) if has_health_data else []
     for recommendation in recommendations:

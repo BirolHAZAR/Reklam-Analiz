@@ -26,6 +26,8 @@ def application_values(provider):
         names = ("GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_ADS_REDIRECT_URI", "GOOGLE_ADS_DEVELOPER_TOKEN")
     elif provider == "facebook":
         names = ("FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET", "FACEBOOK_REDIRECT_URI")
+    elif provider == "instagram":
+        names = ("INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET", "INSTAGRAM_REDIRECT_URI")
     else:
         raise IntegrationError("Bu platform için reklam OAuth bağlantısı henüz desteklenmiyor.")
     from core.models import IntegrationApplication
@@ -71,21 +73,23 @@ def authorization_url(provider, state):
     return url + "?" + urlencode(params)
 
 
-def _request(method, url, **kwargs):
+def _request(method, url, *, operation="", **kwargs):
     # Never expose requests exceptions (URLs may contain authorization codes),
     # response bodies or provider-echoed credentials to notifications/logs.
     try:
         response = requests.request(method, url, timeout=30, **kwargs)
         payload = response.json()
     except (requests.RequestException, ValueError):
-        raise IntegrationError("Platforma ulaşılamadı. Lütfen tekrar deneyin.") from None
+        prefix = f"{operation}: " if operation else ""
+        raise IntegrationError(f"{prefix}Platforma ulaşılamadı. Lütfen tekrar deneyin.") from None
     if not response.ok or (isinstance(payload, dict) and payload.get("error")):
         error = payload.get("error", {}) if isinstance(payload, dict) else {}
         code = error.get("code", error.get("status", "")) if isinstance(error, dict) else error
         code = re.sub(r"[^a-zA-Z0-9_ -]", "", str(code))[:50]
         subcode = error.get("error_subcode") if isinstance(error, dict) else None
         suffix = f" / {subcode}" if isinstance(subcode, int) else ""
-        raise IntegrationError(f"Platform isteği reddedildi (HTTP {response.status_code}, {code}{suffix}). Hesap erişimini ve uygulama izinlerini kontrol edin.")
+        prefix = f"{operation}: " if operation else ""
+        raise IntegrationError(f"{prefix}Platform isteği reddedildi (HTTP {response.status_code}, {code}{suffix}).")
     return payload
 
 
@@ -101,12 +105,12 @@ def exchange_code(provider, code):
         if not data.get("refresh_token"):
             raise IntegrationError("Google kalıcı erişim izni dönmedi. Bağlantıyı yeniden başlatıp izin verin.")
     else:
-        data = _request("GET", f"{settings.FACEBOOK_GRAPH_URL}/oauth/access_token", params={
+        data = _request("GET", f"{settings.FACEBOOK_GRAPH_URL}/oauth/access_token", operation="Meta giriş kodunu doğrulama", params={
             "client_id": client_id, "client_secret": secret, "redirect_uri": redirect_uri, "code": code,
         })
         if not data.get("access_token"):
             raise IntegrationError("Meta erişim bilgisi alınamadı.")
-        data = _request("GET", f"{settings.FACEBOOK_GRAPH_URL}/oauth/access_token", params={
+        data = _request("GET", f"{settings.FACEBOOK_GRAPH_URL}/oauth/access_token", operation="Meta erişim süresini uzatma", params={
             "grant_type": "fb_exchange_token", "client_id": client_id,
             "client_secret": secret, "fb_exchange_token": data["access_token"],
         })
@@ -190,6 +194,7 @@ def meta_rows(token, path, params):
         if after:
             query["after"] = after
         data = _request("GET", f"{settings.FACEBOOK_GRAPH_URL}/{path}",
+                        operation={"me/permissions": "Meta izinlerini kontrol etme", "me/adaccounts": "Meta reklam hesaplarını listeleme"}.get(path, "Meta verilerini okuma"),
                         headers={"Authorization": f"Bearer {token}"}, params=query)
         rows.extend(data.get("data", []))
         paging = data.get("paging", {})

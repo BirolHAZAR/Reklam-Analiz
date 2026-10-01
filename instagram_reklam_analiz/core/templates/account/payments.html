@@ -1,7 +1,7 @@
 ﻿{% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Ã–demelerim{% endblock %}
+{% block title %}Ödemelerim{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/account_payments.css' %}">
@@ -10,20 +10,20 @@
 {% block content %}
 <div class="payments-wrapper">
     <div class="container">
-        <!-- Sayfa BaÅŸlÄ±ÄŸÄ± -->
+        <!-- Sayfa Başlığı -->
         <div class="page-header">
             <div class="row align-items-center">
                 <div class="col-md-6">
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item"><a href="{% url 'my_account' %}">
-                                <i class="fas fa-home me-1"></i>HesabÄ±m
+                                <i class="fas fa-home me-1"></i>Hesabım
                             </a></li>
-                            <li class="breadcrumb-item active">Ã–demelerim</li>
+                            <li class="breadcrumb-item active">Ödemelerim</li>
                         </ol>
                     </nav>
                     <h2 class="mt-2">
-                        <i class="fas fa-credit-card me-2" style="color: #667eea;"></i>Ã–demelerim
+                        <i class="fas fa-credit-card me-2" style="color: #667eea;"></i>Ödemelerim
                     </h2>
                 </div>
                 <div class="col-md-6 text-md-end mt-3 mt-md-0">
@@ -35,27 +35,27 @@
         </div>
         
         {% if payments %}
-            <!-- Ä°statistik KartlarÄ± -->
+            <!-- İstatistik Kartları -->
             <div class="stats-row">
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-receipt"></i>
                     </div>
                     <div class="stat-value">{{ total_payments }}</div>
-                    <div class="stat-label">Toplam Ã–deme</div>
+                    <div class="stat-label">Toplam Ödeme</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-check-circle"></i>
                     </div>
                     <div class="stat-value">{{ completed_payments }}</div>
-                    <div class="stat-label">BaÅŸarÄ±lÄ± Ã–deme</div>
+                    <div class="stat-label">Başarılı Ödeme</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-lira-sign"></i>
                     </div>
-                    <div class="stat-value">{{ total_amount|default:"0"|tr_decimal }} â‚º</div>
+                    <div class="stat-value">{{ total_amount|default:"0"|tr_decimal }} ₺</div>
                     <div class="stat-label">Toplam Harcama</div>
                 </div>
                 <div class="stat-card">
@@ -63,7 +63,7 @@
                         <i class="fas fa-calendar-alt"></i>
                     </div>
                     <div class="stat-value">{{ last_payment_date|date:"d.m"|default:"-" }}</div>
-                    <div class="stat-label">Son Ã–deme</div>
+                    <div class="stat-label">Son Ödeme</div>
                 </div>
             </div>
             
@@ -74,13 +74,13 @@
                         <i class="fas fa-filter me-1"></i>Filtrele:
                     </span>
                     <button class="filter-btn active" data-filter="all">
-                        <i class="fas fa-list me-1"></i>TÃ¼mÃ¼
+                        <i class="fas fa-list me-1"></i>Tümü
                     </button>
                     <button class="filter-btn" data-filter="completed">
                         <i class="fas fa-check-circle me-1"></i>Tamamlanan
                     </button>
                     <button class="filter-btn" data-filter="credit_card">
-                        <i class="far fa-credit-card me-1"></i>Kredi KartÄ±
+                        <i class="far fa-credit-card me-1"></i>Kredi Kartı
                     </button>
                     <button class="filter-btn" data-filter="bank_transfer">
                         <i class="fas fa-university me-1"></i>Havale
@@ -88,13 +88,13 @@
                 </div>
             </div>
             
-            <!-- Ã–deme Listesi -->
+            <!-- Ödeme Listesi -->
             {% for payment in payments %}
             <div class="payment-card {{ payment.payment_method }}" 
                  data-status="{{ payment.status }}" 
                  data-method="{{ payment.payment_method }}">
                 <div class="row align-items-center">
-                    <!-- Ã–deme YÃ¶ntemi Ä°konu -->
+                    <!-- Ödeme Yöntemi İkonu -->
                     <div class="col-auto">
                         <div class="payment-method-icon {% if payment.payment_method == 'credit_card' %}method-credit{% else %}method-transfer{% endif %}">
                             {% if payment.payment_method == 'credit_card' %}
@@ -105,12 +105,12 @@
                         </div>
                     </div>
                     
-                    <!-- Ã–deme Bilgileri -->
+                    <!-- Ödeme Bilgileri -->
                     <div class="col-md-3 mb-2 mb-md-0">
                         <div class="payment-info">
                             <h5>
                                 {% if payment.payment_method == 'credit_card' %}
-                                    Kredi KartÄ±
+                                    Kredi Kartı
                                 {% else %}
                                     Havale/EFT
                                 {% endif %}
@@ -121,7 +121,7 @@
                         </div>
                     </div>
                     
-                    <!-- Tarih ve Ä°ÅŸlem No -->
+                    <!-- Tarih ve İşlem No -->
                     <div class="col-md-3 mb-2 mb-md-0">
                         <div class="payment-date">
                             <i class="far fa-calendar-alt me-1"></i>
@@ -142,10 +142,10 @@
                     <!-- Tutar -->
                     <div class="col-md-2 mb-2 mb-md-0 text-md-center">
                         <div class="payment-amount">
-                            {{ payment.amount|tr_decimal }} â‚º
+                            {{ payment.amount|tr_decimal }} ₺
                         </div>
                         {% if payment.kdv_amount %}
-                        <small class="text-muted">KDV: {{ payment.kdv_amount|tr_decimal }} â‚º</small>
+                        <small class="text-muted">KDV: {{ payment.kdv_amount|tr_decimal }} ₺</small>
                         {% endif %}
                     </div>
                     
@@ -154,13 +154,13 @@
                         <span class="status-badge status-{{ payment.status }}">
                             <span class="status-dot {{ payment.status }}"></span>
                             {% if payment.status == 'completed' %}
-                                TamamlandÄ±
+                                Tamamlandı
                             {% elif payment.status == 'pending' %}
                                 Beklemede
                             {% elif payment.status == 'failed' %}
-                                BaÅŸarÄ±sÄ±z
+                                Başarısız
                             {% elif payment.status == 'refunded' %}
-                                Ä°ade Edildi
+                                İade Edildi
                             {% else %}
                                 {{ payment.get_status_display }}
                             {% endif %}
@@ -185,45 +185,45 @@
                     <div class="modal-content" style="border-radius: 20px; border: none; overflow: hidden;">
                         <div class="modal-header" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none;">
                             <h5 class="modal-title fw-bold" id="paymentModalLabel{{ payment.id }}">
-                                <i class="fas fa-receipt me-2"></i>Ã–deme DetayÄ±
+                                <i class="fas fa-receipt me-2"></i>Ödeme Detayı
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body p-4">
                             <div class="detail-item">
-                                <span class="detail-label">Ä°ÅŸlem No</span>
+                                <span class="detail-label">İşlem No</span>
                                 <span class="detail-value">
-                                    <code>{{ payment.transaction_id|default:"BelirtilmemiÅŸ" }}</code>
+                                    <code>{{ payment.transaction_id|default:"Belirtilmemiş" }}</code>
                                 </span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">Plan</span>
                                 <span class="detail-value text-gradient fw-bold">
-                                    {{ payment.plan.display_name|default:"BelirtilmemiÅŸ" }}
+                                    {{ payment.plan.display_name|default:"Belirtilmemiş" }}
                                 </span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">Ã–deme YÃ¶ntemi</span>
+                                <span class="detail-label">Ödeme Yöntemi</span>
                                 <span class="detail-value">
                                     {% if payment.payment_method == 'credit_card' %}
-                                        <i class="far fa-credit-card me-1"></i>Kredi KartÄ±
+                                        <i class="far fa-credit-card me-1"></i>Kredi Kartı
                                     {% else %}
                                         <i class="fas fa-university me-1"></i>Havale/EFT
                                     {% endif %}
                                 </span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">Tutar (KDV HariÃ§)</span>
-                                <span class="detail-value">{{ payment.amount|tr_decimal }} â‚º</span>
+                                <span class="detail-label">Tutar (KDV Hariç)</span>
+                                <span class="detail-value">{{ payment.amount|tr_decimal }} ₺</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">KDV (%20)</span>
-                                <span class="detail-value">{{ payment.kdv_amount|tr_decimal }} â‚º</span>
+                                <span class="detail-value">{{ payment.kdv_amount|tr_decimal }} ₺</span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">Toplam Tutar</span>
                                 <span class="detail-value fw-bold" style="font-size: 18px; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
-                                    {{ payment.amount|tr_decimal }} â‚º
+                                    {{ payment.amount|tr_decimal }} ₺
                                 </span>
                             </div>
                             <div class="detail-item">
@@ -251,20 +251,20 @@
             {% endfor %}
             
         {% else %}
-            <!-- BoÅŸ Durum -->
+            <!-- Boş Durum -->
             <div class="empty-state">
                 <div class="empty-icon">
                     <i class="fas fa-credit-card"></i>
                 </div>
-                <h3>HenÃ¼z Ã–deme Yok</h3>
-                <p>AI destekli reklam araÃ§larÄ±mÄ±zÄ± kullanmak iÃ§in hemen bir pakete abone olun!</p>
+                <h3>Henüz Ödeme Yok</h3>
+                <p>AI destekli reklam araçlarımızı kullanmak için hemen bir pakete abone olun!</p>
                 <a href="{% url 'pricing' %}" class="btn-purple" style="display: inline-flex; padding: 15px 40px; font-size: 16px;">
-                    <i class="fas fa-shopping-cart me-2"></i>Paketleri Ä°ncele
+                    <i class="fas fa-shopping-cart me-2"></i>Paketleri İncele
                 </a>
                 <div class="mt-4">
                     <small class="text-muted">
                         <i class="fas fa-shield-alt me-1"></i>
-                        GÃ¼venli Ã¶deme altyapÄ±sÄ± ile 256-bit SSL korumasÄ±
+                        Güvenli ödeme altyapısı ile 256-bit SSL koruması
                     </small>
                 </div>
             </div>
@@ -275,20 +275,20 @@
 
 {% block extra_js %}
 <script>
-    // Filtreleme iÅŸlevi
+    // Filtreleme işlevi
     document.addEventListener('DOMContentLoaded', function() {
         const filterButtons = document.querySelectorAll('.filter-btn');
         const paymentCards = document.querySelectorAll('.payment-card');
         
         filterButtons.forEach(button => {
             button.addEventListener('click', function() {
-                // Aktif butonu gÃ¼ncelle
+                // Aktif butonu güncelle
                 filterButtons.forEach(btn => btn.classList.remove('active'));
                 this.classList.add('active');
                 
                 const filter = this.dataset.filter;
                 
-                // KartlarÄ± filtrele
+                // Kartları filtrele
                 paymentCards.forEach(card => {
                     if (filter === 'all') {
                         card.style.display = 'block';

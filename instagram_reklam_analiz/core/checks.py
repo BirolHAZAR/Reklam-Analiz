@@ -30,7 +30,10 @@ def check_critical_ui_encoding(app_configs, **kwargs):
     errors = []
     base_dir = Path(settings.BASE_DIR)
 
-    for relative_path in CRITICAL_UI_FILES:
+    ui_files = set(CRITICAL_UI_FILES)
+    ui_files.update(str(path.relative_to(base_dir)) for path in (base_dir / "core/templates").rglob("*.html"))
+    ui_files.add("core/utils/translations.py")
+    for relative_path in sorted(ui_files):
         path = base_dir / relative_path
         if not path.exists():
             continue

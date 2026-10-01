@@ -1,7 +1,7 @@
 ﻿# core/instagram/api_client.py
 """
-Instagram Graph API Ä°stemcisi
-Instagram API ile iletiÅŸim kurmak iÃ§in gerekli tÃ¼m fonksiyonlarÄ± iÃ§erir
+Instagram Graph API İstemcisi
+Instagram API ile iletişim kurmak için gerekli tüm fonksiyonları içerir
 """
 
 import requests
@@ -16,16 +16,16 @@ from django.core.cache import cache
 class InstagramAPIClient:
     """
     Instagram Graph API istemcisi
-    Instagram hesap bilgileri, medyalar, iÃ§gÃ¶rÃ¼ler ve reklam verilerini Ã§eker
+    Instagram hesap bilgileri, medyalar, içgörüler ve reklam verilerini çeker
     """
     
     def __init__(self, access_token: str = None, user_id: str = None):
         """
-        API istemcisini baÅŸlat
+        API istemcisini başlat
         
         Args:
             access_token: Instagram access token
-            user_id: Instagram kullanÄ±cÄ± ID'si
+            user_id: Instagram kullanıcı ID'si
         """
         self.base_url = "https://graph.instagram.com"
         self.graph_url = getattr(settings, "FACEBOOK_GRAPH_URL", "https://graph.facebook.com/v25.0")
@@ -37,7 +37,7 @@ class InstagramAPIClient:
     
     def _make_request(self, url: str, params: Dict = None, method: str = 'GET', data: Dict = None) -> Dict:
         """
-        API isteÄŸi yap (rate limit kontrolÃ¼ ile)
+        API isteği yap (rate limit kontrolü ile)
         
         Args:
             url: API URL
@@ -46,9 +46,9 @@ class InstagramAPIClient:
             data: POST verileri
         
         Returns:
-            Dict: API yanÄ±tÄ±
+            Dict: API yanıtı
         """
-        # Rate limit kontrolÃ¼
+        # Rate limit kontrolü
         now = datetime.now()
         if (now - self.last_request_time).seconds < 60:
             self.request_count += 1
@@ -59,7 +59,7 @@ class InstagramAPIClient:
             self.request_count = 1
             self.last_request_time = now
         
-        # Token'Ä± parametrelere ekle
+        # Token'ı parametrelere ekle
         if params is None:
             params = {}
         params['access_token'] = self.access_token
@@ -86,18 +86,18 @@ class InstagramAPIClient:
             return {'error': {'message': error_msg, 'status_code': response.status_code if response else 0}}
     
     # ============================================
-    # KULLANICI BÄ°LGÄ°LERÄ°
+    # KULLANICI BİLGİLERİ
     # ============================================
     
     def get_user_info(self, user_id: str = None) -> Dict:
         """
-        KullanÄ±cÄ± bilgilerini al
+        Kullanıcı bilgilerini al
         
         Args:
-            user_id: KullanÄ±cÄ± ID (varsayÄ±lan: me)
+            user_id: Kullanıcı ID (varsayılan: me)
         
         Returns:
-            Dict: KullanÄ±cÄ± bilgileri
+            Dict: Kullanıcı bilgileri
         """
         uid = user_id or self.user_id
         url = f"{self.base_url}/{uid}"
@@ -109,13 +109,13 @@ class InstagramAPIClient:
     
     def get_user_info_detailed(self, user_id: str = None) -> Dict:
         """
-        DetaylÄ± kullanÄ±cÄ± bilgilerini al
+        Detaylı kullanıcı bilgilerini al
         
         Args:
-            user_id: KullanÄ±cÄ± ID
+            user_id: Kullanıcı ID
         
         Returns:
-            Dict: DetaylÄ± kullanÄ±cÄ± bilgileri
+            Dict: Detaylı kullanıcı bilgileri
         """
         uid = user_id or self.user_id
         url = f"{self.graph_url}/{uid}"
@@ -126,16 +126,16 @@ class InstagramAPIClient:
         return self._make_request(url, params)
     
     # ============================================
-    # MEDYA Ä°ÅLEMLERÄ°
+    # MEDYA İŞLEMLERİ
     # ============================================
     
     def get_user_media(self, user_id: str = None, limit: int = 100, after: str = None) -> Dict:
         """
-        KullanÄ±cÄ±nÄ±n medyalarÄ±nÄ± al
+        Kullanıcının medyalarını al
         
         Args:
-            user_id: KullanÄ±cÄ± ID
-            limit: Medya sayÄ±sÄ± (max 100)
+            user_id: Kullanıcı ID
+            limit: Medya sayısı (max 100)
             after: Pagination cursor
         
         Returns:
@@ -155,7 +155,7 @@ class InstagramAPIClient:
     
     def get_media_by_id(self, media_id: str) -> Dict:
         """
-        Medya ID'sine gÃ¶re medya bilgilerini al
+        Medya ID'sine göre medya bilgilerini al
         
         Args:
             media_id: Medya ID'si
@@ -172,13 +172,13 @@ class InstagramAPIClient:
     
     def get_media_insights(self, media_id: str) -> Dict:
         """
-        Medya iÃ§gÃ¶rÃ¼lerini al
+        Medya içgörülerini al
         
         Args:
             media_id: Medya ID'si
         
         Returns:
-            Dict: Ä°Ã§gÃ¶rÃ¼ verileri
+            Dict: İçgörü verileri
         """
         url = f"{self.base_url}/{media_id}/insights"
         params = {
@@ -189,7 +189,7 @@ class InstagramAPIClient:
     
     def get_media_children(self, media_id: str) -> Dict:
         """
-        Karusel medyasÄ±nÄ±n alt medyalarÄ±nÄ± al
+        Karusel medyasının alt medyalarını al
         
         Args:
             media_id: Ana medya ID'si
@@ -205,19 +205,19 @@ class InstagramAPIClient:
         return self._make_request(url, params)
     
     # ============================================
-    # HESAP Ä°Ã‡GÃ–RÃœLERÄ°
+    # HESAP İÇGÖRÜLERİ
     # ============================================
     
     def get_account_insights(self, user_id: str = None, since_days: int = 30) -> Dict:
         """
-        Hesap iÃ§gÃ¶rÃ¼lerini al
+        Hesap içgörülerini al
         
         Args:
-            user_id: KullanÄ±cÄ± ID
-            since_days: KaÃ§ gÃ¼nlÃ¼k veri
+            user_id: Kullanıcı ID
+            since_days: Kaç günlük veri
         
         Returns:
-            Dict: Ä°Ã§gÃ¶rÃ¼ verileri
+            Dict: İçgörü verileri
         """
         uid = user_id or self.user_id
         since_date = (datetime.now() - timedelta(days=since_days)).strftime('%Y-%m-%d')
@@ -235,10 +235,10 @@ class InstagramAPIClient:
     
     def get_follower_demographics(self, user_id: str = None) -> Dict:
         """
-        TakipÃ§i demografik verilerini al (Business hesap gerektirir)
+        Takipçi demografik verilerini al (Business hesap gerektirir)
         
         Args:
-            user_id: KullanÄ±cÄ± ID
+            user_id: Kullanıcı ID
         
         Returns:
             Dict: Demografik veriler
@@ -254,10 +254,10 @@ class InstagramAPIClient:
     
     def get_audience_insights(self, user_id: str = None) -> Dict:
         """
-        Hedef kitle iÃ§gÃ¶rÃ¼lerini al
+        Hedef kitle içgörülerini al
         
         Args:
-            user_id: KullanÄ±cÄ± ID
+            user_id: Kullanıcı ID
         
         Returns:
             Dict: Hedef kitle verileri
@@ -272,15 +272,15 @@ class InstagramAPIClient:
         return self._make_request(url, params)
     
     # ============================================
-    # Ä°ÅLETME HESAP Ä°ÅLEMLERÄ°
+    # İŞLETME HESAP İŞLEMLERİ
     # ============================================
     
     def get_business_accounts(self) -> Dict:
         """
-        Facebook sayfalarÄ±na baÄŸlÄ± iÅŸletme hesaplarÄ±nÄ± al
+        Facebook sayfalarına bağlı işletme hesaplarını al
         
         Returns:
-            Dict: Ä°ÅŸletme hesaplarÄ±
+            Dict: İşletme hesapları
         """
         url = f"{self.graph_url}/me/accounts"
         params = {
@@ -291,14 +291,14 @@ class InstagramAPIClient:
     
     def get_business_insights(self, business_id: str, since_days: int = 30) -> Dict:
         """
-        Ä°ÅŸletme hesabÄ± iÃ§gÃ¶rÃ¼lerini al
+        İşletme hesabı içgörülerini al
         
         Args:
-            business_id: Ä°ÅŸletme hesap ID'si
-            since_days: KaÃ§ gÃ¼nlÃ¼k veri
+            business_id: İşletme hesap ID'si
+            since_days: Kaç günlük veri
         
         Returns:
-            Dict: Ä°Ã§gÃ¶rÃ¼ verileri
+            Dict: İçgörü verileri
         """
         since_date = (datetime.now() - timedelta(days=since_days)).strftime('%Y-%m-%d')
         until_date = datetime.now().strftime('%Y-%m-%d')
@@ -314,7 +314,7 @@ class InstagramAPIClient:
         return self._make_request(url, params)
     
     # ============================================
-    # HASHTAG Ä°ÅLEMLERÄ°
+    # HASHTAG İŞLEMLERİ
     # ============================================
     
     def search_hashtag(self, hashtag: str) -> Dict:
@@ -322,7 +322,7 @@ class InstagramAPIClient:
         Hashtag ara
         
         Args:
-            hashtag: Hashtag adÄ± (# iÅŸareti olmadan)
+            hashtag: Hashtag adı (# işareti olmadan)
         
         Returns:
             Dict: Hashtag bilgileri
@@ -336,11 +336,11 @@ class InstagramAPIClient:
     
     def get_hashtag_media(self, hashtag_id: str, limit: int = 100) -> Dict:
         """
-        Hashtag'e gÃ¶re medyalarÄ± al
+        Hashtag'e göre medyaları al
         
         Args:
             hashtag_id: Hashtag ID'si
-            limit: Medya sayÄ±sÄ±
+            limit: Medya sayısı
         
         Returns:
             Dict: Medya listesi
@@ -355,13 +355,13 @@ class InstagramAPIClient:
     
     def get_hashtag_insights(self, hashtag_id: str) -> Dict:
         """
-        Hashtag iÃ§gÃ¶rÃ¼lerini al
+        Hashtag içgörülerini al
         
         Args:
             hashtag_id: Hashtag ID'si
         
         Returns:
-            Dict: Ä°Ã§gÃ¶rÃ¼ verileri
+            Dict: İçgörü verileri
         """
         url = f"{self.graph_url}/{hashtag_id}/insights"
         params = {
@@ -371,15 +371,15 @@ class InstagramAPIClient:
         return self._make_request(url, params)
     
     # ============================================
-    # REKLAM Ä°ÅLEMLERÄ°
+    # REKLAM İŞLEMLERİ
     # ============================================
     
     def get_ad_accounts(self) -> Dict:
         """
-        Reklam hesaplarÄ±nÄ± al
+        Reklam hesaplarını al
         
         Returns:
-            Dict: Reklam hesaplarÄ±
+            Dict: Reklam hesapları
         """
         url = f"{self.graph_url}/me/adaccounts"
         params = {
@@ -390,11 +390,11 @@ class InstagramAPIClient:
     
     def get_ad_campaigns(self, ad_account_id: str, limit: int = 100) -> Dict:
         """
-        Reklam kampanyalarÄ±nÄ± al
+        Reklam kampanyalarını al
         
         Args:
             ad_account_id: Reklam hesap ID'si
-            limit: Kampanya sayÄ±sÄ±
+            limit: Kampanya sayısı
         
         Returns:
             Dict: Kampanya listesi
@@ -413,7 +413,7 @@ class InstagramAPIClient:
         
         Args:
             ad_account_id: Reklam hesap ID'si
-            limit: Ad set sayÄ±sÄ±
+            limit: Ad set sayısı
         
         Returns:
             Dict: Ad set listesi
@@ -428,11 +428,11 @@ class InstagramAPIClient:
     
     def get_ads(self, ad_account_id: str, limit: int = 100) -> Dict:
         """
-        ReklamlarÄ± al
+        Reklamları al
         
         Args:
             ad_account_id: Reklam hesap ID'si
-            limit: Reklam sayÄ±sÄ±
+            limit: Reklam sayısı
         
         Returns:
             Dict: Reklam listesi
@@ -447,14 +447,14 @@ class InstagramAPIClient:
     
     def get_ad_insights(self, ad_account_id: str, since_days: int = 30) -> Dict:
         """
-        Reklam iÃ§gÃ¶rÃ¼lerini al
+        Reklam içgörülerini al
         
         Args:
             ad_account_id: Reklam hesap ID'si
-            since_days: KaÃ§ gÃ¼nlÃ¼k veri
+            since_days: Kaç günlük veri
         
         Returns:
-            Dict: Ä°Ã§gÃ¶rÃ¼ verileri
+            Dict: İçgörü verileri
         """
         since_date = (datetime.now() - timedelta(days=since_days)).strftime('%Y-%m-%d')
         until_date = datetime.now().strftime('%Y-%m-%d')
@@ -472,26 +472,26 @@ class InstagramAPIClient:
     
     def create_campaign(self, ad_account_id: str, campaign_data: Dict) -> Dict:
         """
-        Yeni reklam kampanyasÄ± oluÅŸtur
+        Yeni reklam kampanyası oluştur
         
         Args:
             ad_account_id: Reklam hesap ID'si
             campaign_data: Kampanya verileri
         
         Returns:
-            Dict: OluÅŸturulan kampanya
+            Dict: Oluşturulan kampanya
         """
         url = f"{self.graph_url}/act_{ad_account_id}/campaigns"
         
         return self._make_request(url, method='POST', data=campaign_data)
     
     # ============================================
-    # TOKEN YÃ–NETÄ°MÄ°
+    # TOKEN YÖNETİMİ
     # ============================================
     
     def refresh_access_token(self) -> Dict:
         """
-        Access token'Ä± yenile (long-lived token al)
+        Access token'ı yenile (long-lived token al)
         
         Returns:
             Dict: Yeni token bilgileri
@@ -505,7 +505,7 @@ class InstagramAPIClient:
     
     def get_long_lived_token(self, short_lived_token: str) -> Dict:
         """
-        Short-lived token'Ä± long-lived token'a Ã§evir (60 gÃ¼n geÃ§erli)
+        Short-lived token'ı long-lived token'a çevir (60 gün geçerli)
         
         Args:
             short_lived_token: Short-lived access token
@@ -524,7 +524,7 @@ class InstagramAPIClient:
     
     def exchange_code_for_token(self, code: str) -> Dict:
         """
-        Authorization code'u access token'a Ã§evir
+        Authorization code'u access token'a çevir
         
         Args:
             code: Authorization code
@@ -544,33 +544,33 @@ class InstagramAPIClient:
         return self._make_request(url, method='POST', data=data)
     
     # ============================================
-    # WEBHOOK Ä°ÅLEMLERÄ°
+    # WEBHOOK İŞLEMLERİ
     # ============================================
     
     def verify_webhook(self, verify_token: str, challenge: str, mode: str) -> bool:
         """
-        Webhook doÄŸrulama
+        Webhook doğrulama
         
         Args:
-            verify_token: DoÄŸrulama token'Ä±
-            challenge: Challenge deÄŸeri
+            verify_token: Doğrulama token'ı
+            challenge: Challenge değeri
             mode: Mod (subscribe, unsubscribe)
         
         Returns:
-            bool: DoÄŸrulama baÅŸarÄ±lÄ± mÄ±
+            bool: Doğrulama başarılı mı
         """
         expected_token = getattr(settings, 'INSTAGRAM_WEBHOOK_VERIFY_TOKEN', '')
         return verify_token == expected_token
     
     def process_webhook_data(self, data: Dict) -> Dict:
         """
-        Webhook verilerini iÅŸle
+        Webhook verilerini işle
         
         Args:
             data: Webhook'tan gelen veri
         
         Returns:
-            Dict: Ä°ÅŸlenmiÅŸ veri
+            Dict: İşlenmiş veri
         """
         result = {
             'object': data.get('object'),
@@ -596,12 +596,12 @@ class InstagramAPIClient:
         return result
     
     # ============================================
-    # YARDIMCI FONKSÄ°YONLAR
+    # YARDIMCI FONKSİYONLAR
     # ============================================
     
     def get_rate_limit_status(self) -> Dict:
         """
-        Rate limit durumunu dÃ¶ndÃ¼r
+        Rate limit durumunu döndür
         
         Returns:
             Dict: Rate limit bilgileri
@@ -619,7 +619,7 @@ class InstagramAPIClient:
     
     def set_access_token(self, token: str):
         """
-        Access token'Ä± gÃ¼ncelle
+        Access token'ı güncelle
         
         Args:
             token: Yeni access token
@@ -628,10 +628,10 @@ class InstagramAPIClient:
     
     def test_connection(self) -> bool:
         """
-        API baÄŸlantÄ±sÄ±nÄ± test et
+        API bağlantısını test et
         
         Returns:
-            bool: BaÄŸlantÄ± baÅŸarÄ±lÄ± mÄ±
+            bool: Bağlantı başarılı mı
         """
         result = self.get_user_info()
         return 'error' not in result

@@ -58,7 +58,7 @@
             {% if agency_scope.is_agency %}
             <select name="agency_client" id="performanceAgencyClient" onchange="this.form.submit()">
                 <option value=""{% if not agency_scope.selected_client %} selected{% endif %}>Tüm firmalar</option>
-                {% for agency_client in agency_scope.clients %}<option value="{{ agency_client.id }}"{% if agency_scope.selected_client.id == agency_client.id %} selected{% endif %}>{{ agency_client.organization.name }} · {{ agency_client.name }}</option>{% endfor %}
+                {% for agency_client in agency_scope.clients %}<option value="{{ agency_client.id }}"{% if agency_scope.selected_client.id == agency_client.id %} selected{% endif %}>{{ agency_client.name }}</option>{% endfor %}
             </select>
             {% endif %}
             <select name="platform" id="pcPlatformSelect">
@@ -71,7 +71,7 @@
                 <option value="">Tüm hesaplar</option>
                 {% for account in platform_accounts %}
                 <option value="{{ account.id }}" {% if selected_account == account.id|stringformat:"s" %}selected{% endif %}>
-                    {% if account.agency_client %}{{ account.agency_client.name }} · {% endif %}{{ account.platform.name }} - {{ account.account_name|default:account.account_id }}
+                    {% if account.agency_client %}{{ account.agency_client.name }} · {% endif %}{{ account.platform.name }} - {{ account.display_name|default:account.account_name|default:account.account_id }}
                 </option>
                 {% endfor %}
             </select>

@@ -60,8 +60,8 @@ def _debug_meta_token(token, platform_code):
     }
 
 
-def _refresh_instagram_token(token):
-    if str(token).startswith("IG"):
+def _refresh_instagram_token(token, *, instagram_login=False):
+    if instagram_login or str(token).startswith("IG"):
         response = requests.get(
             "https://graph.instagram.com/refresh_access_token",
             params={"grant_type": "ig_refresh_token", "access_token": token},
@@ -93,6 +93,11 @@ def _validate_connection(connection):
         return {"valid": False, "error": "Access token yok."}
     if (connection.extra_data or {}).get("demo"):
         return {"valid": True, "expires_at": connection.token_expiry, "validation": "demo"}
+    if connection.platform.code == "instagram" and (connection.extra_data or {}).get("auth_type") == "instagram_login":
+        from core.services.instagram_oauth import profile
+        account = profile(token)
+        expected = (connection.extra_data or {}).get("instagram_business_account_id")
+        return {"valid": account["id"] == expected, "expires_at": connection.token_expiry, "validation": "instagram_login"}
     if connection.platform.code == "google_ads" and (connection.extra_data or {}).get("source") == "ads_oauth":
         from core.services.ads_integrations import connection_token
         connection_token(connection)
@@ -285,12 +290,16 @@ def check_and_refresh_platform_tokens():
                 row.update({"valid": False, "status": "expired"})
                 _notify_connection_issue(connection, "Token API tarafından reddedildi; yeniden yetkilendirme gerekli.", critical=True)
             elif connection.platform.code == "instagram" and expiry and expiry <= now + REFRESH_WINDOW:
-                new_token, expires_in = _refresh_instagram_token(token)
+                if (connection.extra_data or {}).get("auth_type") == "instagram_login":
+                    new_token, expires_in = _refresh_instagram_token(token, instagram_login=True)
+                else:
+                    new_token, expires_in = _refresh_instagram_token(token)
                 if new_token:
                     connection.access_token = new_token
                     connection.accounts.update(access_token=new_token)
                 if expires_in:
                     connection.token_expiry = now + timedelta(seconds=expires_in)
+                    connection.accounts.update(token_expiry=connection.token_expiry)
                 connection.status = "active"
                 row.update({"valid": True, "status": "refreshed"})
             else:

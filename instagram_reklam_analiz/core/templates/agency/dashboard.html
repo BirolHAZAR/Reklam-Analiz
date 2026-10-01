@@ -8,6 +8,9 @@
 {% endblock %}
 
 {% block content %}
+{% for message in messages %}
+<div class="alert {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}alert-danger{% else %}alert-{{ message.tags|default:'info' }}{% endif %}" role="alert">{{ message }}</div>
+{% endfor %}
 <div class="agency-page">
   <div class="agency-shell">
     <div class="agency-topbar">
@@ -70,7 +73,7 @@
         <table class="agency-table">
           <tbody>
           {% for account in platform_accounts %}
-            <tr><td>{{ account.agency_client.name }}</td><td>{{ account.platform.name }}</td><td>{{ account.account_name|default:account.account_id }}</td></tr>
+            <tr><td>{{ account.agency_client.name }}</td><td>{{ account.platform.name }}</td><td>{{ account.display_name|default:account.account_name|default:account.account_id }}</td></tr>
           {% endfor %}
           </tbody>
         </table>

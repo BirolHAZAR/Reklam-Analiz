@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -63,6 +64,13 @@ class AgencyScopeTests(TestCase):
         self.assertTrue(scope.is_agency)
         self.assertEqual(scope.selected_client, self.client_a)
         self.assertEqual(list(platform_accounts_for_request(request)), [self.account_a])
+
+    def test_missing_agency_plan_shows_reason_for_blocked_client_creation(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("agency_client_create", args=[self.organization.pk]), follow=True)
+        self.assertContains(response, "Ajansınıza henüz paket atanmamış.")
+        self.assertContains(response, 'role="alert"')
+        self.assertEqual(self.organization.clients.count(), 2)
 
     def test_agency_member_can_read_organization_accounts(self):
         request = self.request(self.member, {"agency_client": str(self.client_b.id)})
@@ -190,7 +198,7 @@ class AgencyScopeTests(TestCase):
             campaign=campaign_b, platform_ad_id="health-card-ad-b", name="Firma B Sağlık Reklamı",
         )
         AdMetricHistory.objects.create(
-            ad=ad_a, date="2026-07-13", impressions=1000, clicks=50,
+            ad=ad_a, date=timezone.localdate(), impressions=1000, clicks=50,
             spend="100.00", conversions="5", conversion_value="400.00",
         )
         rule = OctoTaskRule.objects.create(
@@ -245,7 +253,7 @@ class AgencyScopeTests(TestCase):
             name="Firma B Merkez Reklamı", status="ACTIVE", is_active=True,
         )
         AdMetricHistory.objects.create(
-            ad=ad_a, date="2026-07-13", impressions=2000, clicks=80,
+            ad=ad_a, date=timezone.localdate(), impressions=2000, clicks=80,
             spend="240.00", conversions="8", conversion_value="960.00",
         )
         rule = OctoTaskRule.objects.create(

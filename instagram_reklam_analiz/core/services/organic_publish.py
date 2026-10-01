@@ -36,6 +36,10 @@ def can_publish_post(post):
         return False, f"{platform['name']} doğrudan yayınlama özelliği etkin değil."
     if not post.platform_account_id:
         return False, "Yayınlamak için bağlı platform hesabı seçilmeli."
+    if code == "instagram" and (post.platform_account.extra_data or {}).get("auth_type") == "instagram_login":
+        connection = post.platform_account.connection
+        if not connection or "instagram_business_content_publish" not in (connection.scopes or []):
+            return False, "Bu Instagram bağlantısında içerik yayınlama izni yok."
     if not _token_for_post(post):
         return False, "Bağlı platform hesabında access token yok."
     if post.post_type not in {*platform["post_types"], "UNKNOWN"}:
@@ -76,7 +80,7 @@ def publish_post(post):
             return _complete(post, post_id, payload, "Facebook gönderisi yayınlandı.") if response.ok and post_id else _fail(post, "Facebook", payload)
         if code == "instagram":
             account_id = (post.platform_account.extra_data or {}).get("instagram_business_account_id") or post.platform_account.account_id
-            api = InstagramAPI(token)
+            api = InstagramAPI(token, instagram_login=(post.platform_account.extra_data or {}).get("auth_type") == "instagram_login")
             if post.post_type == "CAROUSEL":
                 payload = api.publish_instagram_carousel(
                     account_id,

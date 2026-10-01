@@ -200,7 +200,7 @@
                         <div class="ig-ad-name">{{ ad.name|default:ad.headline|default:"Adsız reklam" }}</div>
                         {% if ad.platform_ad_id %}<div class="ig-muted">ID: {{ ad.platform_ad_id }}</div>{% endif %}
                     </td>
-                    <td>{{ ad.platform_account.account_name|default:ad.platform_account.account_id|default:"-" }}</td>
+                    <td>{{ ad.platform_account.display_name|default:ad.platform_account.account_name|default:ad.platform_account.account_id|default:"-" }}</td>
                     <td>{{ ad.campaign.name|default:"-" }}</td>
                     <td><span class="ig-status">{{ ad.get_status_display }}</span></td>
                     <td>{{ ad.ad_format|default:ad.creative.get_creative_type_display|default:"-" }}</td>

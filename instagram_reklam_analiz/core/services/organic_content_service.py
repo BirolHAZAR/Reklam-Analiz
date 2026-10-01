@@ -201,7 +201,7 @@ def sync_instagram_organic_content(account: PlatformAccount, *, limit: int = 50)
     if not token or not instagram_business_id:
         return {"success": False, "created": 0, "updated": 0, "metrics": 0, "error": "Instagram token veya business id eksik."}
 
-    api = InstagramAPI(access_token=token)
+    api = InstagramAPI(access_token=token, instagram_login=(account.extra_data or {}).get("auth_type") == "instagram_login")
     response = api._request(
         f"{api.graph_url}/{instagram_business_id}/media",
         {

@@ -4,7 +4,12 @@ from core.services.agency_permission_matrix import get_user_entitlement_plan
 
 def ensure_platform_account_capacity(user, candidates, organization=None):
     """Enforce one total account pool across every platform, never per platform."""
-    plan = get_user_entitlement_plan(user)
+    if organization is not None:
+        plan = organization.active_plan if organization.is_active else None
+        if plan and not plan.is_active:
+            plan = None
+    else:
+        plan = get_user_entitlement_plan(user)
     if not plan:
         raise ValueError("Aktif deneme veya abonelik bulunamadı.")
     limit = int(plan.max_instagram_accounts or 0)

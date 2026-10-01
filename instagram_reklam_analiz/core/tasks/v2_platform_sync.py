@@ -134,6 +134,8 @@ def _should_skip_ad_sync(account, platform_code):
             return "oauth_reconnection_required"
 
     if platform_code == "instagram":
+        if (account.extra_data or {}).get("auth_type") == "instagram_login":
+            return "organic_account_use_meta_ads_for_ad_sync"
         if _is_placeholder_token(_get_account_token(account)):
             return "missing_or_placeholder_token"
 

@@ -4,8 +4,14 @@ from core.views import payment, platform_connect
 from core.views.hesap_ekle import hesap_ekle_view, hesap_sil
 from core.views import platform_connect
 from core.views import ads_integrations
+from core.views import local_names
+from core.views import instagram_oauth
 
 urlpatterns = [
+    path('connect/instagram/', instagram_oauth.connect, name='instagram_connect'),
+    path('connect/instagram/callback/', instagram_oauth.callback, name='instagram_oauth_callback'),
+    path('names/<str:kind>/<int:object_id>/', local_names.rename, name='local_name_update'),
+    path('names/accounts/<int:account_id>/campaigns/<str:campaign_id>/', local_names.rename_remote_campaign, name='remote_campaign_name_update'),
     path('integrations/', ads_integrations.integrations, name='integrations'),
     path('integrations/<str:provider>/connect/', ads_integrations.connect, name='integration_connect'),
     path('integrations/<str:provider>/accounts/', ads_integrations.select_accounts, name='integration_select'),

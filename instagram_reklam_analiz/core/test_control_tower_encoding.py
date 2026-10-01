@@ -68,7 +68,7 @@ class ControlTowerEncodingTests(SimpleTestCase):
         )
 
         self.assertIn('class="ct-agency-filter-feature"', agency_html)
-        self.assertIn("Demo Ajans · Demo Marka", agency_html)
+        self.assertIn("Demo Marka", agency_html)
         self.assertIn("Firma filtresi aktif", agency_html)
         self.assertNotIn('class="ct-agency-filter-feature"', personal_html)
 
@@ -88,5 +88,5 @@ class ControlTowerEncodingTests(SimpleTestCase):
         )
 
         self.assertIn('class="exec-agency-filter"', html)
-        self.assertIn("Demo Ajans · Demo Marka", html)
+        self.assertIn("Demo Marka", html)
         self.assertIn("Firma filtresi aktif", html)

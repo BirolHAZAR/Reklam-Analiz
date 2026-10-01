@@ -154,7 +154,10 @@ def agency_client_create(request, organization_id):
         messages.error(request, "Müşteri ekleme yetkiniz yok.")
         return redirect("agency_dashboard_org", organization_id=organization.id)
     if not organization.has_available_client_slot():
-        messages.error(request, "Ajans paketinizdeki müşteri/marka limiti doldu.")
+        if not organization.active_plan_id:
+            messages.error(request, "Ajansınıza henüz paket atanmamış. Müşteri/marka eklemek için müşteri hakkı içeren bir ajans paketi tanımlanmalıdır.")
+        else:
+            messages.error(request, "Ajans paketinizdeki müşteri/marka limiti doldu.")
         return redirect("agency_dashboard_org", organization_id=organization.id)
 
     if request.method == "POST":
@@ -528,26 +531,12 @@ def agency_platform_account_create(request, organization_id, client_id=None):
 
     if request.method == "POST":
         return _connect_agency_platform_account(request, organization, client_id)
-        form = AgencyPlatformAccountForm(request.POST, organization=organization)
-        if form.is_valid():
-            account = form.save(commit=False)
-            account.user = request.user
-            account.account_id = account.account_id or account.account_name
-            account.save()
-            _invalidate_agency_cache(organization)
-            messages.success(request, f"{account} müşteri alanına bağlandı.")
-            return redirect("agency_client_detail", organization_id=organization.id, client_id=account.agency_client_id)
-    else:
-        initial = {"is_active": True}
-        if selected_client:
-            initial["agency_client"] = selected_client
-        form = AgencyPlatformAccountForm(organization=organization, initial=initial)
+    from django.urls import reverse
+    url = reverse("hesap_ekle")
+    if selected_client:
+        url += f"?agency_client={selected_client.pk}"
+    return redirect(url)
 
-    return render(request, "agency/platform_account_form.html", {
-        "organization": organization, "form": form, "selected_client": selected_client,
-        "clients": organization.clients.filter(is_active=True).order_by("name"),
-        "platforms": PLATFORM_DEFAULTS,
-    })
 
 
 @login_required

@@ -41,7 +41,7 @@ def integrations(request):
 def account_connection_context(request):
     scope = get_agency_scope(request)
     providers = []
-    for code, name in api.PROVIDERS.items():
+    for code, name in {**api.PROVIDERS, "instagram": "Instagram"}.items():
         setup_error = ""
         try:
             api.configuration(code)
@@ -66,7 +66,10 @@ def account_connection_context(request):
             and (not connection.is_token_expired or (account.platform.code == "google_ads" and connection.refresh_token))
         )
     return {
-        "providers": providers, "clients": scope.clients, "selected_client": scope.selected_client,
+        "connection_is_agency": scope.is_agency,
+        "providers": [p for p in providers if p["code"] != "instagram"],
+        "instagram_provider": next(p for p in providers if p["code"] == "instagram"),
+        "clients": scope.clients, "selected_client": scope.selected_client,
         "accounts": accounts,
     }
 
@@ -166,7 +169,7 @@ def select_accounts(request, provider):
                         "connection": connection, "agency_client": client, "account_name": allowed[cid]["name"],
                         "access_token": connection.access_token, "refresh_token": connection.refresh_token,
                         "token_expiry": connection.token_expiry, "is_active": True,
-                        "extra_data": {**allowed[cid], "source": "ads_oauth"},
+                        "extra_data": {**(old.extra_data if old else {}), **allowed[cid], "source": "ads_oauth"},
                     })
                 PlatformConnection.objects.filter(pk__in=replaced_connections, user=request.user, accounts__isnull=True).update(is_active=False, status="disconnected")
             request.session.pop(f"ads_pending:{provider}", None)
@@ -185,6 +188,9 @@ def account_campaigns(request, account_id, campaign_id=None):
     context = {"account": account, "campaigns": [], "metrics": [], "campaign": None}
     try:
         rows = api.campaigns(account)
+        aliases = (account.extra_data or {}).get("campaign_names", {})
+        for row in rows:
+            row["name"] = aliases.get(str(row["id"])) or row["name"]
         context["campaigns"] = rows
         if campaign_id:
             campaign = next((r for r in rows if str(r["id"]) == str(campaign_id)), None)

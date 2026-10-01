@@ -146,13 +146,21 @@ class OrganizationBrandingForm(forms.ModelForm):
 
 
 class AgencyClientForm(forms.ModelForm):
+    website = forms.URLField(
+        label="Web Sitesi", required=False, assume_scheme="https",
+        max_length=AgencyClient._meta.get_field("website").max_length,
+        widget=forms.TextInput(attrs={
+            "class": "form-control", "placeholder": "www.firmaniz.com",
+            "inputmode": "url", "autocapitalize": "none", "spellcheck": "false",
+        }),
+    )
+
     class Meta:
         model = AgencyClient
         fields = ["name", "legal_name", "website", "contact_name", "contact_email", "logo", "notes", "is_active"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Marka / müşteri adı"}),
             "legal_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Resmi unvan"}),
-            "website": forms.URLInput(attrs={"class": "form-control", "placeholder": "https://"}),
             "contact_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Müşteri yetkilisi"}),
             "contact_email": forms.EmailInput(attrs={"class": "form-control", "placeholder": "yetkili@firma.com"}),
             "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3}),

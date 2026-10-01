@@ -6,7 +6,7 @@
   <tbody>
     {% for ad in rows %}
     <tr>
-      <td><div class="hc-ad-name">{{ ad.name }}</div><div class="hc-meta">{{ ad.platform }} · {{ ad.account }}</div><div class="hc-meta">{{ ad.campaign }} / {{ ad.ad_group }}</div>{% if ad.rule_match_count %}<div class="hc-meta">{{ ad.rule_match_count }} kural eşleşmesi</div>{% endif %}</td>
+      <td><div class="hc-ad-name">{{ ad.name }}</div><a href="{% url 'local_name_update' 'ad' ad.id %}">Adı düzenle</a><div class="hc-meta">{{ ad.platform }} · {{ ad.account }}</div><div class="hc-meta">{{ ad.campaign }} / {{ ad.ad_group }}</div>{% if ad.rule_match_count %}<div class="hc-meta">{{ ad.rule_match_count }} kural eşleşmesi</div>{% endif %}</td>
       <td><span class="hc-score-pill">{{ ad.score }}</span></td>
       <td><span class="hc-status {% if ad.score >= 80 %}ok{% elif ad.score >= 60 %}watch{% else %}risk{% endif %}">{{ ad.status_text }}</span></td>
       <td>{{ ad.ctr|tr_decimal }}%</td><td>{{ ad.cpa|tr_decimal }} TL</td><td>{{ ad.roas|tr_decimal }}x</td><td>{{ ad.frequency|tr_decimal }}</td>

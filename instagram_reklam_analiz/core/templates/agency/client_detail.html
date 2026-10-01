@@ -39,7 +39,7 @@
           {% for account in platform_accounts %}
             <tr>
               <td>{{ account.platform.name }}</td>
-              <td>{{ account.account_name|default:account.account_id }}</td>
+              <td>{{ account.display_name|default:account.account_name|default:account.account_id }}</td>
               <td>{{ account.last_sync|default:"-" }}</td>
               <td>{% if account.is_active %}Aktif{% else %}Pasif{% endif %}</td>
             </tr>

@@ -1,0 +1,14 @@
+{% if connection_is_agency %}
+{% if clients %}
+<label class="d-block mb-3">Ajans müşterisi
+  <select class="form-select" name="agency_client" required>
+    <option value="">Müşteri seçin</option>
+    {% for client in clients %}
+    <option value="{{ client.pk }}"{% if selected_client.pk == client.pk %} selected{% endif %}>{{ client.name }}</option>
+    {% endfor %}
+  </select>
+</label>
+{% else %}
+<p class="alert alert-warning" role="alert">Hesap bağlamadan önce bir müşteri/marka ekleyin. <a href="{% url 'agency_dashboard' %}">Ajans paneline git</a></p>
+{% endif %}
+{% endif %}

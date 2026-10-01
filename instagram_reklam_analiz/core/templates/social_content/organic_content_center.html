@@ -37,7 +37,7 @@
         <label for="organicAgencyClient"><i class="fas fa-building-user me-2"></i>Firma Filtresi</label>
         <select id="organicAgencyClient" name="agency_client" onchange="this.form.submit()">
             <option value=""{% if not agency_scope.selected_client %} selected{% endif %}>Tüm firmalar</option>
-            {% for agency_client in agency_scope.clients %}<option value="{{ agency_client.id }}"{% if agency_scope.selected_client.id == agency_client.id %} selected{% endif %}>{{ agency_client.organization.name }} · {{ agency_client.name }}</option>{% endfor %}
+            {% for agency_client in agency_scope.clients %}<option value="{{ agency_client.id }}"{% if agency_scope.selected_client.id == agency_client.id %} selected{% endif %}>{{ agency_client.name }}</option>{% endfor %}
         </select>
     </form>
     {% endif %}
@@ -84,7 +84,7 @@
                         <div class="post-thumb">{% if post.thumbnail_url or post.image_url %}<img src="{{ post.thumbnail_url|default:post.image_url }}" alt="">{% else %}<i class="fas fa-image"></i>{% endif %}</div>
                         <div>
                             <div class="post-title">{{ post.caption|default:labels.unnamed_organic_content|truncatechars:90 }}</div>
-                            <div class="post-meta">{% if post.platform_account %}{% if post.platform_account.agency_client %}{{ post.platform_account.agency_client.name }} Â· {% endif %}{{ post.platform_account.platform.name }} Â· {{ post.platform_account.account_name|default:post.platform_account.account_id }}{% else %}{{ post.platform_connection.platform.name|default:labels.platform_not_selected }}{% endif %} Â· {{ post.get_post_type_display }} Â· {% if post.posted_at %}{{ post.posted_at|date:"d.m.Y H:i" }}{% else %}{{ labels.draft }}{% endif %}</div>
+                            <div class="post-meta">{% if post.platform_account %}{% if post.platform_account.agency_client %}{{ post.platform_account.agency_client.name }} · {% endif %}{{ post.platform_account.platform.name }} · {{ post.platform_account.account_name|default:post.platform_account.account_id }}{% else %}{{ post.platform_connection.platform.name|default:labels.platform_not_selected }}{% endif %} · {{ post.get_post_type_display }} · {% if post.posted_at %}{{ post.posted_at|date:"d.m.Y H:i" }}{% else %}{{ labels.draft }}{% endif %}</div>
                             <div class="post-metrics">
                                 <span class="post-metric"><i class="fas fa-eye"></i>{{ labels.reach }}: {{ post.organic_metrics.reach|tr_int }}</span>
                                 <span class="post-metric"><i class="fas fa-heart"></i>{{ labels.likes }}: {{ post.organic_metrics.likes|tr_int }}</span>

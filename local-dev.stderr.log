@@ -1,0 +1,106 @@
+Watching for file changes with StatReloader
+Listen failure: Couldn't listen on 127.0.0.1:8000: [WinError 10048] Normal olarak her yuva adresi (iletiþim kuralý/að adresi/baðlantý noktasý) için yalnýzca bir kullanýma izin veriliyor.
+C:\Projeler\instagram\instagram_reklam_analiz\core\views\health_center.py changed, reloading.
+Watching for file changes with StatReloader
+Listen failure: Couldn't listen on 127.0.0.1:8000: [WinError 10048] Normal olarak her yuva adresi (iletiþim kuralý/að adresi/baðlantý noktasý) için yalnýzca bir kullanýma izin veriliyor.
+C:\Projeler\instagram\instagram_reklam_analiz\core\views\local_names.py changed, reloading.
+Watching for file changes with StatReloader
+Listen failure: Couldn't listen on 127.0.0.1:8000: [WinError 10048] Normal olarak her yuva adresi (iletiþim kuralý/að adresi/baðlantý noktasý) için yalnýzca bir kullanýma izin veriliyor.
+C:\Projeler\instagram\instagram_reklam_analiz\core\services\ads_integrations.py changed, reloading.
+Watching for file changes with StatReloader
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:60611]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:60611]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:58475]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:58475]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:51753]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:51753]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:60055]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:60055]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:59182]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:59182]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:60070]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:60070]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:53327]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:53327]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:53742]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:53742]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:60145]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:60145]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:62150]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:62150]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:65526]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:65526]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:53941]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:53941]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:61158]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:61158]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:50160]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:50160]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:60023]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:60023]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.38, 127.0.0.1:49987]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.10, 127.0.0.1:49987]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.09, 127.0.0.1:50565]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.09, 127.0.0.1:58474]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.09, 127.0.0.1:49987]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.09, 127.0.0.1:50565]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.10, 127.0.0.1:50565]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.13, 127.0.0.1:49987]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.15, 127.0.0.1:58790]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.16, 127.0.0.1:50565]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.16, 127.0.0.1:50360]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.17, 127.0.0.1:60448]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.18, 127.0.0.1:50432]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.18, 127.0.0.1:49987]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.09, 127.0.0.1:58790]
+C:\Projeler\instagram\instagram_reklam_analiz\core\views\ads_integrations.py changed, reloading.
+Watching for file changes with StatReloader
+Listen failure: Couldn't listen on 127.0.0.1:8000: [WinError 10048] Normal olarak her yuva adresi (iletiþim kuralý/að adresi/baðlantý noktasý) için yalnýzca bir kullanýma izin veriliyor.
+C:\Projeler\instagram\instagram_reklam_analiz\core\platform_setup.py changed, reloading.
+Watching for file changes with StatReloader
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:62176]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:62176]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:65517]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:65517]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:55133]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:55133]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:59465]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:59465]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:50366]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:50366]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:59415]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:59415]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:55968]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:55968]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:51317]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:51317]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:55933]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:55933]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:52800]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:52800]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:58589]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:58589]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:50160]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:50160]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:52582]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:52582]
+HTTP GET /api/notifications/latest/?after_id=7894 200 [0.33, 127.0.0.1:63677]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:56538]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:56538]
+WebSocket HANDSHAKING /ws/notifications/ [127.0.0.1:56585]
+WebSocket CONNECT /ws/notifications/ [127.0.0.1:56585]
+C:\Projeler\instagram\instagram_reklam_analiz\config\settings.py changed, reloading.
+Watching for file changes with StatReloader
+Listen failure: Couldn't listen on 127.0.0.1:8000: [WinError 10048] Normal olarak her yuva adresi (iletiþim kuralý/að adresi/baðlantý noktasý) için yalnýzca bir kullanýma izin veriliyor.
+C:\Projeler\instagram\instagram_reklam_analiz\core\platform_setup.py changed, reloading.
+Watching for file changes with StatReloader
+Listen failure: Couldn't listen on 127.0.0.1:8000: [WinError 10048] Normal olarak her yuva adresi (iletiþim kuralý/að adresi/baðlantý noktasý) için yalnýzca bir kullanýma izin veriliyor.
+C:\Projeler\instagram\instagram_reklam_analiz\core\tasks\v2_platform_sync.py changed, reloading.
+Watching for file changes with StatReloader
+Listen failure: Couldn't listen on 127.0.0.1:8000: [WinError 10048] Normal olarak her yuva adresi (iletiþim kuralý/að adresi/baðlantý noktasý) için yalnýzca bir kullanýma izin veriliyor.
+C:\Projeler\instagram\instagram_reklam_analiz\core\services\instagram_oauth.py changed, reloading.
+Watching for file changes with StatReloader
+Listen failure: Couldn't listen on 127.0.0.1:8000: [WinError 10048] Normal olarak her yuva adresi (iletiþim kuralý/að adresi/baðlantý noktasý) için yalnýzca bir kullanýma izin veriliyor.
+C:\Projeler\instagram\instagram_reklam_analiz\config\settings.py changed, reloading.
+Watching for file changes with StatReloader
+Listen failure: Couldn't listen on 127.0.0.1:8000: [WinError 10048] Normal olarak her yuva adresi (iletiþim kuralý/að adresi/baðlantý noktasý) için yalnýzca bir kullanýma izin veriliyor.
