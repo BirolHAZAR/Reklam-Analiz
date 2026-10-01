@@ -66,6 +66,11 @@ def is_sync_due(user, last_sync, now=None, kind="ad"):
 
 
 def manual_sync_allowed(user, kind):
+    # Staff users can inspect and operate the product even when their own
+    # billing record has expired. Keep manual sync consistent with the other
+    # admin permission checks in agency_permission_matrix.
+    if user and (getattr(user, "is_superuser", False) or getattr(user, "is_staff", False)):
+        return True
     plan = get_user_entitlement_plan(user)
     if not plan:
         return False

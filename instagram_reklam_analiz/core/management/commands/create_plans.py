@@ -307,6 +307,10 @@ class Command(BaseCommand):
             "competitor_sync_interval_minutes": plan_data.get("competitor_sync_interval_minutes", sync_minutes),
             "organic_sync_interval_minutes": plan_data.get("organic_sync_interval_minutes", sync_minutes),
             "marketplace_sync_interval_minutes": plan_data.get("marketplace_sync_interval_minutes", sync_minutes),
+            "allow_manual_ad_sync": plan_data.get("allow_manual_ad_sync", True),
+            "allow_manual_competitor_sync": plan_data.get("allow_manual_competitor_sync", True),
+            "allow_manual_organic_sync": plan_data.get("allow_manual_organic_sync", True),
+            "allow_manual_marketplace_sync": plan_data.get("allow_manual_marketplace_sync", True),
             "max_sync_records": plan_data.get("max_sync_records", 5000),
             **plan_data,
         }

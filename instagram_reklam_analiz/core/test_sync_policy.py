@@ -5,7 +5,13 @@ from django.test import TestCase
 from django.utils import timezone
 
 from core.models import MembershipPlan, User, UserSubscription
-from core.services.sync_policy import acquire_sync_lock, is_sync_due, policy_for_user, release_sync_lock
+from core.services.sync_policy import (
+    acquire_sync_lock,
+    is_sync_due,
+    manual_sync_allowed,
+    policy_for_user,
+    release_sync_lock,
+)
 
 
 class PlanSyncPolicyTests(TestCase):
@@ -59,6 +65,14 @@ class PlanSyncPolicyTests(TestCase):
         release_sync_lock(key)
         _key, third = acquire_sync_lock("platform", 99)
         self.assertTrue(third)
+
+    def test_staff_manual_sync_is_not_blocked_by_expired_billing_record(self):
+        user = self.make_user("platinum", 2, 365)
+        user.is_staff = True
+        user.save(update_fields=["is_staff"])
+        user.subscriptions.update(end_date=timezone.localdate() - timedelta(days=1))
+
+        self.assertTrue(manual_sync_allowed(user, "organic"))
 
     def test_each_celery_source_reads_its_own_admin_table_value(self):
         user = self.make_user("gold", 24, 365)
