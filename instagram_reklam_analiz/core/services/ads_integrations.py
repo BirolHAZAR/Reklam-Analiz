@@ -2,6 +2,7 @@
 from datetime import timedelta
 from decimal import Decimal
 import json
+import logging
 import re
 from urllib.parse import urlencode
 from urllib.parse import urlsplit
@@ -15,6 +16,7 @@ from django.utils import timezone
 
 ADWORDS_SCOPE = "https://www.googleapis.com/auth/adwords"
 PROVIDERS = {"google_ads": "Google Ads", "facebook": "Meta Ads (Facebook ve Instagram)"}
+logger = logging.getLogger(__name__)
 
 
 class IntegrationError(ValueError):
@@ -84,12 +86,33 @@ def _request(method, url, *, operation="", **kwargs):
         raise IntegrationError(f"{prefix}Platforma ulaşılamadı. Lütfen tekrar deneyin.") from None
     if not response.ok or (isinstance(payload, dict) and payload.get("error")):
         error = payload.get("error", {}) if isinstance(payload, dict) else {}
-        code = error.get("code", error.get("status", "")) if isinstance(error, dict) else error
+        if not isinstance(error, dict):
+            error = {"message": error}
+        # Graph API nests errors under ``error``. Instagram's token endpoint
+        # returns the same fields at the top level.
+        code = error.get("code", error.get("status", payload.get("code", "") if isinstance(payload, dict) else ""))
         code = re.sub(r"[^a-zA-Z0-9_ -]", "", str(code))[:50]
-        subcode = error.get("error_subcode") if isinstance(error, dict) else None
+        error_type = error.get("type", payload.get("error_type", "") if isinstance(payload, dict) else "")
+        error_type = re.sub(r"[^a-zA-Z0-9_ -]", "", str(error_type))[:80]
+        message = error.get("message", payload.get("error_message", "") if isinstance(payload, dict) else "")
+        message = str(message).lower()
+        subcode = error.get("error_subcode")
         suffix = f" / {subcode}" if isinstance(subcode, int) else ""
         prefix = f"{operation}: " if operation else ""
-        raise IntegrationError(f"{prefix}Platform isteği reddedildi (HTTP {response.status_code}, {code}{suffix}).")
+        logger.warning(
+            "OAuth provider request rejected operation=%s status=%s error_type=%s error_code=%s error_subcode=%s",
+            operation or "unspecified", response.status_code, error_type or "unknown", code or "unknown", subcode or "none",
+        )
+        if any(marker in message for marker in ("client secret", "client_secret", "app secret", "invalid platform app")):
+            raise IntegrationError(
+                f"{prefix}Uygulama kimliği ile gizli anahtar eşleşmiyor. Yönetici platform ayarındaki güncel App Secret değerini kaydetmeli."
+            )
+        if "redirect_uri" in message or "redirect uri" in message:
+            raise IntegrationError(
+                f"{prefix}OAuth dönüş adresi platform ayarıyla eşleşmiyor. Yönetici kayıtlı dönüş adresini kontrol etmeli."
+            )
+        detail = ", ".join(part for part in (error_type, code) if part) or "sağlayıcı hatası"
+        raise IntegrationError(f"{prefix}Platform isteği reddedildi (HTTP {response.status_code}, {detail}{suffix}).")
     return payload
 
 

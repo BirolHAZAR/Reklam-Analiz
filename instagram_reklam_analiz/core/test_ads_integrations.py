@@ -229,6 +229,28 @@ class AdsIntegrationTests(TestCase):
             api._request("GET", "https://example.invalid")
         self.assertNotIn("private-token", str(error.exception))
 
+    @patch("core.services.ads_integrations.requests.request")
+    def test_provider_error_identifies_secret_mismatch_without_leaking_detail(self, request):
+        request.return_value = Mock(ok=False, status_code=400)
+        request.return_value.json.return_value = {
+            "error": {"type": "OAuthException", "code": 1, "message": "Error validating client secret: private-secret"}
+        }
+        with self.assertRaises(api.IntegrationError) as error:
+            api._request("GET", "https://example.invalid", operation="Meta giriş kodunu doğrulama")
+        self.assertIn("gizli anahtar eşleşmiyor", str(error.exception))
+        self.assertNotIn("private-secret", str(error.exception))
+
+    @patch("core.services.ads_integrations.requests.request")
+    def test_instagram_top_level_error_is_normalized(self, request):
+        request.return_value = Mock(ok=False, status_code=400)
+        request.return_value.json.return_value = {
+            "error_type": "OAuthException", "code": 400, "error_message": "Invalid platform app"
+        }
+        with self.assertRaises(api.IntegrationError) as error:
+            api._request("POST", "https://example.invalid", operation="Instagram giriş kodunu doğrulama")
+        self.assertIn("gizli anahtar eşleşmiyor", str(error.exception))
+        self.assertNotIn("Invalid platform app", str(error.exception))
+
     def test_unimplemented_ad_providers_are_skipped(self):
         from core.tasks.v2_platform_sync import _should_skip_ad_sync
         for code in ("tiktok", "linkedin", "youtube", "x"):

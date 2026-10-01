@@ -25,7 +25,7 @@ def authorization_url(state):
 def profile(token):
     data = _request("GET", f"{graph_url()}/me", params={
         "fields": "user_id,username", "access_token": token,
-    })
+    }, operation="Instagram profilini okuma")
     if not isinstance(data, dict) or not str(data.get("user_id", "")).isdigit() or not data.get("username"):
         raise IntegrationError("Instagram profil bilgileri alınamadı. Yeniden bağlanın.")
     return {"id": str(data["user_id"]), "username": str(data["username"])}
@@ -33,7 +33,7 @@ def profile(token):
 
 def exchange_code(code):
     client_id, secret, redirect_uri = configuration("instagram")
-    short = _request("POST", "https://api.instagram.com/oauth/access_token", data={
+    short = _request("POST", "https://api.instagram.com/oauth/access_token", operation="Instagram giriş kodunu doğrulama", data={
         "client_id": client_id, "client_secret": secret, "redirect_uri": redirect_uri,
         "grant_type": "authorization_code", "code": code,
     })
@@ -49,7 +49,7 @@ def exchange_code(code):
         permissions = permissions.replace(",", " ").split()
     if not isinstance(permissions, list) or not set(SCOPES).issubset(permissions):
         raise IntegrationError("Profil ve istatistik izinlerini vererek Instagram'ı yeniden bağlayın.")
-    token = _request("GET", "https://graph.instagram.com/access_token", params={
+    token = _request("GET", "https://graph.instagram.com/access_token", operation="Instagram erişim süresini uzatma", params={
         "grant_type": "ig_exchange_token", "client_secret": secret,
         "access_token": short["access_token"],
     })
@@ -62,7 +62,9 @@ def exchange_code(code):
     if token["expires_in"] <= 0:
         raise IntegrationError("Instagram erişim süresi doğrulanamadı.")
     account = profile(token["access_token"])
-    if str(short.get("user_id", "")) != account["id"]:
-        raise IntegrationError("Instagram hesap kimliği doğrulanamadı.")
+    # The authorization-code response and ``/me`` can expose different ID
+    # namespaces for the same professional account. The long-lived token is
+    # already bound to the profile returned by ``/me``; comparing those two
+    # provider-specific identifiers rejects valid Instagram logins.
     token["scope"] = list(SCOPES)
     return token, account

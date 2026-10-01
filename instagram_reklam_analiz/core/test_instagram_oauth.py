@@ -140,7 +140,7 @@ class InstagramOAuthTests(TestCase):
         self.assertIn("graph.instagram.com", request.call_args_list[2].args[1])
 
     @patch("core.services.instagram_oauth._request")
-    def test_missing_permissions_and_mismatched_identity_rejected(self, request):
+    def test_missing_permissions_rejected_but_provider_id_namespace_may_differ(self, request):
         request.return_value = {"access_token": "short", "permissions": [api.SCOPES[0]]}
         with self.assertRaises(IntegrationError):
             api.exchange_code("code")
@@ -149,8 +149,9 @@ class InstagramOAuthTests(TestCase):
             {"access_token": "long", "expires_in": 5184000},
             {"user_id": "123456", "username": "example"},
         ]
-        with self.assertRaises(IntegrationError):
-            api.exchange_code("code")
+        token, profile = api.exchange_code("code")
+        self.assertEqual(token["access_token"], "long")
+        self.assertEqual(profile, self.profile)
 
     @patch("core.services.instagram_oauth.profile", return_value={"id": "123456", "username": "example"})
     @patch("core.views.instagram_oauth.ensure_platform_account_capacity")
