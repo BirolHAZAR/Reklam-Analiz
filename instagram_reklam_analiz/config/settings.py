@@ -266,10 +266,8 @@ INSTAGRAM_ACCESS_TOKEN = config(
 
 INSTAGRAM_REDIRECT_URI = config(
     'INSTAGRAM_REDIRECT_URI',
-    default=(
-        'http://localhost:8000/'
-        'instagram/callback/'
-    ),
+    default=('http://localhost:8000/connect/instagram/callback/' if DEBUG
+             else 'https://reklamanaliz.net/connect/instagram/callback/'),
 )
 
 INSTAGRAM_API_VERSION = config(

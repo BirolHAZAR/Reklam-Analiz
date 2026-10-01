@@ -152,7 +152,7 @@ select.studio-input option:disabled{
         <label class="field-label" for="rightAgencyClient" style="margin-top:12px;">Müşteri / Firma</label>
         <select id="rightAgencyClient" class="studio-input agency-client-filter">
           <option value=""{% if not agency_scope.selected_client %} selected{% endif %}>Tüm firmalar</option>
-          {% for agency_client in agency_scope.clients %}<option value="{{ agency_client.id }}"{% if agency_scope.selected_client.id == agency_client.id %} selected{% endif %}>{{ agency_client.organization.name }} · {{ agency_client.name }}</option>{% endfor %}
+          {% for agency_client in agency_scope.clients %}<option value="{{ agency_client.id }}"{% if agency_scope.selected_client.id == agency_client.id %} selected{% endif %}>{{ agency_client.name }}</option>{% endfor %}
         </select>
         {% endif %}
         <label class="field-label" style="margin-top:12px;">{{ labels.account }}</label>

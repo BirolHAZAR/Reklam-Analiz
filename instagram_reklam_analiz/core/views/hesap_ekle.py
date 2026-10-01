@@ -245,12 +245,14 @@ def _save_verified_token_accounts(user, platform, access_token, agency_client=No
 
 @login_required
 def hesap_ekle_view(request):
-    from core.services.agency_scope import get_agency_scope
-    agency_scope = get_agency_scope(request)
-    if agency_scope.is_agency and request.method == "POST":
-        messages.warning(request, "Ajans hesapları bu ekrandan bağlanamaz. Önce ajans müşterisini seçip müşteri detayındaki Hesap Bağla alanını kullanın.")
-        return redirect("agency_dashboard_org", organization_id=agency_scope.organization_ids[0])
     if request.method == "POST":
+        from core.views.ads_integrations import _client
+        from core.services.ads_integrations import IntegrationError
+        try:
+            agency_client = _client(request, request.POST.get("agency_client"))
+        except IntegrationError as exc:
+            messages.error(request, str(exc))
+            return redirect("hesap_ekle")
         platform_code = request.POST.get("platform")
         if platform_code in {"google_ads", "facebook", "google_analytics"}:
             messages.info(request, "Reklam hesaplarını Hesap Ekle ekranından bağlayın. GA4 bağlantısı henüz desteklenmiyor.")
@@ -275,7 +277,7 @@ def hesap_ekle_view(request):
                 return redirect("hesap_ekle")
             try:
                 saved_accounts = _save_verified_instagram_accounts(
-                    request.user, platform, access_token
+                    request.user, platform, access_token, agency_client=agency_client
                 )
             except (requests.RequestException, ValueError) as exc:
                 messages.error(request, f"Instagram hesabı doğrulanamadı: {exc}")
@@ -294,7 +296,7 @@ def hesap_ekle_view(request):
                 messages.error(request, f"{platform.name} access tokenı zorunludur.")
                 return redirect("hesap_ekle")
             try:
-                saved_accounts = _save_verified_token_accounts(request.user, platform, access_token)
+                saved_accounts = _save_verified_token_accounts(request.user, platform, access_token, agency_client=agency_client)
             except (requests.RequestException, ValueError) as exc:
                 messages.error(request, f"{platform.name} hesabı doğrulanamadı: {exc}")
                 return redirect("hesap_ekle")

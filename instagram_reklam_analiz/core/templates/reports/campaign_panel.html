@@ -44,7 +44,7 @@ body:has(.cp-shell)>main{padding-left:0!important;padding-right:8px!important}.c
       <select id="campaignPanelAgencyClient" name="agency_client" onchange="this.form.submit()">
         <option value=""{% if not agency_scope.selected_client %} selected{% endif %}>Tüm müşteriler</option>
         {% for client in agency_scope.clients %}
-        <option value="{{ client.id }}"{% if agency_scope.selected_client.id == client.id %} selected{% endif %}>{{ client.organization.name }} · {{ client.name }}</option>
+        <option value="{{ client.id }}"{% if agency_scope.selected_client.id == client.id %} selected{% endif %}>{{ client.name }}</option>
         {% endfor %}
       </select>
       <small>Platform hesapları ve kampanyalar seçime göre otomatik yenilenir.</small>

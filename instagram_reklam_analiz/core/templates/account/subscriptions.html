@@ -10,14 +10,14 @@
 {% block content %}
 <div class="subscriptions-wrapper">
     <div class="container">
-        <!-- Sayfa BaÅŸlÄ±ÄŸÄ± -->
+        <!-- Sayfa Başlığı -->
         <div class="page-header">
             <div class="row align-items-center">
                 <div class="col-md-6">
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item"><a href="{% url 'my_account' %}">
-                                <i class="fas fa-home me-1"></i>HesabÄ±m
+                                <i class="fas fa-home me-1"></i>Hesabım
                             </a></li>
                             <li class="breadcrumb-item active">Aboneliklerim</li>
                         </ol>
@@ -40,7 +40,7 @@
         </div>
         
         {% if subscriptions %}
-            <!-- Ä°statistik KartlarÄ± - DÃœZELTÄ°LDÄ° -->
+            <!-- İstatistik Kartları - DÜZELTİLDİ -->
             <div class="stats-row">
                 <div class="stat-card">
                     <div class="stat-icon">
@@ -61,7 +61,7 @@
                         <i class="fas fa-clock"></i>
                     </div>
                     <div class="stat-value">{{ total_remaining_days }}</div>
-                    <div class="stat-label">Toplam Kalan GÃ¼n</div>
+                    <div class="stat-label">Toplam Kalan Gün</div>
                 </div>
             </div>
             
@@ -69,7 +69,7 @@
             {% for sub in subscriptions %}
             <div class="subscription-card {% if sub.is_active and not sub.is_expired %}active{% else %}expired{% endif %}">
                 <div class="row align-items-start">
-                    <!-- Plan Ä°konu -->
+                    <!-- Plan İkonu -->
                     <div class="col-auto">
                         <div class="plan-icon-wrapper plan-{{ sub.plan.name }}">
                             {% if sub.plan.name == 'bronze' %}
@@ -100,7 +100,7 @@
                             {% else %}
                                 <span class="status-indicator status-expired-indicator">
                                     <span class="pulse-dot gray"></span>
-                                    SÃ¼resi Doldu
+                                    Süresi Doldu
                                 </span>
                             {% endif %}
                         </div>
@@ -112,7 +112,7 @@
                             <div class="col-6">
                                 <div class="date-box">
                                     <div class="date-label">
-                                        <i class="far fa-calendar-check me-1"></i>BaÅŸlangÄ±Ã§
+                                        <i class="far fa-calendar-check me-1"></i>Başlangıç
                                     </div>
                                     <div class="date-value">{{ sub.start_date|date:"d.m.Y" }}</div>
                                 </div>
@@ -120,25 +120,25 @@
                             <div class="col-6">
                                 <div class="date-box">
                                     <div class="date-label">
-                                        <i class="far fa-calendar-times me-1"></i>BitiÅŸ
+                                        <i class="far fa-calendar-times me-1"></i>Bitiş
                                     </div>
                                     <div class="date-value">{{ sub.end_date|date:"d.m.Y" }}</div>
                                     {% if sub.is_active and not sub.is_expired %}
                                         <div class="date-countdown">
                                             <i class="fas fa-hourglass-half me-1"></i>
-                                            {{ sub.days_remaining }} gÃ¼n kaldÄ±
+                                            {{ sub.days_remaining }} gün kaldı
                                         </div>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Ä°lerleme Ã‡ubuÄŸu -->
+                        <!-- İlerleme Çubuğu -->
                         {% if sub.is_active and not sub.is_expired %}
                         <div class="progress-wrapper mt-3">
                             <div class="d-flex justify-content-between mb-1">
-                                <small class="text-muted">KullanÄ±m SÃ¼resi</small>
-                                <small class="fw-bold">{{ sub.days_remaining }} / 30 gÃ¼n</small>
+                                <small class="text-muted">Kullanım Süresi</small>
+                                <small class="fw-bold">{{ sub.days_remaining }} / 30 gün</small>
                             </div>
                             <div class="progress">
                                 <div class="progress-bar 
@@ -152,7 +152,7 @@
                         {% endif %}
                     </div>
                     
-                    <!-- Butonlar ve Ã–zellikler -->
+                    <!-- Butonlar ve Özellikler -->
                     <div class="col-md">
                         <div class="action-buttons">
                             {% if sub.is_active and not sub.is_expired %}
@@ -160,7 +160,7 @@
                                     <i class="fas fa-sync-alt me-1"></i>Yenile
                                 </a>
                                 <a href="{% url 'pricing' %}" class="btn-upgrade">
-                                    <i class="fas fa-arrow-up me-1"></i>YÃ¼kselt
+                                    <i class="fas fa-arrow-up me-1"></i>Yükselt
                                 </a>
                             {% else %}
                                 <a href="{% url 'checkout' sub.plan.id %}" class="btn-renew">
@@ -169,7 +169,7 @@
                             {% endif %}
                         </div>
                         
-                        <!-- Mini Ã–zellikler -->
+                        <!-- Mini Özellikler -->
                         <div class="mt-3">
                             <ul class="features-mini-list">
                                 {% for feature in sub.plan.get_feature_list|slice:":4" %}
@@ -192,20 +192,20 @@
             {% endfor %}
             
         {% else %}
-            <!-- BoÅŸ Durum -->
+            <!-- Boş Durum -->
             <div class="empty-state">
                 <div class="empty-icon">
                     <i class="fas fa-box-open"></i>
                 </div>
-                <h3>HenÃ¼z Abonelik Yok</h3>
-                <p>ReklamlarÄ±nÄ±zÄ± AI ile gÃ¼Ã§lendirmek iÃ§in hemen bir pakete abone olun!</p>
+                <h3>Henüz Abonelik Yok</h3>
+                <p>Reklamlarınızı AI ile güçlendirmek için hemen bir pakete abone olun!</p>
                 <a href="{% url 'pricing' %}" class="btn-renew" style="display: inline-flex; padding: 15px 40px; font-size: 16px;">
-                    <i class="fas fa-shopping-cart me-2"></i>Paketleri Ä°ncele
+                    <i class="fas fa-shopping-cart me-2"></i>Paketleri İncele
                 </a>
                 <div class="mt-4">
                     <small class="text-muted">
                         <i class="fas fa-shield-alt me-1"></i>
-                        14 gÃ¼n Ã¼cretsiz kullanÄ±n; Ã¼cretli paket satÄ±n almadÄ±kÃ§a Ã¶deme alÄ±nmaz
+                        14 gün ücretsiz kullanın; ücretli paket satın almadıkça ödeme alınmaz
                     </small>
                 </div>
             </div>

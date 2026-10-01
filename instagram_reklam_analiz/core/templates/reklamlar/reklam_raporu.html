@@ -2,7 +2,7 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}Ã‡oklu Platform Reklam Raporu{% endblock %}
+{% block title %}Çoklu Platform Reklam Raporu{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/ads_ai_popup.css' %}">
@@ -736,7 +736,7 @@
         <div class="filter-header-bar" id="filterToggle">
             <span class="filter-title">
                 <i class="fas fa-sliders-h"></i>
-                GeliÅŸmiÅŸ Filtreler
+                Gelişmiş Filtreler
             </span>
             <button class="toggle-icon" type="button">
                 <i class="fas fa-chevron-up"></i>
@@ -754,7 +754,7 @@
                             <select name="agency_client" id="reportAgencyClient" onchange="this.form.submit()">
                                 <option value=""{% if not agency_scope.selected_client %} selected{% endif %}>Tüm müşteriler</option>
                                 {% for client in agency_scope.clients %}
-                                <option value="{{ client.id }}"{% if agency_scope.selected_client.id == client.id %} selected{% endif %}>{{ client.organization.name }} · {{ client.name }}</option>
+                                <option value="{{ client.id }}"{% if agency_scope.selected_client.id == client.id %} selected{% endif %}>{{ client.name }}</option>
                                 {% endfor %}
                             </select>
                             <small>{% if agency_scope.selected_client %}Rapor yalnız {{ agency_scope.selected_client.name }} verilerini gösteriyor.{% else %}Ajansınıza bağlı tüm firmalar raporlanıyor.{% endif %}</small>
@@ -763,16 +763,16 @@
                     {% endif %}
                     <div class="search-box-top">
                         <span class="search-icon"><i class="fas fa-search"></i></span>
-                        <input type="text" name="arama" value="{{ filtre_arama }}" placeholder="Reklam adÄ±, baÅŸlÄ±k, aÃ§Ä±klama veya kampanya ara...">
+                        <input type="text" name="arama" value="{{ filtre_arama }}" placeholder="Reklam adı, başlık, açıklama veya kampanya ara...">
                     </div>
 
                     <div class="date-row">
                         <div class="date-field">
-                            <label>BaÅŸlangÄ±Ã§</label>
+                            <label>Başlangıç</label>
                             <input type="date" name="baslangic_tarih" value="{{ filtre_baslangic }}">
                         </div>
                         <div class="date-field">
-                            <label>BitiÅŸ</label>
+                            <label>Bitiş</label>
                             <input type="date" name="bitis_tarih" value="{{ filtre_bitis }}">
                         </div>
                     </div>
@@ -782,7 +782,7 @@
                     <div class="filter-group">
                         <label>Platform</label>
                         <select name="platform" id="platformSelect">
-                            <option value="">TÃ¼m Platformlar</option>
+                            <option value="">Tüm Platformlar</option>
                             {% for p in platforms %}
                                 <option value="{{ p.code }}" {% if filtre_platform == p.code %}selected{% endif %}>
                                     {{ p.name }}
@@ -794,7 +794,7 @@
                     <div class="filter-group">
                         <label>Hesap</label>
                         <select name="hesap" id="accountSelect">
-                            <option value="">TÃ¼m Hesaplar</option>
+                            <option value="">Tüm Hesaplar</option>
                             {% for acc in platform_accounts %}
                                 <option value="{{ acc.id }}" data-platform="{{ acc.platform.code }}" {% if filtre_hesap == acc.id|stringformat:"s" %}selected{% endif %}>
                                     {{ acc.account_name|default:acc.account_id }} ({{ acc.platform.name }})
@@ -806,25 +806,25 @@
                     <div class="filter-group">
                         <label>Durum</label>
                         <select name="durum">
-                            <option value="">TÃ¼mÃ¼</option>
+                            <option value="">Tümü</option>
                             <option value="active" {% if filtre_durum == 'active' %}selected{% endif %}>Aktif</option>
-                            <option value="paused" {% if filtre_durum == 'paused' %}selected{% endif %}>DuraklatÄ±ldÄ±</option>
+                            <option value="paused" {% if filtre_durum == 'paused' %}selected{% endif %}>Duraklatıldı</option>
                             <option value="ended" {% if filtre_durum == 'ended' %}selected{% endif %}>Bitti</option>
-                            <option value="archived" {% if filtre_durum == 'archived' %}selected{% endif %}>ArÅŸivlendi</option>
+                            <option value="archived" {% if filtre_durum == 'archived' %}selected{% endif %}>Arşivlendi</option>
                             <option value="unknown" {% if filtre_durum == 'unknown' %}selected{% endif %}>Bilinmiyor</option>
                         </select>
                     </div>
 
                     <div class="filter-group">
-                        <label>SÄ±ralama</label>
+                        <label>Sıralama</label>
                         <select name="sirala">
                             <option value="-created_at" {% if filtre_sirala == '-created_at' %}selected{% endif %}>En yeni</option>
                             <option value="created_at" {% if filtre_sirala == 'created_at' %}selected{% endif %}>En eski</option>
-                            <option value="-total_impressions" {% if filtre_sirala == '-total_impressions' %}selected{% endif %}>En Ã§ok gÃ¶sterim</option>
-                            <option value="-total_clicks" {% if filtre_sirala == '-total_clicks' %}selected{% endif %}>En Ã§ok tÄ±klama</option>
-                            <option value="-total_spend" {% if filtre_sirala == '-total_spend' %}selected{% endif %}>En Ã§ok harcama</option>
-                            <option value="-avg_ctr" {% if filtre_sirala == '-avg_ctr' %}selected{% endif %}>En yÃ¼ksek CTR</option>
-                            <option value="-avg_engagement_rate" {% if filtre_sirala == '-avg_engagement_rate' %}selected{% endif %}>En yÃ¼ksek etkileÅŸim</option>
+                            <option value="-total_impressions" {% if filtre_sirala == '-total_impressions' %}selected{% endif %}>En çok gösterim</option>
+                            <option value="-total_clicks" {% if filtre_sirala == '-total_clicks' %}selected{% endif %}>En çok tıklama</option>
+                            <option value="-total_spend" {% if filtre_sirala == '-total_spend' %}selected{% endif %}>En çok harcama</option>
+                            <option value="-avg_ctr" {% if filtre_sirala == '-avg_ctr' %}selected{% endif %}>En yüksek CTR</option>
+                            <option value="-avg_engagement_rate" {% if filtre_sirala == '-avg_engagement_rate' %}selected{% endif %}>En yüksek etkileşim</option>
                         </select>
                     </div>
 
@@ -835,7 +835,7 @@
 
                     <a href="{% url 'reklam_raporu' %}{% if agency_scope.selected_client %}?agency_client={{ agency_scope.selected_client.id }}{% endif %}" class="btn-reset">
                         <i class="fas fa-sync-alt"></i>
-                        SÄ±fÄ±rla
+                        Sıfırla
                     </a>
                 </form>
             </div>
@@ -850,7 +850,7 @@
             </div>
             <a href="{% url 'ads_center' %}" class="btn btn-sm btn-primary">
                 <i class="fas fa-chart-line"></i>
-                Hareketleri GÃ¶r
+                Hareketleri Gör
             </a>
         </div>
 
@@ -863,12 +863,12 @@
             <div class="stat-card">
                 <div class="icon info"><i class="fas fa-eye"></i></div>
                 <div class="value">{{ stats.toplam_gosterim|tr_int }}</div>
-                <div class="label">GÃ¶sterim</div>
+                <div class="label">Gösterim</div>
             </div>
             <div class="stat-card">
                 <div class="icon success"><i class="fas fa-mouse-pointer"></i></div>
                 <div class="value">{{ stats.toplam_tiklama|tr_int }}</div>
-                <div class="label">TÄ±klama</div>
+                <div class="label">Tıklama</div>
             </div>
             <div class="stat-card">
                 <div class="icon warning"><i class="fas fa-turkish-lira-sign"></i></div>
@@ -878,7 +878,7 @@
             <div class="stat-card">
                 <div class="icon primary"><i class="fas fa-bullseye"></i></div>
                 <div class="value">{{ stats.toplam_donusum|tr_decimal }}</div>
-                <div class="label">DÃ¶nÃ¼ÅŸÃ¼m</div>
+                <div class="label">Dönüşüm</div>
             </div>
             <div class="stat-card">
                 <div class="icon danger"><i class="fas fa-star"></i></div>
@@ -891,7 +891,7 @@
             <div class="stat-card">
                 <div class="icon success"><i class="fas fa-heart"></i></div>
                 <div class="value">{{ stats.toplam_begeni|tr_int }}</div>
-                <div class="label">BeÄŸeni</div>
+                <div class="label">Beğeni</div>
             </div>
             <div class="stat-card">
                 <div class="icon info"><i class="fas fa-comment"></i></div>
@@ -901,7 +901,7 @@
             <div class="stat-card">
                 <div class="icon warning"><i class="fas fa-share"></i></div>
                 <div class="value">{{ stats.toplam_paylasim|tr_int }}</div>
-                <div class="label">PaylaÅŸÄ±m</div>
+                <div class="label">Paylaşım</div>
             </div>
             <div class="stat-card">
                 <div class="icon primary"><i class="fas fa-bookmark"></i></div>
@@ -911,7 +911,7 @@
             <div class="stat-card">
                 <div class="icon danger"><i class="fas fa-chart-line"></i></div>
                 <div class="value">%{{ stats.ortalama_etkilesim|tr_decimal }}</div>
-                <div class="label">Ort. EtkileÅŸim</div>
+                <div class="label">Ort. Etkileşim</div>
             </div>
             <div class="stat-card">
                 <div class="icon success"><i class="fas fa-video"></i></div>
@@ -966,14 +966,14 @@
                             <th>Hesap</th>
                             <th>Kampanya</th>
                             <th>Reklam Grubu</th>
-                            <th>TÃ¼r</th>
+                            <th>Tür</th>
                             <th>Durum</th>
-                            <th>GÃ¶sterim</th>
-                            <th>TÄ±klama</th>
+                            <th>Gösterim</th>
+                            <th>Tıklama</th>
                             <th>CTR</th>
                             <th>Harcama</th>
-                            <th>DÃ¶nÃ¼ÅŸÃ¼m</th>
-                            <th>EtkileÅŸim</th>
+                            <th>Dönüşüm</th>
+                            <th>Etkileşim</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -995,7 +995,7 @@
 
                                         <div>
                                             <div class="clickable-name">
-                                                {{ reklam.name|default:reklam.headline|default:"Ä°simsiz Reklam"|truncatechars:38 }}
+                                                {{ reklam.name|default:reklam.headline|default:"İsimsiz Reklam"|truncatechars:38 }}
                                             </div>
                                             <div class="muted-small">
                                                 {{ reklam.created_at|date:"d.m.Y H:i" }}
@@ -1045,11 +1045,11 @@
                                         {% if status_lower == 'active' %}
                                             <span class="badge-status badge-active">Aktif</span>
                                         {% elif status_lower == 'paused' %}
-                                            <span class="badge-status badge-paused">DuraklatÄ±ldÄ±</span>
+                                            <span class="badge-status badge-paused">Duraklatıldı</span>
                                         {% elif status_lower == 'ended' %}
                                             <span class="badge-status badge-completed">Bitti</span>
                                         {% elif status_lower == 'archived' %}
-                                            <span class="badge-status badge-archived">ArÅŸivlendi</span>
+                                            <span class="badge-status badge-archived">Arşivlendi</span>
                                         {% elif status_lower == 'deleted' %}
                                             <span class="badge-status badge-rejected">Silindi</span>
                                         {% else %}
@@ -1072,8 +1072,8 @@
         {% else %}
             <div class="table-container" style="text-align:center;padding:3rem;">
                 <i class="fas fa-search" style="font-size:3rem;color:#cbd5e1;margin-bottom:1rem;"></i>
-                <h5>Reklam BulunamadÄ±</h5>
-                <p style="color:var(--gray);">Filtreleri deÄŸiÅŸtirerek tekrar deneyin.</p>
+                <h5>Reklam Bulunamadı</h5>
+                <p style="color:var(--gray);">Filtreleri değiştirerek tekrar deneyin.</p>
             </div>
         {% endif %}
     </div>
@@ -1092,7 +1092,7 @@
                 <button type="button" onclick="closePhonePopup()">
                     <i class="fas fa-chevron-left"></i>
                 </button>
-                <span>Reklam DetayÄ±</span>
+                <span>Reklam Detayı</span>
                 <button type="button">
                     <i class="fas fa-ellipsis-v"></i>
                 </button>
@@ -1102,7 +1102,7 @@
                 <div style="text-align:center;padding:40px;color:#94a3b8;">
                     <i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i>
                     <br>
-                    YÃ¼kleniyor...
+                    Yükleniyor...
                 </div>
             </div>
         </div>
@@ -1120,7 +1120,7 @@ const reklamData = {
     {% for reklam in reklamlar %}
     "{{ reklam.id }}": {
         id: "{{ reklam.id }}",
-        name: "{{ reklam.name|default:reklam.headline|default:'Ä°simsiz Reklam'|escapejs }}",
+        name: "{{ reklam.name|default:reklam.headline|default:'İsimsiz Reklam'|escapejs }}",
         platform: "{% if reklam.platform_account and reklam.platform_account.platform %}{{ reklam.platform_account.platform.name|escapejs }}{% else %}-{% endif %}",
         account: "{% if reklam.platform_account %}{{ reklam.platform_account.account_name|default:reklam.platform_account.account_id|escapejs }}{% else %}-{% endif %}",
         campaign: "{% if reklam.campaign %}{{ reklam.campaign.name|escapejs }}{% else %}-{% endif %}",
@@ -1175,9 +1175,9 @@ function escapeHtml(value) {
 function statusBadge(status) {
     const s = (status || "").toLowerCase();
     if (s === "active") return '<span class="badge-status badge-active">Aktif</span>';
-    if (s === "paused") return '<span class="badge-status badge-paused">DuraklatÄ±ldÄ±</span>';
+    if (s === "paused") return '<span class="badge-status badge-paused">Duraklatıldı</span>';
     if (s === "ended") return '<span class="badge-status badge-completed">Bitti</span>';
-    if (s === "archived") return '<span class="badge-status badge-archived">ArÅŸivlendi</span>';
+    if (s === "archived") return '<span class="badge-status badge-archived">Arşivlendi</span>';
     if (s === "deleted") return '<span class="badge-status badge-rejected">Silindi</span>';
     return `<span class="badge-status badge-default">${escapeHtml(status || "Bilinmiyor")}</span>`;
 }
@@ -1207,7 +1207,7 @@ function openPhonePopup(adId) {
                 <div style="padding:20px;text-align:center;color:#94a3b8;">
                     <i class="fas fa-image" style="font-size:2rem;"></i>
                     <br>
-                    GÃ¶rsel yok
+                    Görsel yok
                 </div>
             </div>
         `;
@@ -1218,7 +1218,7 @@ function openPhonePopup(adId) {
 
         <div class="phone-ad-title">${escapeHtml(ad.name)}</div>
         <div class="phone-ad-account">
-            ${escapeHtml(ad.platform)} Â· ${escapeHtml(ad.account)} Â· ${escapeHtml(ad.createdAt)}
+            ${escapeHtml(ad.platform)} · ${escapeHtml(ad.account)} · ${escapeHtml(ad.createdAt)}
         </div>
 
         <div class="phone-status-row">
@@ -1232,11 +1232,11 @@ function openPhonePopup(adId) {
         <div class="phone-metrics-grid">
             <div class="phone-metric-item">
                 <div class="pm-value">${formatNumber(ad.impressions)}</div>
-                <div class="pm-label">GÃ¶sterim</div>
+                <div class="pm-label">Gösterim</div>
             </div>
             <div class="phone-metric-item">
                 <div class="pm-value">${formatNumber(ad.clicks)}</div>
-                <div class="pm-label">TÄ±klama</div>
+                <div class="pm-label">Tıklama</div>
             </div>
             <div class="phone-metric-item">
                 <div class="pm-value">%${formatNumber(ad.ctr, 2)}</div>
@@ -1244,7 +1244,7 @@ function openPhonePopup(adId) {
             </div>
             <div class="phone-metric-item">
                 <div class="pm-value">${formatNumber(ad.conversions)}</div>
-                <div class="pm-label">DÃ¶nÃ¼ÅŸÃ¼m</div>
+                <div class="pm-label">Dönüşüm</div>
             </div>
         </div>
 
@@ -1264,12 +1264,12 @@ function openPhonePopup(adId) {
         </div>
 
         <div class="phone-metric-full">
-            <span>EtkileÅŸim OranÄ±</span>
+            <span>Etkileşim Oranı</span>
             <strong>%${formatNumber(ad.engagementRate, 2)}</strong>
         </div>
 
         <div class="phone-metric-full">
-            <span>BeÄŸeni / Yorum / PaylaÅŸÄ±m</span>
+            <span>Beğeni / Yorum / Paylaşım</span>
             <strong>${formatNumber(ad.likes)} / ${formatNumber(ad.comments)} / ${formatNumber(ad.shares)}</strong>
         </div>
 
@@ -1286,7 +1286,7 @@ function openPhonePopup(adId) {
         ${ad.landingUrl ? `
             <div class="phone-metric-full">
                 <span>Landing URL</span>
-                <a href="${escapeHtml(ad.landingUrl)}" target="_blank" rel="noopener">AÃ§</a>
+                <a href="${escapeHtml(ad.landingUrl)}" target="_blank" rel="noopener">Aç</a>
             </div>
         ` : ""}
 
@@ -1331,7 +1331,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const selectedPlatform = platformSelect.value;
             const currentValue = accountSelect.value;
 
-            accountSelect.innerHTML = '<option value="">TÃ¼m Hesaplar</option>';
+            accountSelect.innerHTML = '<option value="">Tüm Hesaplar</option>';
 
             allOptions.forEach(function (opt) {
                 if (opt.value === "") return;

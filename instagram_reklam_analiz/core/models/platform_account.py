@@ -26,6 +26,11 @@ class PlatformAccount(models.Model):
     )
     account_id = models.CharField(max_length=100, db_index=True)   # artık zorunlu, null=False
     account_name = models.CharField(max_length=200, blank=True, null=True)
+    local_name = models.CharField(max_length=200, blank=True, default="")
+
+    @property
+    def display_name(self):
+        return self.local_name or self.account_name or self.account_id
     
     access_token = EncryptedTextField()       # veritabanında şifreli tutulur
     refresh_token = EncryptedTextField(blank=True, null=True)
@@ -50,4 +55,3 @@ class PlatformAccount(models.Model):
 
     def __str__(self):
         return f"{self.platform.name} - {self.account_name or self.account_id}"
-

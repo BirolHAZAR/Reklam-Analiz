@@ -858,7 +858,7 @@ body.modal-open {
         <label for="competitorAgencyClient"><i class="fas fa-building-user me-2"></i>Ajans Firması</label>
         <select id="competitorAgencyClient" name="agency_client" onchange="this.form.submit()">
             <option value=""{% if not agency_scope.selected_client %} selected{% endif %}>Tüm firmalar · rakip eklemek için firma seçin</option>
-            {% for agency_client in agency_scope.clients %}<option value="{{ agency_client.id }}"{% if agency_scope.selected_client.id == agency_client.id %} selected{% endif %}>{{ agency_client.organization.name }} · {{ agency_client.name }}</option>{% endfor %}
+            {% for agency_client in agency_scope.clients %}<option value="{{ agency_client.id }}"{% if agency_scope.selected_client.id == agency_client.id %} selected{% endif %}>{{ agency_client.name }}</option>{% endfor %}
         </select>
     </form>
     {% endif %}

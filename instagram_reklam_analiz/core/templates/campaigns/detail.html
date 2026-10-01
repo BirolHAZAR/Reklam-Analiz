@@ -1,7 +1,7 @@
 ﻿{% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ campaign.campaign_name }} - Kampanya DetayÄ±{% endblock %}
+{% block title %}{{ campaign.campaign_name }} - Kampanya Detayı{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -37,7 +37,7 @@
         padding: 2rem;
     }
     
-    /* BaÅŸlÄ±k BÃ¶lÃ¼mÃ¼ */
+    /* Başlık Bölümü */
     .campaign-header {
         margin-bottom: 2rem;
         display: flex;
@@ -87,7 +87,7 @@
     .status-active { background: rgba(67,97,238,0.15); color: var(--primary); border: 1px solid rgba(67,97,238,0.3); }
     .status-paused { background: rgba(255,183,3,0.15); color: #d48a00; border: 1px solid rgba(255,183,3,0.3); }
     
-    /* Ä°statistik KartlarÄ± - Ãœstte tam geniÅŸlik */
+    /* İstatistik Kartları - Üstte tam genişlik */
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -125,7 +125,7 @@
     .stat-value { font-size: 1.5rem; font-weight: 800; color: var(--dark); margin: 0.3rem 0 0.2rem; }
     .stat-label { font-size: 0.7rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; }
     
-    /* Ä°KÄ° SÃœTUNLU ANA Ä°Ã‡ERÄ°K */
+    /* İKİ SÜTUNLU ANA İÇERİK */
     .two-columns {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -133,21 +133,21 @@
         margin-bottom: 1.5rem;
     }
     
-    /* Sol SÃ¼tun - Temel Bilgiler ve Hedef Kitle */
+    /* Sol Sütun - Temel Bilgiler ve Hedef Kitle */
     .left-column {
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
     }
     
-    /* SaÄŸ SÃ¼tun - Medya AlanÄ± */
+    /* Sağ Sütun - Medya Alanı */
     .right-column {
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
     }
     
-    /* Ä°KÄ°LÄ° KARTLAR (Ä°Ã§erik ve AI Analiz) */
+    /* İKİLİ KARTLAR (İçerik ve AI Analiz) */
     .double-cards {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -185,7 +185,7 @@
     .info-card-header h5 i { margin-right: 0.5rem; }
     .info-card-body { padding: 1.2rem; }
     
-    /* Bilgi SatÄ±rlarÄ± */
+    /* Bilgi Satırları */
     .info-row {
         display: flex;
         padding: 0.6rem 0;
@@ -201,7 +201,7 @@
     .info-value { flex: 1; color: var(--gray); font-size: 0.8rem; }
     
     /* ============================================
-       MEDYA BÃ–LÃœMÃœ - SAÄ TARAF
+       MEDYA BÖLÜMÜ - SAĞ TARAF
        ============================================ */
     .media-card {
         background: linear-gradient(135deg, var(--theme-page-surface, #1a1a2e), var(--theme-page-surface, #16213e));
@@ -234,7 +234,7 @@
         min-height: 550px;
     }
     
-    /* GÃ¶rsel Stilleri */
+    /* Görsel Stilleri */
     .media-image {
         max-width: 100%;
         max-height: 600px;
@@ -253,7 +253,7 @@
         box-shadow: var(--shadow-md);
     }
     
-    /* Karusel Stilleri - GÃœNCELLENDÄ° */
+    /* Karusel Stilleri - GÜNCELLENDİ */
     .carousel-container {
         width: 100%;
         max-width: 500px;
@@ -357,7 +357,7 @@
         font-size: 0.7rem;
     }
     
-    /* Carousel KÃ¼Ã§Ã¼k Resim Galerisi - YENÄ° EKLENDÄ° */
+    /* Carousel Küçük Resim Galerisi - YENİ EKLENDİ */
     .carousel-thumbnails {
         display: flex;
         gap: 0.5rem;
@@ -390,7 +390,7 @@
         transform: scale(1.05);
     }
     
-    /* AI Analiz KartÄ± */
+    /* AI Analiz Kartı */
     .ai-card {
         background: linear-gradient(135deg, #f8f9ff, #eef2ff);
         border-left: 3px solid var(--primary);
@@ -507,91 +507,91 @@
 {% block content %}
 <div class="campaign-detail">
     
-    <!-- BAÅLIK BÃ–LÃœMÃœ -->
+    <!-- BAŞLIK BÖLÜMÜ -->
     <div class="campaign-header">
         <div class="campaign-title">
             <h1><i class="fas fa-bullhorn"></i> {{ campaign.campaign_name }}</h1>
             <div class="campaign-meta">
-                <span><i class="fas fa-calendar-alt"></i> OluÅŸturulma: {{ campaign.created_at|date:"d.m.Y H:i" }}</span>
-                <span><i class="fas fa-sync-alt"></i> Son GÃ¼ncelleme: {{ campaign.updated_at|date:"d.m.Y H:i" }}</span>
+                <span><i class="fas fa-calendar-alt"></i> Oluşturulma: {{ campaign.created_at|date:"d.m.Y H:i" }}</span>
+                <span><i class="fas fa-sync-alt"></i> Son Güncelleme: {{ campaign.updated_at|date:"d.m.Y H:i" }}</span>
             </div>
         </div>
         <div class="status-badge status-{{ campaign.status }}">
             <i class="fas {% if campaign.status == 'draft' %}fa-pen-fancy{% elif campaign.status == 'sent_to_instagram' %}fa-check-circle{% elif campaign.status == 'active' %}fa-play-circle{% else %}fa-pause-circle{% endif %}"></i>
             {% if campaign.status == 'draft' %}Taslak (Pasif)
-            {% elif campaign.status == 'sent_to_instagram' %}Instagram'a GÃ¶nderildi
+            {% elif campaign.status == 'sent_to_instagram' %}Instagram'a Gönderildi
             {% elif campaign.status == 'active' %}Aktif
-            {% else %}DuraklatÄ±ldÄ±{% endif %}
+            {% else %}Duraklatıldı{% endif %}
         </div>
     </div>
 
-    <!-- Ä°STATÄ°STÄ°K KARTLARI - ÃœSTTE TAM GENÄ°ÅLÄ°K -->
+    <!-- İSTATİSTİK KARTLARI - ÜSTTE TAM GENİŞLİK -->
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
             <div class="stat-value">{{ campaign.ai_score|default:0 }}/100</div>
-            <div class="stat-label">AI Performans PuanÄ±</div>
+            <div class="stat-label">AI Performans Puanı</div>
         </div>
         <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-coins"></i></div>
-            <div class="stat-value">{{ campaign.budget|tr_decimal }} â‚º</div>
-            <div class="stat-label">Toplam BÃ¼tÃ§e</div>
+            <div class="stat-value">{{ campaign.budget|tr_decimal }} ₺</div>
+            <div class="stat-label">Toplam Bütçe</div>
         </div>
         <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-chart-simple"></i></div>
-            <div class="stat-value">{{ campaign.spent_amount|tr_decimal }} â‚º</div>
+            <div class="stat-value">{{ campaign.spent_amount|tr_decimal }} ₺</div>
             <div class="stat-label">Harcanan</div>
         </div>
         <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-percent"></i></div>
             <div class="stat-value" id="budgetPercent">0%</div>
-            <div class="stat-label">BÃ¼tÃ§e KullanÄ±mÄ±</div>
+            <div class="stat-label">Bütçe Kullanımı</div>
         </div>
     </div>
 
-    <!-- Ä°KÄ° SÃœTUNLU ANA Ä°Ã‡ERÄ°K (Temel Bilgiler + Hedef Kitle | Medya) -->
+    <!-- İKİ SÜTUNLU ANA İÇERİK (Temel Bilgiler + Hedef Kitle | Medya) -->
     <div class="two-columns">
         
-        <!-- SOL SÃœTUN - Temel Bilgiler ve Hedef Kitle -->
+        <!-- SOL SÜTUN - Temel Bilgiler ve Hedef Kitle -->
         <div class="left-column">
             
-            <!-- Temel Bilgiler KartÄ± -->
+            <!-- Temel Bilgiler Kartı -->
             <div class="info-card">
                 <div class="info-card-header">
                     <h5><i class="fas fa-info-circle"></i> Temel Bilgiler</h5>
                 </div>
                 <div class="info-card-body">
                     <div class="info-row">
-                        <div class="info-label"><i class="fas fa-tag"></i> Kampanya AdÄ±</div>
+                        <div class="info-label"><i class="fas fa-tag"></i> Kampanya Adı</div>
                         <div class="info-value">{{ campaign.campaign_name }}</div>
                     </div>
                     <div class="info-row">
-                        <div class="info-label"><i class="fab fa-instagram"></i> Instagram HesabÄ±</div>
+                        <div class="info-label"><i class="fab fa-instagram"></i> Instagram Hesabı</div>
                         <div class="info-value">@{{ campaign.instagram_account.username }}</div>
                     </div>
                     <div class="info-row">
-                        <div class="info-label"><i class="fas fa-ad"></i> Reklam TÃ¼rÃ¼</div>
+                        <div class="info-label"><i class="fas fa-ad"></i> Reklam Türü</div>
                         <div class="info-value">
-                            {% if campaign.ad_type == 'image' %}ğŸ“¸ GÃ¶rsel Reklam
-                            {% elif campaign.ad_type == 'video' %}ğŸ¥ Video Reklam
-                            {% elif campaign.ad_type == 'carousel' %}ğŸ–¼ï¸ Karousel Reklam
-                            {% elif campaign.ad_type == 'story' %}ğŸ“± Hikaye Reklam
-                            {% elif campaign.ad_type == 'reels' %}ğŸ¬ Reels Reklam
+                            {% if campaign.ad_type == 'image' %}📸 Görsel Reklam
+                            {% elif campaign.ad_type == 'video' %}🎥 Video Reklam
+                            {% elif campaign.ad_type == 'carousel' %}🖼️ Karousel Reklam
+                            {% elif campaign.ad_type == 'story' %}📱 Hikaye Reklam
+                            {% elif campaign.ad_type == 'reels' %}🎬 Reels Reklam
                             {% else %}{{ campaign.ad_type }}{% endif %}
                         </div>
                     </div>
                     <div class="info-row">
-                        <div class="info-label"><i class="fas fa-calendar"></i> BaÅŸlangÄ±Ã§</div>
+                        <div class="info-label"><i class="fas fa-calendar"></i> Başlangıç</div>
                         <div class="info-value">{{ campaign.start_date|date:"d.m.Y H:i" }}</div>
                     </div>
                     {% if campaign.end_date %}
                     <div class="info-row">
-                        <div class="info-label"><i class="fas fa-calendar-alt"></i> BitiÅŸ</div>
+                        <div class="info-label"><i class="fas fa-calendar-alt"></i> Bitiş</div>
                         <div class="info-value">{{ campaign.end_date|date:"d.m.Y H:i" }}</div>
                     </div>
                     {% endif %}
                     <div class="info-row">
-                        <div class="info-label"><i class="fas fa-chart-line"></i> BÃ¼tÃ§e Durumu</div>
+                        <div class="info-label"><i class="fas fa-chart-line"></i> Bütçe Durumu</div>
                         <div class="info-value">
                             <div class="progress-custom mb-1">
                                 <div class="progress-fill" id="budgetProgressFill"></div>
@@ -602,76 +602,76 @@
                 </div>
             </div>
             
-            <!-- Hedef Kitle KartÄ± -->
+            <!-- Hedef Kitle Kartı -->
             <div class="info-card">
                 <div class="info-card-header">
                     <h5><i class="fas fa-users"></i> Hedef Kitle</h5>
                 </div>
                 <div class="info-card-body">
                     <div class="info-row">
-                        <div class="info-label"><i class="fas fa-calendar-alt"></i> YaÅŸ AralÄ±ÄŸÄ±</div>
+                        <div class="info-label"><i class="fas fa-calendar-alt"></i> Yaş Aralığı</div>
                         <div class="info-value">
                             {% if campaign.target_audience.age_range %}
-                                {{ campaign.target_audience.age_range.min|default:"18" }} - {{ campaign.target_audience.age_range.max|default:"65" }} yaÅŸ
-                            {% else %}TÃ¼m yaÅŸ gruplarÄ±{% endif %}
+                                {{ campaign.target_audience.age_range.min|default:"18" }} - {{ campaign.target_audience.age_range.max|default:"65" }} yaş
+                            {% else %}Tüm yaş grupları{% endif %}
                         </div>
                     </div>
                     <div class="info-row">
                         <div class="info-label"><i class="fas fa-venus-mars"></i> Cinsiyet</div>
                         <div class="info-value">
-                            {% if campaign.target_audience.gender == 'all' %}ğŸ‘¥ TÃ¼mÃ¼
-                            {% elif campaign.target_audience.gender == 'female' %}ğŸ‘© KadÄ±n
-                            {% elif campaign.target_audience.gender == 'male' %}ğŸ‘¨ Erkek
-                            {% else %}BelirtilmemiÅŸ{% endif %}
+                            {% if campaign.target_audience.gender == 'all' %}👥 Tümü
+                            {% elif campaign.target_audience.gender == 'female' %}👩 Kadın
+                            {% elif campaign.target_audience.gender == 'male' %}👨 Erkek
+                            {% else %}Belirtilmemiş{% endif %}
                         </div>
                     </div>
                     <div class="info-row">
                         <div class="info-label"><i class="fas fa-language"></i> Dil</div>
-                        <div class="info-value">{{ campaign.target_audience.language|default:"TÃ¼m diller" }}</div>
+                        <div class="info-value">{{ campaign.target_audience.language|default:"Tüm diller" }}</div>
                     </div>
                     <div class="info-row">
-                        <div class="info-label"><i class="fas fa-globe"></i> BÃ¶lgeler</div>
+                        <div class="info-label"><i class="fas fa-globe"></i> Bölgeler</div>
                         <div class="info-value">
                             {% if campaign.target_audience.regions %}
                                 {% for region in campaign.target_audience.regions %}
                                     <span class="target-tag"><i class="fas fa-map-marker-alt"></i> {{ region|title }}</span>
                                 {% endfor %}
-                            {% else %}TÃ¼m bÃ¶lgeler{% endif %}
+                            {% else %}Tüm bölgeler{% endif %}
                         </div>
                     </div>
                     <div class="info-row">
-                        <div class="info-label"><i class="fas fa-heart"></i> Ä°lgi AlanlarÄ±</div>
+                        <div class="info-label"><i class="fas fa-heart"></i> İlgi Alanları</div>
                         <div class="info-value">
                             {% if campaign.target_audience.interests %}
                                 {% for interest in campaign.target_audience.interests %}
                                     <span class="target-tag"><i class="fas fa-tag"></i> {{ interest|title }}</span>
                                 {% endfor %}
-                            {% else %}TÃ¼m ilgi alanlarÄ±{% endif %}
+                            {% else %}Tüm ilgi alanları{% endif %}
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- SAÄ SÃœTUN - Reklam MedyasÄ± -->
+        <!-- SAĞ SÜTUN - Reklam Medyası -->
         <div class="right-column">
             <div class="media-card">
                 <div class="media-header">
-                    <h5><i class="fas fa-image"></i> Reklam MedyasÄ±</h5>
+                    <h5><i class="fas fa-image"></i> Reklam Medyası</h5>
                 </div>
                 
-                <!-- MEDYA GÃ–STERÄ°M BÃ–LÃœMÃœ - GÃœNCELLENDÄ° -->
+                <!-- MEDYA GÖSTERİM BÖLÜMÜ - GÜNCELLENDİ -->
                 <div class="media-container">
                     {% if campaign.ad_type == 'reels' or campaign.ad_type == 'video' %}
                         {% if campaign.media_file %}
                             <video controls class="media-video">
                                 <source src="{{ campaign.media_file.url }}" type="video/mp4">
-                                TarayÄ±cÄ±nÄ±z video oynatmayÄ± desteklemiyor.
+                                Tarayıcınız video oynatmayı desteklemiyor.
                             </video>
                         {% else %}
                             <div class="text-center py-5">
                                 <i class="fas fa-video fa-4x text-muted mb-3"></i>
-                                <p class="text-muted">Video yÃ¼klenmemiÅŸ</p>
+                                <p class="text-muted">Video yüklenmemiş</p>
                             </div>
                         {% endif %}
                         
@@ -681,19 +681,19 @@
                         {% else %}
                             <div class="text-center py-5">
                                 <i class="fas fa-image fa-4x text-muted mb-3"></i>
-                                <p class="text-muted">GÃ¶rsel yÃ¼klenmemiÅŸ</p>
+                                <p class="text-muted">Görsel yüklenmemiş</p>
                             </div>
                         {% endif %}
                         
                     {% elif campaign.ad_type == 'carousel' %}
-                        <!-- KARUSEL GÃ–STERÄ°MÄ° - TAM GÃœNCELLENDÄ° -->
+                        <!-- KARUSEL GÖSTERİMİ - TAM GÜNCELLENDİ -->
                         {% if campaign.carousel_items and campaign.carousel_items|length > 0 %}
                             <div class="carousel-container">
                                 <div class="carousel-custom">
                                     <div class="carousel-custom-inner">
                                         {% for item in campaign.carousel_items %}
                                         <div class="carousel-custom-item {% if forloop.first %}active{% endif %}" data-index="{{ forloop.counter0 }}">
-                                            <img src="{{ item.url }}" alt="Carousel gÃ¶rsel {{ forloop.counter }}">
+                                            <img src="{{ item.url }}" alt="Carousel görsel {{ forloop.counter }}">
                                         </div>
                                         {% endfor %}
                                     </div>
@@ -710,19 +710,19 @@
                                     {% endif %}
                                 </div>
                                 
-                                <!-- GÃ¶sterge noktalarÄ± -->
+                                <!-- Gösterge noktaları -->
                                 <div class="carousel-indicators-custom" id="carouselDots">
                                     {% for item in campaign.carousel_items %}
                                     <span class="carousel-dot {% if forloop.first %}active{% endif %}" data-index="{{ forloop.counter0 }}"></span>
                                     {% endfor %}
                                 </div>
                                 
-                                <!-- SayÄ± gÃ¶sterge -->
+                                <!-- Sayı gösterge -->
                                 <div class="carousel-counter">
                                     <span id="currentSlide">1</span> / <span id="totalSlides">{{ campaign.carousel_items|length }}</span>
                                 </div>
                                 
-                                <!-- KÃ¼Ã§Ã¼k resim galerisi - YENÄ° -->
+                                <!-- Küçük resim galerisi - YENİ -->
                                 <div class="carousel-thumbnails">
                                     {% for item in campaign.carousel_items %}
                                     <img src="{{ item.url }}" class="carousel-thumbnail {% if forloop.first %}active{% endif %}" data-index="{{ forloop.counter0 }}" alt="Thumbnail {{ forloop.counter }}">
@@ -732,13 +732,13 @@
                         {% else %}
                             <div class="text-center py-5">
                                 <i class="fas fa-images fa-4x text-muted mb-3"></i>
-                                <p class="text-muted">Carousel gÃ¶rseli yÃ¼klenmemiÅŸ</p>
+                                <p class="text-muted">Carousel görseli yüklenmemiş</p>
                             </div>
                         {% endif %}
                     {% else %}
                         <div class="text-center py-5">
                             <i class="fas fa-file fa-4x text-muted mb-3"></i>
-                            <p class="text-muted">Medya yÃ¼klenmemiÅŸ</p>
+                            <p class="text-muted">Medya yüklenmemiş</p>
                         </div>
                     {% endif %}
                 </div>
@@ -746,46 +746,46 @@
         </div>
     </div>
 
-    <!-- Ä°KÄ°LÄ° KARTLAR (Ä°Ã§erik Bilgileri - Sol | AI Analiz - SaÄŸ) -->
+    <!-- İKİLİ KARTLAR (İçerik Bilgileri - Sol | AI Analiz - Sağ) -->
     <div class="double-cards">
         
-        <!-- Ä°Ã§erik Bilgileri KartÄ± - Sol -->
+        <!-- İçerik Bilgileri Kartı - Sol -->
         <div class="info-card">
             <div class="info-card-header">
-                <h5><i class="fas fa-edit"></i> Ä°Ã§erik Bilgileri</h5>
+                <h5><i class="fas fa-edit"></i> İçerik Bilgileri</h5>
             </div>
             <div class="info-card-body">
                 <div class="info-row">
-                    <div class="info-label"><i class="fas fa-heading"></i> BaÅŸlÄ±k</div>
-                    <div class="info-value">{{ campaign.target_audience.ad_title|default:"BelirtilmemiÅŸ" }}</div>
+                    <div class="info-label"><i class="fas fa-heading"></i> Başlık</div>
+                    <div class="info-value">{{ campaign.target_audience.ad_title|default:"Belirtilmemiş" }}</div>
                 </div>
                 <div class="info-row">
                     <div class="info-label"><i class="fas fa-align-left"></i> Metin</div>
-                    <div class="info-value">{{ campaign.target_audience.ad_description|default:"BelirtilmemiÅŸ"|linebreaks }}</div>
+                    <div class="info-value">{{ campaign.target_audience.ad_description|default:"Belirtilmemiş"|linebreaks }}</div>
                 </div>
                 <div class="info-row">
                     <div class="info-label"><i class="fas fa-hashtag"></i> Hashtag'ler</div>
-                    <div class="info-value">{{ campaign.target_audience.hashtags|default:"BelirtilmemiÅŸ" }}</div>
+                    <div class="info-value">{{ campaign.target_audience.hashtags|default:"Belirtilmemiş" }}</div>
                 </div>
                 <div class="info-row">
                     <div class="info-label"><i class="fas fa-link"></i> Hedef URL</div>
                     <div class="info-value">
                         {% if campaign.target_audience.target_url %}
                             <a href="{{ campaign.target_audience.target_url }}" target="_blank" rel="noopener noreferrer">{{ campaign.target_audience.target_url }}</a>
-                        {% else %}BelirtilmemiÅŸ{% endif %}
+                        {% else %}Belirtilmemiş{% endif %}
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- AI Analiz KartÄ± - SaÄŸ -->
+        <!-- AI Analiz Kartı - Sağ -->
         <div class="info-card ai-card">
             <div class="info-card-header">
                 <h5><i class="fas fa-robot"></i> Yapay Zeka Analizi</h5>
             </div>
             <div class="info-card-body">
                 <div class="info-row">
-                    <div class="info-label"><i class="fas fa-star"></i> Performans PuanÄ±</div>
+                    <div class="info-label"><i class="fas fa-star"></i> Performans Puanı</div>
                     <div class="info-value">
                         <div class="ai-score {% if campaign.ai_score >= 70 %}ai-high{% elif campaign.ai_score >= 50 %}ai-medium{% else %}ai-low{% endif %}">
                             <i class="fas fa-chart-line"></i> {{ campaign.ai_score|default:0 }}/100
@@ -793,17 +793,17 @@
                     </div>
                 </div>
                 <div class="info-row">
-                    <div class="info-label"><i class="fas fa-star"></i> DeÄŸerlendirme</div>
+                    <div class="info-label"><i class="fas fa-star"></i> Değerlendirme</div>
                     <div class="info-value">
-                        {% if campaign.ai_score >= 80 %}ğŸ† MÃ¼kemmel! KampanyanÄ±z Ã§ok yÃ¼ksek potansiyele sahip.
-                        {% elif campaign.ai_score >= 60 %}ğŸ‘ Ä°yi! KampanyanÄ±z baÅŸarÄ±lÄ± olma potansiyeline sahip.
-                        {% elif campaign.ai_score >= 40 %}ğŸ“ˆ Orta! BazÄ± iyileÅŸtirmeler Ã¶nerilir.
-                        {% else %}âš ï¸ GeliÅŸtirilmeli! Hedef kitle revizyonu Ã¶nerilir.{% endif %}
+                        {% if campaign.ai_score >= 80 %}🏆 Mükemmel! Kampanyanız çok yüksek potansiyele sahip.
+                        {% elif campaign.ai_score >= 60 %}👍 İyi! Kampanyanız başarılı olma potansiyeline sahip.
+                        {% elif campaign.ai_score >= 40 %}📈 Orta! Bazı iyileştirmeler önerilir.
+                        {% else %}⚠️ Geliştirilmeli! Hedef kitle revizyonu önerilir.{% endif %}
                     </div>
                 </div>
                 {% if campaign.ai_recommendations %}
                 <div class="info-row">
-                    <div class="info-label"><i class="fas fa-lightbulb"></i> AI Ã–nerileri</div>
+                    <div class="info-label"><i class="fas fa-lightbulb"></i> AI Önerileri</div>
                     <div class="info-value">
                         <ul class="mb-0 ps-3">
                             {% for rec in campaign.ai_recommendations|slice:":5" %}
@@ -823,23 +823,23 @@
             <i class="fas fa-arrow-left"></i> Geri
         </a>
         <a href="{% url 'campaign_edit' campaign.id %}" class="btn-custom btn-warning-custom">
-            <i class="fas fa-edit"></i> DÃ¼zenle
+            <i class="fas fa-edit"></i> Düzenle
         </a>
         
         {% if campaign.status == 'draft' %}
-        <a href="{% url 'send_to_instagram' campaign.id %}" class="btn-custom btn-success-custom" onclick="return confirm('KampanyayÄ± Instagram\'a gÃ¶ndermek istediÄŸinize emin misiniz?')">
-            <i class="fab fa-instagram"></i> Instagram'a GÃ¶nder
+        <a href="{% url 'send_to_instagram' campaign.id %}" class="btn-custom btn-success-custom" onclick="return confirm('Kampanyayı Instagram\'a göndermek istediğinize emin misiniz?')">
+            <i class="fab fa-instagram"></i> Instagram'a Gönder
         </a>
         {% endif %}
         
-        <a href="{% url 'campaign_delete' campaign.id %}" class="btn-custom btn-danger-custom" onclick="return confirm('KampanyayÄ± silmek istediÄŸinize emin misiniz?')">
+        <a href="{% url 'campaign_delete' campaign.id %}" class="btn-custom btn-danger-custom" onclick="return confirm('Kampanyayı silmek istediğinize emin misiniz?')">
             <i class="fas fa-trash"></i> Sil
         </a>
     </div>
 </div>
 
 <script>
-    // BÃ¼tÃ§e yÃ¼zdesi hesaplama
+    // Bütçe yüzdesi hesaplama
     document.addEventListener('DOMContentLoaded', function() {
         const spent = parseFloat("{{ campaign.spent_amount|default:'0' }}");
         const budget = parseFloat("{{ campaign.budget|default:'0' }}");
@@ -851,10 +851,10 @@
         
         if (progressFill) progressFill.style.width = percent + '%';
         if (percentSpan) percentSpan.textContent = Math.round(percent) + '%';
-        if (budgetInfo) budgetInfo.innerHTML = spent.toFixed(0) + ' / ' + budget.toFixed(0) + ' â‚º (%' + Math.round(percent) + ')';
+        if (budgetInfo) budgetInfo.innerHTML = spent.toFixed(0) + ' / ' + budget.toFixed(0) + ' ₺ (%' + Math.round(percent) + ')';
     });
     
-    // KARUSEL JAVASCRIPT - TAMAMEN YENÄ°LENDÄ°
+    // KARUSEL JAVASCRIPT - TAMAMEN YENİLENDİ
     (function() {
         const items = document.querySelectorAll('.carousel-custom-item');
         const dots = document.querySelectorAll('.carousel-dot');
@@ -868,12 +868,12 @@
         
         let currentIndex = 0;
         
-        // Toplam slayt sayÄ±sÄ±nÄ± gÃ¶ster
+        // Toplam slayt sayısını göster
         const totalSlidesSpan = document.getElementById('totalSlides');
         if (totalSlidesSpan) totalSlidesSpan.textContent = totalItems;
         
         function showSlide(index) {
-            // SlaytlarÄ± gÃ¼ncelle
+            // Slaytları güncelle
             items.forEach(item => item.classList.remove('active'));
             dots.forEach(dot => dot.classList.remove('active'));
             thumbnails.forEach(thumb => thumb.classList.remove('active'));
@@ -889,7 +889,7 @@
             currentIndex = newIndex;
         }
         
-        // Ã–nceki buton
+        // Önceki buton
         if (prevBtn) {
             prevBtn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -905,21 +905,21 @@
             });
         }
         
-        // GÃ¶sterge noktalarÄ±
+        // Gösterge noktaları
         dots.forEach((dot, index) => {
             dot.addEventListener('click', function() {
                 showSlide(index);
             });
         });
         
-        // KÃ¼Ã§Ã¼k resimler
+        // Küçük resimler
         thumbnails.forEach((thumb, index) => {
             thumb.addEventListener('click', function() {
                 showSlide(index);
             });
         });
         
-        // Klavye kontrolleri (sol/saÄŸ ok tuÅŸlarÄ±)
+        // Klavye kontrolleri (sol/sağ ok tuşları)
         document.addEventListener('keydown', function(e) {
             if (e.key === 'ArrowLeft') {
                 showSlide(currentIndex - 1);

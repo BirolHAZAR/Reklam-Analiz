@@ -470,7 +470,7 @@ def _build_context(request, ad_id, days):
             strength_points.append(match["title"])
         action_points.extend(match["action_points"][:1])
     platform = selected_ad.platform_account.platform.name if selected_ad.platform_account and selected_ad.platform_account.platform else "Platform yok"
-    account = selected_ad.platform_account.account_name or selected_ad.platform_account.account_id if selected_ad.platform_account else "Hesap yok"
+    account = selected_ad.platform_account.display_name or selected_ad.platform_account.account_id if selected_ad.platform_account else "Hesap yok"
     image_url = selected_ad.preview_image_url or (selected_ad.creative.image_url if selected_ad.creative else "") or (selected_ad.creative.thumbnail_url if selected_ad.creative else "")
     raw_type = selected_ad.ad_format or (selected_ad.creative.creative_type if selected_ad.creative else "")
     raw_cta = selected_ad.call_to_action or (selected_ad.creative.call_to_action if selected_ad.creative else "")
@@ -489,7 +489,7 @@ def _build_context(request, ad_id, days):
         "start": start,
         "platform": platform,
         "account": account,
-        "campaign": selected_ad.campaign.name if selected_ad.campaign else "Kampanya yok",
+        "campaign": selected_ad.campaign.display_name if selected_ad.campaign else "Kampanya yok",
         "ad_group": selected_ad.ad_group.name if selected_ad.ad_group else "Reklam grubu yok",
         "image_url": image_url,
         "ad_details": {

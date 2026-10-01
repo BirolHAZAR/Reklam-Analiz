@@ -16,6 +16,9 @@
 
 {% block content %}
 <div class="pc-shell">
+    {% for message in messages %}
+    <div class="alert {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}alert-danger{% else %}alert-{{ message.tags|default:'info' }}{% endif %}" role="alert">{{ message }}</div>
+    {% endfor %}
     <section class="pc-hero">
         <div>
             <span class="pc-kicker"><i class="fas fa-plug"></i> {{ labels.data_sources }}</span>
@@ -64,7 +67,7 @@
                 </div>
                 <div>
                     <h2>{{ item.platform.name }}</h2>
-                    <div class="pc-platform-meta">Platform toplamı: {{ item.account_count }} {{ labels.accounts }} Â· {{ item.connection_count }} {{ labels.connections }} Â· {{ item.active_token_count }} {{ labels.active_token|lower }}</div>
+                    <div class="pc-platform-meta">Platform toplamı: {{ item.account_count }} {{ labels.accounts }} · {{ item.connection_count }} {{ labels.connections }} · {{ item.active_token_count }} {{ labels.active_token|lower }}</div>
                 </div>
                 <div class="pc-head-stats">
                     <span class="pc-pill {% if item.active_account_count %}ok{% else %}warn{% endif %}"><i class="fas fa-circle-check"></i> {{ item.active_account_count }} {{ labels.active }}</span>
@@ -80,7 +83,7 @@
                             <tr>
                                 <th>{{ labels.account }}</th>
                                 <th>Platform ID</th>
-                                <th>Connection</th>
+                                <th>{{ labels.connection }}</th>
                                 <th>{{ labels.token_status }}</th>
                                 <th>{{ labels.last_sync }}</th>
                                 <th>{{ labels.account_status }}</th>
@@ -92,10 +95,10 @@
                             <tr>
                                 <td>
                                     <div class="pc-account">
-                                        <div class="pc-account-avatar">{{ account.account_name|default:account.account_id|first|upper }}</div>
+                                        <div class="pc-account-avatar">{{ account.display_name|default:account.account_id|first|upper }}</div>
                                         <div>
-                                            <strong>{{ account.account_name|default:account.account_id }}</strong>
-                                            <div class="pc-muted">{{ account.currency|default:"TRY" }} Â· {{ account.timezone|default:"-" }}</div>
+                                            <strong>{{ account.display_name|default:account.account_id }}</strong><a href="{% url 'local_name_update' 'account' account.pk %}" class="pc-muted">Adı düzenle</a>
+                                            <div class="pc-muted">{{ account.currency|default:"TRY" }} · {{ account.timezone|default:"-" }}</div>
                                         </div>
                                     </div>
                                 </td>
@@ -147,7 +150,7 @@
                                         {% else %}<a class="pc-btn secondary" href="{% url 'hesap_ekle' %}">Yeniden bağla</a>{% endif %}
                                         {% endif %}
                                         <button class="pc-action" type="button" title="Düzenle" data-edit-dialog="account-edit-{{ account.id }}"><i class="fas fa-pen"></i></button>
-                                        <form method="post" action="{% url 'platform_account_delete' account.id %}" onsubmit="return confirm('{{ account.account_name|default:account.account_id|escapejs }} hesabını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');">
+                                        <form method="post" action="{% url 'platform_account_delete' account.id %}" onsubmit="return confirm('{{ account.display_name|default:account.account_id|escapejs }} hesabını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');">
                                             {% csrf_token %}
                                             <button class="pc-action danger" type="submit" title="Sil"><i class="fas fa-trash"></i></button>
                                         </form>
@@ -157,7 +160,7 @@
                                             {% csrf_token %}
                                             <div class="pc-edit-head"><h3 class="h5 mb-0">Hesabı düzenle</h3><button class="pc-dialog-close" type="button" data-dialog-close aria-label="Kapat"><i class="fas fa-xmark"></i></button></div>
                                             <div class="pc-edit-body">
-                                                <div class="pc-edit-field"><label>Hesap adı</label><input name="account_name" value="{{ account.account_name|default:'' }}" maxlength="200"></div>
+                                                <div class="pc-edit-field"><label>Hesap adı</label><input name="account_name" value="{{ account.display_name|default:'' }}" maxlength="200"></div>
                                                 <div class="pc-edit-field"><label>Platform ID</label><input name="account_id" value="{{ account.account_id }}" maxlength="100" required></div>
                                                 <div class="pc-edit-field"><label>Bağlantı</label><select name="connection"><option value="">Bağlantı yok (hesap tokenını kullan)</option>{% for connection in item.connections %}<option value="{{ connection.id }}" {% if account.connection_id == connection.id %}selected{% endif %}>{{ connection.name|default:labels.connection }}</option>{% endfor %}</select></div>
                                                 <label class="pc-edit-check"><input type="checkbox" name="is_active" {% if account.is_active %}checked{% endif %}> Hesap aktif</label>

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Adı düzenle | ReklamAnaliz{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:640px">
+  <h1>Adı düzenle</h1>
+  <p>{{ object.display_name }}</p>
+  <p>Bu ad ReklamAnaliz'de görünür. Platformdaki ad değişmez. Boş bırakırsanız platformdaki ad kullanılır.</p>
+  {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+  <form method="post">{% csrf_token %}
+    <label for="local-name" class="form-label">Görünen ad</label>
+    <input id="local-name" name="name" class="form-control mb-3" value="{{ object.local_name }}" maxlength="{{ max_length }}" autofocus>
+    <button class="btn btn-primary" type="submit">Kaydet</button>
+    <a class="btn btn-secondary" href="{% url back_url %}">İptal</a>
+  </form>
+</div>
+{% endblock %}

@@ -9,16 +9,16 @@
 {% block content %}
 <div class="container-fluid py-4">
     
-    <!-- ==================== ABONELÄ°K KONTROL KARTLARI ==================== -->
+    <!-- ==================== ABONELİK KONTROL KARTLARI ==================== -->
     {% if not has_subscription %}
     <div class="row mb-4">
         <div class="col-12">
             <div class="alert alert-warning d-flex align-items-center p-4 border-0 shadow-sm" style="border-radius: 16px; background: linear-gradient(135deg, #fff3cd, #ffe69c);">
                 <div class="me-3"><i class="bi bi-exclamation-triangle-fill display-6 text-warning"></i></div>
                 <div class="flex-grow-1">
-                    <h5 class="alert-heading mb-1">âš ï¸ Aktif Abonelik BulunamadÄ±</h5>
-                    <p class="mb-2">Rakip analizi yapabilmek iÃ§in bir Ã¼yelik paketi satÄ±n almalÄ±sÄ±nÄ±z.</p>
-                    <a href="{% url 'pricing' %}" class="btn btn-primary"><i class="bi bi-cart-check"></i> Paketleri Ä°ncele</a>
+                    <h5 class="alert-heading mb-1">⚠️ Aktif Abonelik Bulunamadı</h5>
+                    <p class="mb-2">Rakip analizi yapabilmek için bir üyelik paketi satın almalısınız.</p>
+                    <a href="{% url 'pricing' %}" class="btn btn-primary"><i class="bi bi-cart-check"></i> Paketleri İncele</a>
                 </div>
             </div>
         </div>
@@ -29,9 +29,9 @@
             <div class="alert alert-danger d-flex align-items-center p-4 border-0 shadow-sm" style="border-radius: 16px; background: linear-gradient(135deg, #f8d7da, #f5c2c7);">
                 <div class="me-3"><i class="bi bi-lock-fill display-6 text-danger"></i></div>
                 <div class="flex-grow-1">
-                    <h5 class="alert-heading mb-1">ğŸ”’ Rakip Analizi Paketinize Dahil DeÄŸil</h5>
-                    <p class="mb-2">{{ plan_name }} paketi rakip analizi Ã¶zelliÄŸi iÃ§ermiyor.</p>
-                    <a href="{% url 'pricing' %}" class="btn btn-primary"><i class="bi bi-arrow-up-circle"></i> Paket YÃ¼kselt</a>
+                    <h5 class="alert-heading mb-1">🔒 Rakip Analizi Paketinize Dahil Değil</h5>
+                    <p class="mb-2">{{ plan_name }} paketi rakip analizi özelliği içermiyor.</p>
+                    <a href="{% url 'pricing' %}" class="btn btn-primary"><i class="bi bi-arrow-up-circle"></i> Paket Yükselt</a>
                 </div>
             </div>
         </div>
@@ -42,9 +42,9 @@
             <div class="alert alert-info d-flex align-items-center p-4 border-0 shadow-sm" style="border-radius: 16px; background: linear-gradient(135deg, #cff4fc, #9eeaf9);">
                 <div class="me-3"><i class="bi bi-speedometer2 display-6 text-info"></i></div>
                 <div class="flex-grow-1">
-                    <h5 class="alert-heading mb-1">ğŸ“Š Rakip Limitiniz Dolu</h5>
-                    <p class="mb-2">{{ plan_name }} paketinizde <strong>{{ max_competitors }}</strong> rakip hakkÄ±nÄ±z var. Åu an <strong>{{ current_count }}</strong> rakibiniz var.</p>
-                    <a href="{% url 'pricing' %}" class="btn btn-primary"><i class="bi bi-arrow-up-circle"></i> Paket YÃ¼kselt</a>
+                    <h5 class="alert-heading mb-1">📊 Rakip Limitiniz Dolu</h5>
+                    <p class="mb-2">{{ plan_name }} paketinizde <strong>{{ max_competitors }}</strong> rakip hakkınız var. Şu an <strong>{{ current_count }}</strong> rakibiniz var.</p>
+                    <a href="{% url 'pricing' %}" class="btn btn-primary"><i class="bi bi-arrow-up-circle"></i> Paket Yükselt</a>
                 </div>
             </div>
         </div>
@@ -65,7 +65,7 @@
     </div>
     {% endif %}
 
-    <!-- ==================== BAÅLIK SATIRI ==================== -->
+    <!-- ==================== BAŞLIK SATIRI ==================== -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
@@ -76,33 +76,33 @@
                     <i class="bi bi-plus-circle"></i> Yeni Rakip Ekle
                 </button>
                 {% elif not has_subscription %}
-                <a href="{% url 'pricing' %}" class="btn btn-warning"><i class="bi bi-cart-check"></i> Ã–nce Paket SatÄ±n Al</a>
+                <a href="{% url 'pricing' %}" class="btn btn-warning"><i class="bi bi-cart-check"></i> Önce Paket Satın Al</a>
                 {% elif is_bronze %}
-                <a href="{% url 'pricing' %}" class="btn btn-warning"><i class="bi bi-arrow-up-circle"></i> Paket YÃ¼kselt</a>
+                <a href="{% url 'pricing' %}" class="btn btn-warning"><i class="bi bi-arrow-up-circle"></i> Paket Yükselt</a>
                 {% elif not can_add_competitor %}
-                <a href="{% url 'pricing' %}" class="btn btn-warning"><i class="bi bi-arrow-up-circle"></i> Limit Dolu - Paket YÃ¼kselt</a>
+                <a href="{% url 'pricing' %}" class="btn btn-warning"><i class="bi bi-arrow-up-circle"></i> Limit Dolu - Paket Yükselt</a>
                 {% endif %}
             </div>
-            <p class="text-muted">Instagram Ã¼zerinde rakip hesaplarÄ± takip edin ve reklamlarÄ±nÄ± analiz edin</p>
+            <p class="text-muted">Instagram üzerinde rakip hesapları takip edin ve reklamlarını analiz edin</p>
         </div>
     </div>
 
     <!-- Empty State -->
     <div id="emptyState" class="text-center py-5 d-none">
         <i class="bi bi-building display-1 text-muted"></i>
-        <h3 class="mt-3">HenÃ¼z Rakip EklenmemiÅŸ</h3>
-        <p class="text-muted">Instagram kullanÄ±cÄ± adÄ± ile yeni bir rakip ekleyerek baÅŸlayÄ±n</p>
+        <h3 class="mt-3">Henüz Rakip Eklenmemiş</h3>
+        <p class="text-muted">Instagram kullanıcı adı ile yeni bir rakip ekleyerek başlayın</p>
         
         {% if has_subscription and can_add_competitor %}
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCompetitorModal">
-            <i class="bi bi-plus-circle"></i> Ä°lk Rakibi Ekle
+            <i class="bi bi-plus-circle"></i> İlk Rakibi Ekle
         </button>
         {% elif not has_subscription %}
-        <a href="{% url 'pricing' %}" class="btn btn-warning"><i class="bi bi-cart-check"></i> Paket SatÄ±n Al</a>
+        <a href="{% url 'pricing' %}" class="btn btn-warning"><i class="bi bi-cart-check"></i> Paket Satın Al</a>
         {% elif is_bronze %}
-        <a href="{% url 'pricing' %}" class="btn btn-warning"><i class="bi bi-arrow-up-circle"></i> Paket YÃ¼kselt</a>
+        <a href="{% url 'pricing' %}" class="btn btn-warning"><i class="bi bi-arrow-up-circle"></i> Paket Yükselt</a>
         {% elif not can_add_competitor %}
-        <a href="{% url 'pricing' %}" class="btn btn-warning"><i class="bi bi-arrow-up-circle"></i> Limit Dolu - Paket YÃ¼kselt</a>
+        <a href="{% url 'pricing' %}" class="btn btn-warning"><i class="bi bi-arrow-up-circle"></i> Limit Dolu - Paket Yükselt</a>
         {% endif %}
     </div>
     
@@ -122,7 +122,7 @@
                 <form id="competitorForm">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label class="form-label fw-bold"><i class="bi bi-instagram"></i> Instagram KullanÄ±cÄ± AdÄ± <span class="text-danger">*</span></label>
+                        <label class="form-label fw-bold"><i class="bi bi-instagram"></i> Instagram Kullanıcı Adı <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text bg-light">@</span>
                             <input type="text" class="form-control" name="instagram_username" id="instagramUsername" required placeholder="ornek_kullanici" autocomplete="off">
@@ -144,9 +144,9 @@
                                         <h5 id="fullNameDisplay"></h5>
                                         <p id="bioDisplay" class="small"></p>
                                         <div class="row">
-                                            <div class="col-4"><span class="fw-bold" id="followersCount">0</span><br><small>TakipÃ§i</small></div>
-                                            <div class="col-4"><span class="fw-bold" id="mediaCount">0</span><br><small>GÃ¶nderi</small></div>
-                                            <div class="col-4"><span id="verifiedBadge" class="badge bg-info">âœ… DoÄŸrulanmÄ±ÅŸ</span></div>
+                                            <div class="col-4"><span class="fw-bold" id="followersCount">0</span><br><small>Takipçi</small></div>
+                                            <div class="col-4"><span class="fw-bold" id="mediaCount">0</span><br><small>Gönderi</small></div>
+                                            <div class="col-4"><span id="verifiedBadge" class="badge bg-info">✅ Doğrulanmış</span></div>
                                         </div>
                                     </div>
                                 </div>
@@ -162,8 +162,8 @@
                     <input type="hidden" name="bio" id="bioInput">
                     
                     <div class="mb-3">
-                        <label class="form-label"><i class="bi bi-tag"></i> Rakip AdÄ± (Opsiyonel)</label>
-                        <input type="text" class="form-control" name="name" placeholder="Ã–rn: Trendyol, Hepsiburada...">
+                        <label class="form-label"><i class="bi bi-tag"></i> Rakip Adı (Opsiyonel)</label>
+                        <input type="text" class="form-control" name="name" placeholder="Örn: Trendyol, Hepsiburada...">
                     </div>
                     <div class="mb-3">
                         <label class="form-label"><i class="bi bi-globe"></i> Web Sitesi</label>
@@ -172,19 +172,19 @@
                     <div class="mb-3">
                         <label class="form-label"><i class="bi bi-tags"></i> Kategori</label>
                         <select class="form-select" name="category">
-                            <option value="direct">DoÄŸrudan Rakip</option>
-                            <option value="indirect">DolaylÄ± Rakip</option>
+                            <option value="direct">Doğrudan Rakip</option>
+                            <option value="indirect">Dolaylı Rakip</option>
                             <option value="potential">Potansiyel Rakip</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label"><i class="bi bi-card-text"></i> AÃ§Ä±klama</label>
-                        <textarea class="form-control" name="description" rows="2" placeholder="Bu rakip hakkÄ±nda notlar..."></textarea>
+                        <label class="form-label"><i class="bi bi-card-text"></i> Açıklama</label>
+                        <textarea class="form-control" name="description" rows="2" placeholder="Bu rakip hakkında notlar..."></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Ä°ptal</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
                 <button type="button" class="btn btn-primary" onclick="addCompetitor()">
                     <i class="bi bi-save"></i> Rakip Olarak Ekle
                 </button>
@@ -227,7 +227,7 @@
     async function searchInstagram() {
         const username = document.getElementById('instagramUsername').value.trim();
         if (!username) {
-            showToast('LÃ¼tfen Instagram kullanÄ±cÄ± adÄ± girin!', 'warning');
+            showToast('Lütfen Instagram kullanıcı adı girin!', 'warning');
             return;
         }
         
@@ -237,10 +237,10 @@
         const searchBtn = document.querySelector('#instagramUsername + button');
         const originalText = searchBtn.innerHTML;
         searchBtn.disabled = true;
-        searchBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> AranÄ±yor...';
+        searchBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Aranıyor...';
         
         try {
-            // Ã–nce backend API'yi dene
+            // Önce backend API'yi dene
             const response = await fetch('/api/competitors/search/', {
                 method: 'POST',
                 headers: {
@@ -253,10 +253,10 @@
             const data = await response.json();
             
             if (data.success && data.user_data) {
-                // Hesap bulundu - gerÃ§ek veri
+                // Hesap bulundu - gerçek veri
                 searchedUserData = data.user_data;
                 displayInstagramInfo(data.user_data);
-                showToast(`âœ… @${cleanUsername} bulundu!`, 'success');
+                showToast(`✅ @${cleanUsername} bulundu!`, 'success');
             } else {
                 searchedUserData = null;
                 document.getElementById('instagramInfo').style.display = 'none';
@@ -264,7 +264,7 @@
                 showToast(`@${cleanUsername} icin gercek hesap verisi bulunamadi.`, 'warning');
             }
         } catch (error) {
-            console.error('Arama hatasÄ±:', error);
+            console.error('Arama hatası:', error);
             searchedUserData = null;
             document.getElementById('instagramInfo').style.display = 'none';
             document.getElementById('instagramSearchResult').innerHTML = '<div class="alert alert-danger mt-2"><i class="bi bi-exclamation-triangle"></i> Instagram aramasi tamamlanamadi. Lutfen baglantiyi ve API ayarlarini kontrol edin.</div>';
@@ -297,16 +297,16 @@
         document.getElementById('instagramSearchResult').innerHTML = '';
     }
 
-    // ==================== RAKÄ°P EKLEME ====================
+    // ==================== RAKİP EKLEME ====================
     function addCompetitor() {
         const username = document.getElementById('instagramUsername')?.value?.trim();
         if (!username) {
-            showToast('LÃ¼tfen Instagram kullanÄ±cÄ± adÄ± girin!', 'warning');
+            showToast('Lütfen Instagram kullanıcı adı girin!', 'warning');
             return;
         }
         
         if (!searchedUserData) {
-            showToast('LÃ¼tfen Ã¶nce bir hesap arayÄ±n!', 'warning');
+            showToast('Lütfen önce bir hesap arayın!', 'warning');
             return;
         }
         
@@ -338,17 +338,17 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showToast(data.message || 'âœ… Rakip baÅŸarÄ±yla eklendi!', 'success');
+                showToast(data.message || '✅ Rakip başarıyla eklendi!', 'success');
                 const modal = bootstrap.Modal.getInstance(document.getElementById('addCompetitorModal'));
                 if (modal) modal.hide();
                 setTimeout(() => location.reload(), 1000);
             } else {
-                showToast('âŒ ' + (data.message || 'Bir hata oluÅŸtu!'), 'danger');
+                showToast('❌ ' + (data.message || 'Bir hata oluştu!'), 'danger');
             }
         })
         .catch(error => {
-            console.error('Ekleme hatasÄ±:', error);
-            showToast('âŒ BaÄŸlantÄ± hatasÄ±!', 'danger');
+            console.error('Ekleme hatası:', error);
+            showToast('❌ Bağlantı hatası!', 'danger');
         })
         .finally(() => {
             if (addBtn) {
@@ -358,7 +358,7 @@
         });
     }
 
-    // ==================== RAKÄ°P LÄ°STELEME ====================
+    // ==================== RAKİP LİSTELEME ====================
     async function loadCompetitors() {
         const container = document.getElementById('competitorsList');
         const emptyState = document.getElementById('emptyState');
@@ -374,7 +374,7 @@
                 if (emptyState) emptyState.classList.remove('d-none');
             }
         } catch (error) {
-            console.error('Listeleme hatasÄ±:', error);
+            console.error('Listeleme hatası:', error);
             if (emptyState) emptyState.classList.remove('d-none');
         }
     }
@@ -385,7 +385,7 @@
         
         let html = '';
         competitors.forEach(comp => {
-            const verifiedBadge = comp.is_verified ? '<span class="badge bg-info ms-1">âœ… DoÄŸrulanmÄ±ÅŸ</span>' : '';
+            const verifiedBadge = comp.is_verified ? '<span class="badge bg-info ms-1">✅ Doğrulanmış</span>' : '';
             
             html += `
                 <div class="card mb-4 shadow-sm" id="competitor-${comp.id}">
@@ -397,8 +397,8 @@
                                     <h5 class="card-title mb-1"><i class="bi bi-instagram"></i> @${escapeHtml(comp.instagram_username)} ${verifiedBadge}</h5>
                                     <h6 class="text-muted small">${escapeHtml(comp.name) || ''}</h6>
                                     <div class="mt-1">
-                                        <span class="badge bg-secondary">${comp.category === 'direct' ? 'DoÄŸrudan Rakip' : comp.category === 'indirect' ? 'DolaylÄ± Rakip' : 'Potansiyel Rakip'}</span>
-                                        <span class="badge bg-primary ms-1">ğŸ‘¥ ${(comp.followers_count || 0).toLocaleString()}</span>
+                                        <span class="badge bg-secondary">${comp.category === 'direct' ? 'Doğrudan Rakip' : comp.category === 'indirect' ? 'Dolaylı Rakip' : 'Potansiyel Rakip'}</span>
+                                        <span class="badge bg-primary ms-1">👥 ${(comp.followers_count || 0).toLocaleString()}</span>
                                     </div>
                                     <small class="text-muted d-block mt-1">Eklenme: ${comp.created_at}</small>
                                 </div>
@@ -408,7 +408,7 @@
                                     <i class="bi bi-instagram"></i> Profil
                                 </a>
                                 <button class="btn btn-sm btn-outline-primary me-1" onclick="fetchAds(${comp.id})">
-                                    <i class="bi bi-cloud-download"></i> ReklamlarÄ± Ã‡ek
+                                    <i class="bi bi-cloud-download"></i> Reklamları Çek
                                 </button>
                                 <button class="btn btn-sm btn-outline-danger" onclick="deleteCompetitor(${comp.id})">
                                     <i class="bi bi-trash"></i> Sil
@@ -417,7 +417,7 @@
                         </div>
                         <div id="ads-${comp.id}" class="mt-3">
                             <div class="text-muted small text-center py-3">
-                                <i class="bi bi-info-circle"></i> "ReklamlarÄ± Ã‡ek" butonuna tÄ±klayÄ±n
+                                <i class="bi bi-info-circle"></i> "Reklamları Çek" butonuna tıklayın
                             </div>
                         </div>
                     </div>
@@ -427,9 +427,9 @@
         container.innerHTML = html;
     }
 
-    // ==================== RAKÄ°P SÄ°LME ====================
+    // ==================== RAKİP SİLME ====================
     function deleteCompetitor(competitorId) {
-        if (!confirm('Bu rakibi silmek istediÄŸinize emin misiniz?')) return;
+        if (!confirm('Bu rakibi silmek istediğinize emin misiniz?')) return;
         
         fetch(`/api/competitors/${competitorId}/delete/`, {
             method: 'DELETE',
@@ -441,20 +441,20 @@
                 showToast(data.message || 'Rakip silindi!', 'success');
                 setTimeout(() => location.reload(), 1000);
             } else {
-                showToast(data.message || 'Silme iÅŸlemi baÅŸarÄ±sÄ±z!', 'danger');
+                showToast(data.message || 'Silme işlemi başarısız!', 'danger');
             }
         })
         .catch(error => {
-            showToast('BaÄŸlantÄ± hatasÄ±!', 'danger');
+            showToast('Bağlantı hatası!', 'danger');
         });
     }
 
-    // ==================== REKLAMLARI Ã‡EK ====================
+    // ==================== REKLAMLARI ÇEK ====================
     async function fetchAds(competitorId) {
         const adsContainer = document.getElementById(`ads-${competitorId}`);
         if (!adsContainer) return;
         
-        adsContainer.innerHTML = `<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div><span class="ms-2">Reklamlar yÃ¼kleniyor...</span></div>`;
+        adsContainer.innerHTML = `<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div><span class="ms-2">Reklamlar yükleniyor...</span></div>`;
         
         try {
             const url = `/api/competitors/${competitorId}/ads/`;
@@ -464,15 +464,15 @@
             if (data.success && data.ads && data.ads.length > 0) {
                 displayAds(adsContainer, data.ads, competitorId);
             } else {
-                adsContainer.innerHTML = `<div class="alert alert-warning text-center">Reklam bulunamadÄ±</div>`;
+                adsContainer.innerHTML = `<div class="alert alert-warning text-center">Reklam bulunamadı</div>`;
             }
         } catch (error) {
             adsContainer.innerHTML = `<div class="alert alert-danger">Hata: ${error.message}</div>`;
         }
     }
 
-    // ==================== REKLAM KARTLARI (4'lÃ¼ yan yana) ====================
-// ==================== REKLAM KARTLARI (4'lÃ¼ yan yana + Responsive) ====================
+    // ==================== REKLAM KARTLARI (4'lü yan yana) ====================
+// ==================== REKLAM KARTLARI (4'lü yan yana + Responsive) ====================
 function displayAds(container, ads, competitorId) {
     // Responsive grid: XL'de 4, LG'de 3, MD'de 2, SM'de 1
     let html = '<div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">';
@@ -491,10 +491,10 @@ function displayAds(container, ads, competitorId) {
         const freq = ad.frequency || (rch > 0 ? parseFloat((imp / rch).toFixed(1)) : 0);
         const score = ad.overall_score || ad.performance_score || 0;
         
-        let mediaTypeText = 'ğŸ“¸ GÃ¶rsel';
-        if (adType === 'video') mediaTypeText = 'ğŸ¥ Video';
-        else if (adType === 'carousel') mediaTypeText = 'ğŸ–¼ï¸ Carousel';
-        else if (adType === 'reels') mediaTypeText = 'ğŸ“± Reels';
+        let mediaTypeText = '📸 Görsel';
+        if (adType === 'video') mediaTypeText = '🎥 Video';
+        else if (adType === 'carousel') mediaTypeText = '🖼️ Carousel';
+        else if (adType === 'reels') mediaTypeText = '📱 Reels';
         
         const hourlyData = ad.hourly_engagement || [];
         const maxH = Math.max(...hourlyData, 1);
@@ -516,9 +516,9 @@ function displayAds(container, ads, competitorId) {
         
         const devData = ad.device_split || {};
         const devHtml = Object.entries(devData).map(([d,v]) => {
-            let icon = 'ğŸ“±';
-            if (d.toLowerCase().includes('masa')) icon = 'ğŸ’»';
-            else if (d.toLowerCase().includes('tablet')) icon = 'ğŸ“‹';
+            let icon = '📱';
+            if (d.toLowerCase().includes('masa')) icon = '💻';
+            else if (d.toLowerCase().includes('tablet')) icon = '📋';
             let color = '#4CAF50';
             if (d.toLowerCase().includes('masa')) color = '#2196F3';
             else if (d.toLowerCase().includes('tablet')) color = '#FF9800';
@@ -536,34 +536,34 @@ function displayAds(container, ads, competitorId) {
                     <h6 class="fw-bold mb-1" style="font-size:0.8rem;">${adName.substring(0, 45)}</h6>
                     
                     <details class="collapsible-section" open>
-                        <summary style="font-size:0.65rem;cursor:pointer;">ğŸ“Š Metrikler</summary>
+                        <summary style="font-size:0.65rem;cursor:pointer;">📊 Metrikler</summary>
                         <div class="row g-1 mt-1">
-                            <div class="col-6"><div class="metric-mini"><div class="label">ğŸ‘ï¸ GÃ¶sterim</div><div class="value">${formatNumber(imp)}</div></div></div>
-                            <div class="col-6"><div class="metric-mini"><div class="label">ğŸ–±ï¸ TÄ±klama</div><div class="value">${formatNumber(clk)}</div></div></div>
-                            <div class="col-6"><div class="metric-mini"><div class="label">ğŸ“Š CTR</div><div class="value">%${parseFloat(ctr).toFixed(2)}</div></div></div>
-                            <div class="col-6"><div class="metric-mini"><div class="label">ğŸ’° Harcama</div><div class="value">â‚º${formatNumber(spd)}</div></div></div>
-                            <div class="col-6"><div class="metric-mini"><div class="label">ğŸ‘¥ EriÅŸim</div><div class="value">${formatNumber(rch)}</div></div></div>
-                            <div class="col-6"><div class="metric-mini"><div class="label">ğŸ”„ Frekans</div><div class="value">${parseFloat(freq).toFixed(1)}x</div></div></div>
+                            <div class="col-6"><div class="metric-mini"><div class="label">👁️ Gösterim</div><div class="value">${formatNumber(imp)}</div></div></div>
+                            <div class="col-6"><div class="metric-mini"><div class="label">🖱️ Tıklama</div><div class="value">${formatNumber(clk)}</div></div></div>
+                            <div class="col-6"><div class="metric-mini"><div class="label">📊 CTR</div><div class="value">%${parseFloat(ctr).toFixed(2)}</div></div></div>
+                            <div class="col-6"><div class="metric-mini"><div class="label">💰 Harcama</div><div class="value">₺${formatNumber(spd)}</div></div></div>
+                            <div class="col-6"><div class="metric-mini"><div class="label">👥 Erişim</div><div class="value">${formatNumber(rch)}</div></div></div>
+                            <div class="col-6"><div class="metric-mini"><div class="label">🔄 Frekans</div><div class="value">${parseFloat(freq).toFixed(1)}x</div></div></div>
                         </div>
                     </details>
                     
                     <details class="collapsible-section">
-                        <summary style="font-size:0.65rem;cursor:pointer;">â° EtkileÅŸim Saatleri</summary>
-                        <div style="font-size:0.55rem;color:#888;margin-bottom:3px;">ğŸ”¥ Pik: ${peaks.map(h=>h+':00').join(', ')}</div>
+                        <summary style="font-size:0.65rem;cursor:pointer;">⏰ Etkileşim Saatleri</summary>
+                        <div style="font-size:0.55rem;color:#888;margin-bottom:3px;">🔥 Pik: ${peaks.map(h=>h+':00').join(', ')}</div>
                         <div class="hourly-chart">${hourlyChart}</div>
                     </details>
                     
                     <details class="collapsible-section">
-                        <summary style="font-size:0.65rem;cursor:pointer;">ğŸ‘¥ Demografi</summary>
-                        <div style="font-size:0.55rem;font-weight:600;margin-bottom:3px;">YaÅŸ DaÄŸÄ±lÄ±mÄ±</div>
+                        <summary style="font-size:0.65rem;cursor:pointer;">👥 Demografi</summary>
+                        <div style="font-size:0.55rem;font-weight:600;margin-bottom:3px;">Yaş Dağılımı</div>
                         ${ageHtml}
                     </details>
                     
                     <details class="collapsible-section">
-                        <summary style="font-size:0.65rem;cursor:pointer;">ğŸ™ï¸ Åehir & Cihaz</summary>
-                        <div style="font-size:0.55rem;font-weight:600;margin-bottom:3px;">ğŸŒ Åehir</div>
+                        <summary style="font-size:0.65rem;cursor:pointer;">🏙️ Şehir & Cihaz</summary>
+                        <div style="font-size:0.55rem;font-weight:600;margin-bottom:3px;">🌍 Şehir</div>
                         ${cityHtml}
-                        <div style="font-size:0.55rem;font-weight:600;margin:6px 0 3px;">ğŸ“± Cihaz</div>
+                        <div style="font-size:0.55rem;font-weight:600;margin:6px 0 3px;">📱 Cihaz</div>
                         ${devHtml}
                     </details>
                     
@@ -579,7 +579,7 @@ function displayAds(container, ads, competitorId) {
                 
                 <div class="card-footer bg-white border-0 pt-0 pb-2">
                     <div class="d-flex justify-content-between align-items-center">
-                        <small class="text-muted" style="font-size:0.6rem;">ğŸ“… ${ad.created_at || 'Yeni'}</small>
+                        <small class="text-muted" style="font-size:0.6rem;">📅 ${ad.created_at || 'Yeni'}</small>
                         <button class="btn btn-ai-analyze btn-sm" onclick="openAIPopup('${adId}', '${adName.replace(/'/g, "\\'")}')">
                             <i class="bi bi-robot"></i> AI Analiz Et
                         </button>
@@ -594,20 +594,20 @@ function displayAds(container, ads, competitorId) {
     container.innerHTML = html;
 }
 
-    // ==================== AI ANALÄ°Z POPUP ====================
+    // ==================== AI ANALİZ POPUP ====================
     function openAIPopup(adId, adTitle) {
         const modal = new bootstrap.Modal(document.getElementById('aiAnalysisModal'));
         modal.show();
         document.getElementById('aiModalTitle').innerHTML = '<i class="bi bi-robot"></i> AI Reklam Analizi';
         document.getElementById('aiModalSubtitle').textContent = (adTitle || 'Reklam').substring(0, 80) + '...';
         
-        const agents = ['Duygu Analizi','Ä°Ã§erik Kalitesi','Hashtag Stratejisi','Rakip KarÅŸÄ±laÅŸtÄ±rma','Performans Tahmini','BÃ¼tÃ§e Optimizasyonu','Lead Potansiyeli','Pazar Uyumu','EtkileÅŸim Stratejisi','Ã–neri Motoru','Influencer Uyumu','Genel SaÄŸlÄ±k'];
+        const agents = ['Duygu Analizi','İçerik Kalitesi','Hashtag Stratejisi','Rakip Karşılaştırma','Performans Tahmini','Bütçe Optimizasyonu','Lead Potansiyeli','Pazar Uyumu','Etkileşim Stratejisi','Öneri Motoru','Influencer Uyumu','Genel Sağlık'];
         const body = document.getElementById('aiModalBody');
         
         body.innerHTML = `
             <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);color:white;padding:40px 30px;min-height:500px;text-align:center;">
                 <div class="spinner-border text-light mb-3" style="width:3rem;height:3rem;"></div>
-                <h5 class="text-white">ğŸ”„ AI Analizi Devam Ediyor</h5>
+                <h5 class="text-white">🔄 AI Analizi Devam Ediyor</h5>
                 <p class="text-white-50">AI analizi hazırlanıyor...</p>
                 <div class="progress mb-4" style="height:30px;border-radius:15px;background:rgba(255,255,255,0.1);">
                     <div id="popup-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%;border-radius:15px;background:linear-gradient(90deg,#4CAF50,#8BC34A);">0%</div>
@@ -630,7 +630,7 @@ function displayAds(container, ads, competitorId) {
         document.getElementById('aiModalSubtitle').textContent = 'AI endpoint gerekli';
     }
 
-    // ==================== YARDIMCI FONKSÄ°YONLAR ====================
+    // ==================== YARDIMCI FONKSİYONLAR ====================
     function escapeHtml(text) {
         if (!text) return '';
         const div = document.createElement('div');

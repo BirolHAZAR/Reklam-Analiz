@@ -15,10 +15,13 @@ def _sanitize_error_text(text, token):
 class InstagramAPI:
    
 
-    def __init__(self, access_token=None):
+    def __init__(self, access_token=None, *, instagram_login=False):
         self.access_token = access_token or getattr(settings, 'INSTAGRAM_ACCESS_TOKEN', '')
         self.base_url = "https://graph.instagram.com"
         self.graph_url = getattr(settings, "FACEBOOK_GRAPH_URL", "https://graph.facebook.com/v25.0")
+        if instagram_login:
+            from core.services.instagram_oauth import graph_url
+            self.graph_url = graph_url()
 
     def _request(self, url, params=None, method='GET', data=None):
         params = params or {}

@@ -67,7 +67,7 @@
         <div class="filter-grid">
             <div><div class="ra-label">Reklam Ara</div><input class="ra-input" type="text" name="search" value="{{ search_query|default:'' }}" placeholder="Reklam adı veya ID..." onkeypress="if(event.keyCode==13) this.form.submit()"></div>
             <div><div class="ra-label">Platform</div><select class="ra-select" name="platform" onchange="this.form.submit()"><option value="">Tümü</option>{% for platform in platforms %}<option value="{{ platform.code }}" {% if selected_platform == platform.code %}selected{% endif %}>{{ platform.name }}</option>{% endfor %}</select></div>
-            <div><div class="ra-label">Hesap</div><select class="ra-select" name="account_id" onchange="this.form.submit()"><option value="">Tüm hesaplar</option>{% for account in accounts %}<option value="{{ account.id }}" {% if selected_account == account.id|stringformat:'s' %}selected{% endif %}>{{ account.account_name|default:account.account_id }}</option>{% endfor %}</select></div>
+            <div><div class="ra-label">Hesap</div><select class="ra-select" name="account_id" onchange="this.form.submit()"><option value="">Tüm hesaplar</option>{% for account in accounts %}<option value="{{ account.id }}" {% if selected_account == account.id|stringformat:'s' %}selected{% endif %}>{{ account.display_name|default:account.account_name|default:account.account_id }}</option>{% endfor %}</select></div>
             <button class="ra-btn ra-btn-primary" type="submit">Filtrele</button>
         </div>
     </form>

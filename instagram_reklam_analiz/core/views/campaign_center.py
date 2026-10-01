@@ -557,11 +557,11 @@ def campaign_center(request):
 
             campaigns.append({
                 "id": campaign.id,
-                "name": getattr(campaign, "name", None) or f"Kampanya #{campaign.id}",
+                "name": getattr(campaign, "display_name", None) or f"Kampanya #{campaign.id}",
                 "external_id": getattr(campaign, "platform_campaign_id", "-"),
                 "platform": getattr(platform, "name", "-") if platform else "-",
                 "platform_id": getattr(platform, "id", None) if platform else None,
-                "account": getattr(account, "account_name", None) or getattr(account, "account_id", "-") if account else "-",
+                "account": getattr(account, "display_name", None) or getattr(account, "account_id", "-") if account else "-",
                 "status": _display_status(status_raw),
                 "status_raw": status_raw.lower(),
                 "objective": _display_objective(getattr(campaign, "objective", "UNKNOWN")),
@@ -1053,13 +1053,13 @@ def octo_campaign_analysis(request, campaign_id):
             platform = getattr(campaign.platform_connection, "platform", None)
 
         campaign_name = (
-            getattr(campaign, "name", None)
+            getattr(campaign, "display_name", None)
             or getattr(campaign, "campaign_name", None)
             or f"Kampanya #{campaign.id}"
         )
 
         platform_name = getattr(platform, "name", "") if platform else ""
-        account_name = getattr(account, "account_name", None) or getattr(account, "account_id", "") if account else ""
+        account_name = getattr(account, "display_name", None) or getattr(account, "account_id", "") if account else ""
         objective = getattr(campaign, "objective", "") or ""
 
         source = "real"
@@ -1587,9 +1587,9 @@ def octo_campaign_analysis_safe(request, campaign_id):
         if not platform and getattr(campaign, "platform_connection", None):
             platform = getattr(campaign.platform_connection, "platform", None)
 
-        campaign_name = getattr(campaign, "name", None) or getattr(campaign, "campaign_name", None) or f"Kampanya #{campaign.id}"
+        campaign_name = getattr(campaign, "display_name", None) or getattr(campaign, "campaign_name", None) or f"Kampanya #{campaign.id}"
         platform_name = getattr(platform, "name", "") if platform else ""
-        account_name = getattr(account, "account_name", None) or getattr(account, "account_id", "") if account else ""
+        account_name = getattr(account, "display_name", None) or getattr(account, "account_id", "") if account else ""
         objective = getattr(campaign, "objective", "") or ""
 
         source = "real"
@@ -1883,7 +1883,7 @@ def octo_campaign_analysis_pdf(request, analysis_id):
     branding = get_report_branding(request.user, agency_client=agency_client)
     campaign_name = (
         getattr(analysis, "campaign_name", "")
-        or getattr(campaign, "name", "")
+        or getattr(campaign, "display_name", "")
         or getattr(campaign, "campaign_name", "")
         or f"Kampanya #{getattr(campaign, 'id', analysis_id)}"
     )

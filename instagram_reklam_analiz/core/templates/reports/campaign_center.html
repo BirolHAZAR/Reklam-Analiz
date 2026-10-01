@@ -50,7 +50,7 @@
       <select id="campaignCenterAgencyClient" name="agency_client" onchange="this.form.submit()">
         <option value=""{% if not agency_scope.selected_client %} selected{% endif %}>Tüm müşteriler</option>
         {% for client in agency_scope.clients %}
-        <option value="{{ client.id }}"{% if agency_scope.selected_client.id == client.id %} selected{% endif %}>{{ client.organization.name }} · {{ client.name }}</option>
+        <option value="{{ client.id }}"{% if agency_scope.selected_client.id == client.id %} selected{% endif %}>{{ client.name }}</option>
         {% endfor %}
       </select>
       <input type="hidden" name="period" value="{{ filters.active_period }}">
@@ -184,7 +184,7 @@
           {% for c in campaigns %}
           <tr class="{{ c.row_class }}">
             <td>
-              <div class="ra-name">{{ c.name }}</div>
+              <div class="ra-name">{{ c.name }}</div><a href="{% url 'local_name_update' 'campaign' c.id %}">Adı düzenle</a>
               <div class="ra-sub">ID: {{ c.external_id }} · Başlangıç: {{ c.start_label }} · {{ c.adgroup_count }} grup / {{ c.ad_count }} reklam</div>
               <div class="ra-success-pill {{ c.success_level }}" title="{{ c.success_reason }}"><i class="fas fa-circle-check"></i>{{ c.success_label }}</div>
             </td>

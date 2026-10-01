@@ -135,6 +135,9 @@
 
 {% block content %}
 <div class="container py-4 octo-page-shell">
+    {% for message in messages %}
+    <div class="alert {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}alert-danger{% else %}alert-{{ message.tags|default:'info' }}{% endif %}" role="alert">{{ message }}</div>
+    {% endfor %}
     <section class="octo-hero">
         <div class="octo-hero-inner">
             <div>
@@ -171,9 +174,7 @@
                         <div><h5 class="card-title fw-bold mb-0">Instagram</h5><small class="text-muted">Organik & Reklam verileri</small></div>
                     </div>
                     <p class="card-text small text-muted mb-3">Profesyonel profilinizin organik içerik bağlantısını kurun. Reklamlar için Meta Ads entegrasyonunu kullanın.</p>
-                    <button class="btn btn-outline-dark w-100 btn-connect" onclick="openOctoPopup('modalInstagram')" type="button">
-                        <i class="fas fa-plus-circle me-2"></i> Hesap Bağla
-                    </button>
+                    {% include 'platforms/account_connect_form.html' with provider=instagram_provider %}
                 </div>
             </div>
         </div>
@@ -324,7 +325,8 @@
                                 {% for acc in group.list %}
                                 <div class="account-list-item d-flex justify-content-between align-items-center">
                                     <div>
-                                        <div class="small fw-semibold">{{ acc.account_name|default:acc.account_id }}</div>
+                                        <div class="small fw-semibold">{{ acc.display_name }}</div>
+                                        <a class="small" href="{% url 'local_name_update' 'account' acc.pk %}">Adı düzenle</a>
                                         <div class="small text-muted">
                                             <i class="fas fa-key me-1"></i> Token: {% if acc.access_token %}••••••••{% else %}Yok{% endif %}
                                         </div>
@@ -359,33 +361,6 @@
 </div>
 
 <!-- MODALLAR (ayrı, değişmedi, kısaltılmış) -->
-<!-- Instagram Modal -->
-<div class="octo-popup" id="modalInstagram" aria-hidden="true">
-    <div class="octo-popup-dialog">
-        <div class="octo-popup-content">
-            <form method="post" action="{% url 'hesap_ekle' %}">
-                {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fab fa-instagram me-2"></i> Instagram Hesabı Bağla</h5>
-                    <button type="button" class="btn-close" data-octo-close></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" name="platform" value="instagram">
-                    <div class="mb-3">
-                        <label class="form-label">Access Token</label>
-                        <input type="text" class="form-control" name="access_token" placeholder="IG... veya EA..." required>
-                        <div class="form-text">Token doğrulandığında bağlı Instagram hesabı, <strong>@kullaniciadi</strong> ve Instagram Business ID otomatik bulunur. Manuel ID girmeniz gerekmez.</div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>
-                    <button type="submit" class="btn btn-modal-submit rounded-pill">Bağla</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <!-- YouTube Modal -->
 <div class="octo-popup" id="modalYouTube" aria-hidden="true">
     <div class="octo-popup-dialog">
@@ -397,12 +372,13 @@
                     <button type="button" class="btn-close" data-octo-close></button>
                 </div>
                 <div class="modal-body">
+                    {% include "platforms/connection_client_select.html" %}
                     <input type="hidden" name="platform" value="youtube">
                     <div class="mb-3"><label class="form-label">OAuth Access Token</label><input type="text" class="form-control" name="access_token" required><div class="form-text">Yetkili YouTube kanalı ve kanal ID’si otomatik bulunur.</div></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>
-                    <button type="submit" class="btn btn-modal-submit rounded-pill">Bağla</button>
+                    <button type="submit" class="btn btn-modal-submit rounded-pill"{% if connection_is_agency and not clients %} disabled{% endif %}>Bağla</button>
                 </div>
             </form>
         </div>
@@ -420,12 +396,13 @@
                     <button type="button" class="btn-close" data-octo-close></button>
                 </div>
                 <div class="modal-body">
+                    {% include "platforms/connection_client_select.html" %}
                     <input type="hidden" name="platform" value="tiktok">
                     <div class="mb-3"><label class="form-label">OAuth Access Token</label><input type="text" class="form-control" name="access_token" required><div class="form-text">TikTok kullanıcı adı ve hesap kimliği otomatik doğrulanır.</div></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>
-                    <button type="submit" class="btn btn-modal-submit rounded-pill">Bağla</button>
+                    <button type="submit" class="btn btn-modal-submit rounded-pill"{% if connection_is_agency and not clients %} disabled{% endif %}>Bağla</button>
                 </div>
             </form>
         </div>
@@ -443,12 +420,13 @@
                     <button type="button" class="btn-close" data-octo-close></button>
                 </div>
                 <div class="modal-body">
+                    {% include "platforms/connection_client_select.html" %}
                     <input type="hidden" name="platform" value="linkedin">
                     <div class="mb-3"><label class="form-label">OAuth Access Token</label><input type="text" class="form-control" name="access_token" required><div class="form-text">LinkedIn profili ve kimliği otomatik doğrulanır.</div></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>
-                    <button type="submit" class="btn btn-modal-submit rounded-pill">Bağla</button>
+                    <button type="submit" class="btn btn-modal-submit rounded-pill"{% if connection_is_agency and not clients %} disabled{% endif %}>Bağla</button>
                 </div>
             </form>
         </div>
@@ -466,12 +444,13 @@
                     <button type="button" class="btn-close" data-octo-close></button>
                 </div>
                 <div class="modal-body">
+                    {% include "platforms/connection_client_select.html" %}
                     <input type="hidden" name="platform" value="x">
                     <div class="mb-3"><label class="form-label">Kullanıcı OAuth Tokenı</label><input type="text" class="form-control" name="access_token" required><div class="form-text">X kullanıcı adı ve hesap ID’si otomatik doğrulanır. Uygulama-only bearer tokenı kullanıcı hesabını tanımlamaz.</div></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>
-                    <button type="submit" class="btn btn-modal-submit rounded-pill">Bağla</button>
+                    <button type="submit" class="btn btn-modal-submit rounded-pill"{% if connection_is_agency and not clients %} disabled{% endif %}>Bağla</button>
                 </div>
             </form>
         </div>

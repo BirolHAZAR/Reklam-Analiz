@@ -303,7 +303,7 @@
 {% block content %}
 <div class="rapor-container">
     
-    <!-- SOL FÄ°LTRE -->
+    <!-- SOL FİLTRE -->
     <div class="filter-sidebar open" id="filterSidebar">
         <div class="filter-header-bar" id="filterToggle">
             <span class="filter-title"><i class="fas fa-sliders-h"></i> Filtreler</span>
@@ -314,16 +314,16 @@
                 <form method="GET" action="{% url 'rakip_reklam_raporu' %}" id="filterForm">
                     <div class="search-box-top">
                         <span class="search-icon"><i class="fas fa-search"></i></span>
-                        <input type="text" name="arama" id="arama" value="{{ filtre_arama }}" placeholder="Reklam adÄ± ara...">
+                        <input type="text" name="arama" id="arama" value="{{ filtre_arama }}" placeholder="Reklam adı ara...">
                     </div>
                     
                     <div class="date-row">
                         <div class="date-field">
-                            <label>ğŸ“… BaÅŸlangÄ±Ã§</label>
+                            <label>📅 Başlangıç</label>
                             <input type="date" name="baslangic_tarih" id="baslangic_tarih" value="{{ filtre_baslangic }}">
                         </div>
                         <div class="date-field">
-                            <label>ğŸ“… BitiÅŸ</label>
+                            <label>📅 Bitiş</label>
                             <input type="date" name="bitis_tarih" id="bitis_tarih" value="{{ filtre_bitis }}">
                         </div>
                     </div>
@@ -331,9 +331,9 @@
                     <div class="filter-separator"></div>
                     
                     <div class="filter-group">
-                        <label>ğŸ‘¥ Rakip</label>
+                        <label>👥 Rakip</label>
                         <select name="rakip" id="rakip">
-                            <option value="">TÃ¼m Rakipler</option>
+                            <option value="">Tüm Rakipler</option>
                             {% for comp in competitors %}
                             <option value="{{ comp.id }}" {% if filtre_rakip == comp.id|stringformat:"s" %}selected{% endif %}>@{{ comp.instagram_username }}</option>
                             {% endfor %}
@@ -341,51 +341,51 @@
                     </div>
                     
                     <div class="filter-group">
-                        <label>ğŸ–¼ï¸ Medya Tipi</label>
+                        <label>🖼️ Medya Tipi</label>
                         <select name="medya_tipi" id="medya_tipi">
-                            <option value="">TÃ¼mÃ¼</option>
-                            <option value="image" {% if filtre_medya_tipi == 'image' %}selected{% endif %}>ğŸ“¸ GÃ¶rsel</option>
-                            <option value="video" {% if filtre_medya_tipi == 'video' %}selected{% endif %}>ğŸ¥ Video</option>
-                            <option value="carousel" {% if filtre_medya_tipi == 'carousel' %}selected{% endif %}>ğŸ–¼ï¸ Carousel</option>
-                            <option value="reels" {% if filtre_medya_tipi == 'reels' %}selected{% endif %}>ğŸ“± Reels</option>
+                            <option value="">Tümü</option>
+                            <option value="image" {% if filtre_medya_tipi == 'image' %}selected{% endif %}>📸 Görsel</option>
+                            <option value="video" {% if filtre_medya_tipi == 'video' %}selected{% endif %}>🎥 Video</option>
+                            <option value="carousel" {% if filtre_medya_tipi == 'carousel' %}selected{% endif %}>🖼️ Carousel</option>
+                            <option value="reels" {% if filtre_medya_tipi == 'reels' %}selected{% endif %}>📱 Reels</option>
                         </select>
                     </div>
                     
                     <div class="filter-group">
-                        <label>ğŸ“Š Durum</label>
+                        <label>📊 Durum</label>
                         <select name="durum" id="durum">
-                            <option value="">TÃ¼mÃ¼</option>
-                            <option value="ACTIVE" {% if filtre_durum == 'ACTIVE' %}selected{% endif %}>âœ… Aktif</option>
-                            <option value="PAUSED" {% if filtre_durum == 'PAUSED' %}selected{% endif %}>â¸ï¸ DuraklatÄ±ldÄ±</option>
-                            <option value="COMPLETED" {% if filtre_durum == 'COMPLETED' %}selected{% endif %}>âœ… TamamlandÄ±</option>
+                            <option value="">Tümü</option>
+                            <option value="ACTIVE" {% if filtre_durum == 'ACTIVE' %}selected{% endif %}>✅ Aktif</option>
+                            <option value="PAUSED" {% if filtre_durum == 'PAUSED' %}selected{% endif %}>⏸️ Duraklatıldı</option>
+                            <option value="COMPLETED" {% if filtre_durum == 'COMPLETED' %}selected{% endif %}>✅ Tamamlandı</option>
                         </select>
                     </div>
                     
                     <button type="submit" class="btn-apply"><i class="fas fa-filter"></i> Filtreleri Uygula</button>
-                    <a href="{% url 'rakip_reklam_raporu' %}" class="btn-reset"><i class="fas fa-sync-alt"></i> SÄ±fÄ±rla</a>
+                    <a href="{% url 'rakip_reklam_raporu' %}" class="btn-reset"><i class="fas fa-sync-alt"></i> Sıfırla</a>
                 </form>
             </div>
         </div>
     </div>
     
-    <!-- SAÄ Ä°Ã‡ERÄ°K -->
+    <!-- SAĞ İÇERİK -->
     <div class="content-area">
         <div class="stats-row">
             <div class="stat-card"><div class="icon primary"><i class="fas fa-ad"></i></div><div class="value">{{ toplam_reklam }}</div><div class="label">Rakip Reklam</div></div>
-            <div class="stat-card"><div class="icon info"><i class="fas fa-eye"></i></div><div class="value">{{ toplam_gosterim|default:"0" }}</div><div class="label">GÃ¶sterim</div></div>
-            <div class="stat-card"><div class="icon success"><i class="fas fa-mouse-pointer"></i></div><div class="value">{{ toplam_tiklama|default:"0" }}</div><div class="label">TÄ±klama</div></div>
-            <div class="stat-card"><div class="icon warning"><i class="fas fa-turkish-lira-sign"></i></div><div class="value">{{ toplam_harcama|tr_decimal }} â‚º</div><div class="label">Harcama</div></div>
-            <div class="stat-card"><div class="icon primary"><i class="fas fa-bullseye"></i></div><div class="value">{{ toplam_donusum|default:"0" }}</div><div class="label">DÃ¶nÃ¼ÅŸÃ¼m</div></div>
+            <div class="stat-card"><div class="icon info"><i class="fas fa-eye"></i></div><div class="value">{{ toplam_gosterim|default:"0" }}</div><div class="label">Gösterim</div></div>
+            <div class="stat-card"><div class="icon success"><i class="fas fa-mouse-pointer"></i></div><div class="value">{{ toplam_tiklama|default:"0" }}</div><div class="label">Tıklama</div></div>
+            <div class="stat-card"><div class="icon warning"><i class="fas fa-turkish-lira-sign"></i></div><div class="value">{{ toplam_harcama|tr_decimal }} ₺</div><div class="label">Harcama</div></div>
+            <div class="stat-card"><div class="icon primary"><i class="fas fa-bullseye"></i></div><div class="value">{{ toplam_donusum|default:"0" }}</div><div class="label">Dönüşüm</div></div>
             <div class="stat-card"><div class="icon danger"><i class="fas fa-star"></i></div><div class="value">%{{ ortalama_ctr }}</div><div class="label">Ort. CTR</div></div>
         </div>
         
-        <!-- Ä°kinci istatistik satÄ±rÄ± -->
+        <!-- İkinci istatistik satırı -->
         <div class="stats-row">
-            <div class="stat-card"><div class="icon success"><i class="fas fa-heart"></i></div><div class="value">{{ toplam_begeni|default:"0" }}</div><div class="label">BeÄŸeni</div></div>
+            <div class="stat-card"><div class="icon success"><i class="fas fa-heart"></i></div><div class="value">{{ toplam_begeni|default:"0" }}</div><div class="label">Beğeni</div></div>
             <div class="stat-card"><div class="icon info"><i class="fas fa-comment"></i></div><div class="value">{{ toplam_yorum|default:"0" }}</div><div class="label">Yorum</div></div>
-            <div class="stat-card"><div class="icon warning"><i class="fas fa-share"></i></div><div class="value">{{ toplam_paylasim|default:"0" }}</div><div class="label">PaylaÅŸÄ±m</div></div>
+            <div class="stat-card"><div class="icon warning"><i class="fas fa-share"></i></div><div class="value">{{ toplam_paylasim|default:"0" }}</div><div class="label">Paylaşım</div></div>
             <div class="stat-card"><div class="icon primary"><i class="fas fa-bookmark"></i></div><div class="value">{{ toplam_kaydetme|default:"0" }}</div><div class="label">Kaydetme</div></div>
-            <div class="stat-card"><div class="icon danger"><i class="fas fa-chart-line"></i></div><div class="value">%{{ ortalama_etkilesim }}</div><div class="label">Ort. EtkileÅŸim</div></div>
+            <div class="stat-card"><div class="icon danger"><i class="fas fa-chart-line"></i></div><div class="value">%{{ ortalama_etkilesim }}</div><div class="label">Ort. Etkileşim</div></div>
             <div class="stat-card"><div class="icon success"><i class="fas fa-trophy"></i></div><div class="value">%{{ ortalama_roi }}</div><div class="label">Ort. ROI</div></div>
         </div>
         
@@ -394,9 +394,9 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Reklam</th><th>Rakip</th><th>TÃ¼r</th><th>Durum</th>
-                        <th>GÃ¶sterim</th><th>TÄ±klama</th><th>CTR</th>
-                        <th>BÃ¼tÃ§e</th><th>Harcama</th><th>Skor</th>
+                        <th>Reklam</th><th>Rakip</th><th>Tür</th><th>Durum</th>
+                        <th>Gösterim</th><th>Tıklama</th><th>CTR</th>
+                        <th>Bütçe</th><th>Harcama</th><th>Skor</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -432,8 +432,8 @@
                         <td>{{ reklam.impressions }}</td>
                         <td>{{ reklam.clicks }}</td>
                         <td style="font-weight:600;">%{{ reklam.ctr|tr_decimal }}</td>
-                        <td>{{ reklam.budget|tr_decimal }} â‚º</td>
-                        <td style="color:var(--danger);">{{ reklam.spend|tr_decimal }} â‚º</td>
+                        <td>{{ reklam.budget|tr_decimal }} ₺</td>
+                        <td style="color:var(--danger);">{{ reklam.spend|tr_decimal }} ₺</td>
                         <td>
                             {% if reklam.performance_score >= 70 %}<span class="badge-score high">{{ reklam.performance_score }}</span>
                             {% elif reklam.performance_score >= 40 %}<span class="badge-score medium">{{ reklam.performance_score }}</span>
@@ -447,8 +447,8 @@
         {% else %}
         <div class="table-container" style="text-align:center;padding:3rem;">
             <i class="fas fa-search" style="font-size:3rem;color:#cbd5e1;margin-bottom:1rem;"></i>
-            <h5>Rakip Reklam BulunamadÄ±</h5>
-            <p style="color:var(--gray);">Filtreleri deÄŸiÅŸtirerek tekrar deneyin.</p>
+            <h5>Rakip Reklam Bulunamadı</h5>
+            <p style="color:var(--gray);">Filtreleri değiştirerek tekrar deneyin.</p>
         </div>
         {% endif %}
     </div>
@@ -462,13 +462,13 @@
         <div class="phone-screen" id="phoneScreen">
             <div class="phone-app-header">
                 <button class="back-btn" onclick="closePhonePopup()"><i class="fas fa-chevron-left"></i></button>
-                <span class="header-title">Rakip Reklam DetayÄ±</span>
+                <span class="header-title">Rakip Reklam Detayı</span>
                 <button class="menu-dots"><i class="fas fa-ellipsis-v"></i></button>
             </div>
             <div class="phone-body" id="phoneBody">
                 <div style="text-align:center;padding:40px;color:#94a3b8;">
                     <i class="fas fa-spinner fa-spin" style="font-size:2rem;margin-bottom:12px;display:block;"></i>
-                    YÃ¼kleniyor...
+                    Yükleniyor...
                 </div>
             </div>
         </div>
@@ -476,7 +476,7 @@
 </div>
 
 <script>
-// ========== VERÄ°TABANINDAN GELEN VERÄ°LER ==========
+// ========== VERİTABANINDAN GELEN VERİLER ==========
 const reklamData = {
     {% for reklam in reklamlar %}
     "{{ reklam.instagram_ad_id }}": {
@@ -533,7 +533,7 @@ const reklamData = {
     {% endfor %}
 };
 
-// ========== FÄ°LTRE TOGGLE ==========
+// ========== FİLTRE TOGGLE ==========
 document.addEventListener('DOMContentLoaded', function() {
     const filterSidebar = document.getElementById('filterSidebar');
     const filterToggle = document.getElementById('filterToggle');
@@ -552,7 +552,7 @@ function toggleAccordion(header) {
     if (section) section.classList.toggle('open');
 }
 
-// ========== YARDIMCI FONKSÄ°YONLAR ==========
+// ========== YARDIMCI FONKSİYONLAR ==========
 function getHeatColor(v) {
     const val = parseInt(v) || 0;
     if (val >= 70) return '#ef4444';
@@ -611,17 +611,17 @@ function openPhonePopup(adId) {
     const hashtags = parseJSONField(ad.hashtags, []);
     
     const statusMap = {
-        'ACTIVE': '<span class="badge-status badge-active">âœ… Aktif</span>',
-        'PAUSED': '<span class="badge-status badge-paused">â¸ï¸ DuraklatÄ±ldÄ±</span>',
-        'COMPLETED': '<span class="badge-status badge-completed">âœ… TamamlandÄ±</span>',
+        'ACTIVE': '<span class="badge-status badge-active">✅ Aktif</span>',
+        'PAUSED': '<span class="badge-status badge-paused">⏸️ Duraklatıldı</span>',
+        'COMPLETED': '<span class="badge-status badge-completed">✅ Tamamlandı</span>',
     };
     const statusBadge = statusMap[ad.status] || '<span class="badge-status badge-completed">' + ad.status + '</span>';
     
     const score = parseInt(ad.performanceScore) || 0;
     let scoreBadge = '';
-    if (score >= 70) scoreBadge = '<span class="badge-score high">â­ ' + score + '/100</span>';
-    else if (score >= 40) scoreBadge = '<span class="badge-score medium">â­ ' + score + '/100</span>';
-    else scoreBadge = '<span class="badge-score low">â­ ' + score + '/100</span>';
+    if (score >= 70) scoreBadge = '<span class="badge-score high">⭐ ' + score + '/100</span>';
+    else if (score >= 40) scoreBadge = '<span class="badge-score medium">⭐ ' + score + '/100</span>';
+    else scoreBadge = '<span class="badge-score low">⭐ ' + score + '/100</span>';
     
     let mediaHtml = '';
     if (ad.mediaUrl) {
@@ -633,7 +633,7 @@ function openPhonePopup(adId) {
     } else if (ad.thumbnailUrl) {
         mediaHtml = '<div class="phone-media-area"><img src="' + ad.thumbnailUrl + '" alt="' + ad.name + '" style="width:100%;height:100%;object-fit:cover;"></div>';
     } else {
-        mediaHtml = '<div class="phone-media-area"><div class="no-media"><i class="fas fa-image" style="font-size:2.5rem;display:block;margin-bottom:8px;"></i>GÃ¶rsel bulunamadÄ±</div></div>';
+        mediaHtml = '<div class="phone-media-area"><div class="no-media"><i class="fas fa-image" style="font-size:2.5rem;display:block;margin-bottom:8px;"></i>Görsel bulunamadı</div></div>';
     }
     
     let descHtml = '';
@@ -641,15 +641,15 @@ function openPhonePopup(adId) {
         descHtml = '<p style="font-size:0.78rem;color:#475569;margin-bottom:10px;line-height:1.5;">' + ad.description + '</p>';
     }
     
-    // IsÄ± haritasÄ±
-    let heatmapHtml = '<p style="font-size:0.7rem;color:#94a3b8;text-align:center;">IsÄ± haritasÄ± verisi bulunamadÄ±</p>';
+    // Isı haritası
+    let heatmapHtml = '<p style="font-size:0.7rem;color:#94a3b8;text-align:center;">Isı haritası verisi bulunamadı</p>';
     if (hourlyEng && hourlyEng.length > 0) {
         const groups = [
-            { name: 'ğŸŒ… Sabah', hours: [6,7,8,9], total: 0 },
-            { name: 'â˜€ï¸ Ã–ÄŸle', hours: [10,11,12,13], total: 0 },
-            { name: 'ğŸŒ¤ï¸ Ã–.Sonra', hours: [14,15,16,17], total: 0 },
-            { name: 'ğŸŒ† AkÅŸam', hours: [18,19,20,21], total: 0 },
-            { name: 'ğŸŒ™ Gece', hours: [22,23,0,1,2,3,4,5], total: 0 }
+            { name: '🌅 Sabah', hours: [6,7,8,9], total: 0 },
+            { name: '☀️ Öğle', hours: [10,11,12,13], total: 0 },
+            { name: '🌤️ Ö.Sonra', hours: [14,15,16,17], total: 0 },
+            { name: '🌆 Akşam', hours: [18,19,20,21], total: 0 },
+            { name: '🌙 Gece', hours: [22,23,0,1,2,3,4,5], total: 0 }
         ];
         
         groups.forEach(g => {
@@ -670,14 +670,14 @@ function openPhonePopup(adId) {
         heatmapHtml += '</div>';
         
         if (peakHours && peakHours.length > 0) {
-            heatmapHtml += '<p style="font-size:0.65rem;color:#64748b;margin-top:6px;">ğŸ”¥ Pik Saatler: <strong>' + peakHours.map(h => h + ':00').join(', ') + '</strong></p>';
+            heatmapHtml += '<p style="font-size:0.65rem;color:#64748b;margin-top:6px;">🔥 Pik Saatler: <strong>' + peakHours.map(h => h + ':00').join(', ') + '</strong></p>';
         }
     }
     
     // Demografi
-    let demoHtml = '<p style="font-size:0.7rem;color:#94a3b8;text-align:center;">Demografi verisi bulunamadÄ±</p>';
+    let demoHtml = '<p style="font-size:0.7rem;color:#94a3b8;text-align:center;">Demografi verisi bulunamadı</p>';
     if (Object.keys(ageDist).length > 0) {
-        demoHtml = '<div style="font-size:0.65rem;font-weight:700;color:#64748b;margin-bottom:8px;">ğŸ“… YaÅŸ GruplarÄ±</div>';
+        demoHtml = '<div style="font-size:0.65rem;font-weight:700;color:#64748b;margin-bottom:8px;">📅 Yaş Grupları</div>';
         const ageColors = ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#ede9fe'];
         let colorIdx = 0;
         const ageEntries = Object.entries(ageDist);
@@ -689,19 +689,19 @@ function openPhonePopup(adId) {
         });
         
         if (Object.keys(genderSplit).length > 0) {
-            demoHtml += '<div style="font-size:0.65rem;font-weight:700;color:#64748b;margin:8px 0 6px;">âš¥ Cinsiyet DaÄŸÄ±lÄ±mÄ±</div>';
+            demoHtml += '<div style="font-size:0.65rem;font-weight:700;color:#64748b;margin:8px 0 6px;">⚥ Cinsiyet Dağılımı</div>';
             demoHtml += '<div class="phone-metrics-grid">';
             Object.entries(genderSplit).forEach(([label, value]) => {
                 const color = (label.toLowerCase().includes('erkek') || label.toLowerCase().includes('male')) ? '#3b82f6' : '#ec4899';
-                const icon = (label.toLowerCase().includes('erkek') || label.toLowerCase().includes('male')) ? 'â™‚ï¸' : 'â™€ï¸';
+                const icon = (label.toLowerCase().includes('erkek') || label.toLowerCase().includes('male')) ? '♂️' : '♀️';
                 demoHtml += `<div class="phone-metric-item"><div class="pm-value" style="color:${color};">%${parseFloat(value).toFixed(1)}</div><div class="pm-label">${icon} ${label}</div></div>`;
             });
             demoHtml += '</div>';
         }
     }
     
-    // Åehir daÄŸÄ±lÄ±mÄ±
-    let cityHtml = '<p style="font-size:0.7rem;color:#94a3b8;text-align:center;">Åehir verisi bulunamadÄ±</p>';
+    // Şehir dağılımı
+    let cityHtml = '<p style="font-size:0.7rem;color:#94a3b8;text-align:center;">Şehir verisi bulunamadı</p>';
     if (Object.keys(cityDist).length > 0) {
         cityHtml = '';
         const cityColors = ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#ede9fe', '#f3e8ff'];
@@ -715,14 +715,14 @@ function openPhonePopup(adId) {
         });
     }
     
-    // Cihaz daÄŸÄ±lÄ±mÄ±
-    let deviceHtml = '<p style="font-size:0.7rem;color:#94a3b8;text-align:center;">Cihaz verisi bulunamadÄ±</p>';
+    // Cihaz dağılımı
+    let deviceHtml = '<p style="font-size:0.7rem;color:#94a3b8;text-align:center;">Cihaz verisi bulunamadı</p>';
     if (Object.keys(deviceSplit).length > 0) {
         deviceHtml = '<div class="phone-metrics-grid">';
         Object.entries(deviceSplit).forEach(([label, value]) => {
-            let icon = 'ğŸ“±';
-            if (label.toLowerCase().includes('desktop') || label.toLowerCase().includes('masa')) icon = 'ğŸ’»';
-            else if (label.toLowerCase().includes('tablet')) icon = 'ğŸ“‹';
+            let icon = '📱';
+            if (label.toLowerCase().includes('desktop') || label.toLowerCase().includes('masa')) icon = '💻';
+            else if (label.toLowerCase().includes('tablet')) icon = '📋';
             deviceHtml += `<div class="phone-metric-item"><div class="pm-value">%${parseFloat(value).toFixed(1)}</div><div class="pm-label">${icon} ${label}</div></div>`;
         });
         deviceHtml += '</div>';
@@ -731,7 +731,7 @@ function openPhonePopup(adId) {
     // Hashtagler
     let hashtagHtml = '';
     if (hashtags && hashtags.length > 0) {
-        hashtagHtml = '<div style="font-size:0.65rem;font-weight:700;color:#64748b;margin-top:8px;">#ï¸âƒ£ Hashtag\'ler</div>';
+        hashtagHtml = '<div style="font-size:0.65rem;font-weight:700;color:#64748b;margin-top:8px;">#️⃣ Hashtag\'ler</div>';
         hashtagHtml += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">';
         hashtags.forEach(tag => {
             hashtagHtml += '<span style="background:#eef2ff;color:#6366f1;padding:2px 8px;border-radius:12px;font-size:0.65rem;">#' + tag + '</span>';
@@ -743,8 +743,8 @@ function openPhonePopup(adId) {
         ${mediaHtml}
         <div class="phone-ad-title">${ad.name}</div>
         <div class="phone-ad-account">
-            ğŸ¢ Rakip: @${ad.competitorUsername} Â· ${ad.createdAt}
-            ${ad.competitorFullName ? '<br>ğŸ“› ' + ad.competitorFullName : ''}
+            🏢 Rakip: @${ad.competitorUsername} · ${ad.createdAt}
+            ${ad.competitorFullName ? '<br>📛 ' + ad.competitorFullName : ''}
         </div>
         <div class="phone-status-row">
             ${statusBadge} ${scoreBadge}
@@ -752,106 +752,106 @@ function openPhonePopup(adId) {
         ${ad.title ? '<p style="font-size:0.85rem;font-weight:600;color:#1e293b;margin-bottom:4px;">' + ad.title + '</p>' : ''}
         ${descHtml}
         
-        <!-- 1. PERFORMANS METRÄ°KLERÄ° -->
+        <!-- 1. PERFORMANS METRİKLERİ -->
         <div class="accordion-section open">
             <div class="accordion-header" onclick="toggleAccordion(this)">
-                <span class="acc-title">ğŸ“Š Performans Metrikleri</span>
-                <span class="acc-icon">â–¼</span>
+                <span class="acc-title">📊 Performans Metrikleri</span>
+                <span class="acc-icon">▼</span>
             </div>
             <div class="accordion-body"><div class="accordion-content">
                 <div class="phone-metrics-grid">
-                    <div class="phone-metric-item"><div class="pm-value">${formatNumber(ad.impressions)}</div><div class="pm-label">ğŸ‘ï¸ GÃ¶sterim</div></div>
-                    <div class="phone-metric-item"><div class="pm-value">${formatNumber(ad.reach)}</div><div class="pm-label">ğŸ“ EriÅŸim</div></div>
-                    <div class="phone-metric-item"><div class="pm-value">${formatNumber(ad.clicks)}</div><div class="pm-label">ğŸ–±ï¸ TÄ±klama</div></div>
-                    <div class="phone-metric-item"><div class="pm-value">%${parseFloat(ad.ctr).toFixed(2)}</div><div class="pm-label">ğŸ“Š CTR</div></div>
-                    <div class="phone-metric-item"><div class="pm-value">${formatNumber(ad.engagement)}</div><div class="pm-label">ğŸ’¬ EtkileÅŸim</div></div>
-                    <div class="phone-metric-item"><div class="pm-value">%${parseFloat(ad.engagementRate).toFixed(2)}</div><div class="pm-label">ğŸ“ˆ EtkileÅŸim OranÄ±</div></div>
-                    <div class="phone-metric-item"><div class="pm-value">${formatNumber(ad.conversions)}</div><div class="pm-label">ğŸ¯ DÃ¶nÃ¼ÅŸÃ¼m</div></div>
-                    <div class="phone-metric-item"><div class="pm-value">%${parseFloat(ad.conversionRate).toFixed(2)}</div><div class="pm-label">ğŸ“Š DÃ¶nÃ¼ÅŸÃ¼m OranÄ±</div></div>
+                    <div class="phone-metric-item"><div class="pm-value">${formatNumber(ad.impressions)}</div><div class="pm-label">👁️ Gösterim</div></div>
+                    <div class="phone-metric-item"><div class="pm-value">${formatNumber(ad.reach)}</div><div class="pm-label">📍 Erişim</div></div>
+                    <div class="phone-metric-item"><div class="pm-value">${formatNumber(ad.clicks)}</div><div class="pm-label">🖱️ Tıklama</div></div>
+                    <div class="phone-metric-item"><div class="pm-value">%${parseFloat(ad.ctr).toFixed(2)}</div><div class="pm-label">📊 CTR</div></div>
+                    <div class="phone-metric-item"><div class="pm-value">${formatNumber(ad.engagement)}</div><div class="pm-label">💬 Etkileşim</div></div>
+                    <div class="phone-metric-item"><div class="pm-value">%${parseFloat(ad.engagementRate).toFixed(2)}</div><div class="pm-label">📈 Etkileşim Oranı</div></div>
+                    <div class="phone-metric-item"><div class="pm-value">${formatNumber(ad.conversions)}</div><div class="pm-label">🎯 Dönüşüm</div></div>
+                    <div class="phone-metric-item"><div class="pm-value">%${parseFloat(ad.conversionRate).toFixed(2)}</div><div class="pm-label">📊 Dönüşüm Oranı</div></div>
                 </div>
-                ${parseFloat(ad.frequency) > 0 ? '<div class="phone-metric-full"><span class="pmf-label">ğŸ”„ Frekans</span><span class="pmf-value">' + parseFloat(ad.frequency).toFixed(1) + '</span></div>' : ''}
+                ${parseFloat(ad.frequency) > 0 ? '<div class="phone-metric-full"><span class="pmf-label">🔄 Frekans</span><span class="pmf-value">' + parseFloat(ad.frequency).toFixed(1) + '</span></div>' : ''}
             </div></div>
         </div>
         
-        <!-- 2. VÄ°DEO METRÄ°KLERÄ° -->
+        <!-- 2. VİDEO METRİKLERİ -->
         ${(ad.mediaType === 'video' || ad.mediaType === 'reels') && (parseFloat(ad.videoViews) > 0 || parseFloat(ad.videoCompletionRate) > 0) ? `
         <div class="accordion-section">
             <div class="accordion-header" onclick="toggleAccordion(this)">
-                <span class="acc-title">â–¶ï¸ Video Metrikleri</span>
-                <span class="acc-icon">â–¼</span>
+                <span class="acc-title">▶️ Video Metrikleri</span>
+                <span class="acc-icon">▼</span>
             </div>
             <div class="accordion-body"><div class="accordion-content">
-                ${parseFloat(ad.videoViews) > 0 ? '<div class="phone-metric-full"><span class="pmf-label">ğŸ‘ï¸ Video Ä°zlenme</span><span class="pmf-value">' + formatNumber(ad.videoViews) + '</span></div>' : ''}
-                ${parseFloat(ad.videoCompletionRate) > 0 ? '<div class="phone-metric-full"><span class="pmf-label">âœ… Tamamlanma OranÄ±</span><span class="pmf-value">%' + parseFloat(ad.videoCompletionRate).toFixed(1) + '</span></div>' : ''}
+                ${parseFloat(ad.videoViews) > 0 ? '<div class="phone-metric-full"><span class="pmf-label">👁️ Video İzlenme</span><span class="pmf-value">' + formatNumber(ad.videoViews) + '</span></div>' : ''}
+                ${parseFloat(ad.videoCompletionRate) > 0 ? '<div class="phone-metric-full"><span class="pmf-label">✅ Tamamlanma Oranı</span><span class="pmf-value">%' + parseFloat(ad.videoCompletionRate).toFixed(1) + '</span></div>' : ''}
             </div></div>
         </div>` : ''}
         
-        <!-- 3. ISI HARÄ°TASI -->
+        <!-- 3. ISI HARİTASI -->
         <div class="accordion-section">
             <div class="accordion-header" onclick="toggleAccordion(this)">
-                <span class="acc-title">ğŸ”¥ EtkileÅŸim Saatleri (IsÄ± HaritasÄ±)</span>
-                <span class="acc-icon">â–¼</span>
+                <span class="acc-title">🔥 Etkileşim Saatleri (Isı Haritası)</span>
+                <span class="acc-icon">▼</span>
             </div>
             <div class="accordion-body"><div class="accordion-content">${heatmapHtml}</div></div>
         </div>
         
-        <!-- 4. BÃœTÃ‡E & HARCAMA -->
+        <!-- 4. BÜTÇE & HARCAMA -->
         <div class="accordion-section">
             <div class="accordion-header" onclick="toggleAccordion(this)">
-                <span class="acc-title">ğŸ’° BÃ¼tÃ§e & Harcama</span>
-                <span class="acc-icon">â–¼</span>
+                <span class="acc-title">💰 Bütçe & Harcama</span>
+                <span class="acc-icon">▼</span>
             </div>
             <div class="accordion-body"><div class="accordion-content">
-                <div class="phone-metric-full"><span class="pmf-label">ğŸ’° Harcama</span><span class="pmf-value" style="color:#ef4444;">${formatCurrency(ad.spend)}</span></div>
-                <div class="phone-metric-full"><span class="pmf-label">ğŸ’µ BÃ¼tÃ§e</span><span class="pmf-value">${formatCurrency(ad.budget)}</span></div>
-                <div class="phone-metric-full"><span class="pmf-label">ğŸ“Š BÃ¼tÃ§e KullanÄ±mÄ±</span><span class="pmf-value">%${parseFloat(ad.budgetUsagePercent).toFixed(1)}</span></div>
-                <div class="phone-metric-full"><span class="pmf-label">ğŸ“ˆ CPM (1000 GÃ¶sterim)</span><span class="pmf-value">${formatCurrency(ad.cpm)}</span></div>
-                <div class="phone-metric-full"><span class="pmf-label">ğŸ’¸ CPC (TÄ±klama BaÅŸÄ±)</span><span class="pmf-value">${formatCurrency(ad.cpc)}</span></div>
-                <div class="phone-metric-full"><span class="pmf-label">ğŸ“Š ROI</span><span class="pmf-value" style="color:${getScoreColor(ad.roi)};">%${parseFloat(ad.roi).toFixed(2)}</span></div>
+                <div class="phone-metric-full"><span class="pmf-label">💰 Harcama</span><span class="pmf-value" style="color:#ef4444;">${formatCurrency(ad.spend)}</span></div>
+                <div class="phone-metric-full"><span class="pmf-label">💵 Bütçe</span><span class="pmf-value">${formatCurrency(ad.budget)}</span></div>
+                <div class="phone-metric-full"><span class="pmf-label">📊 Bütçe Kullanımı</span><span class="pmf-value">%${parseFloat(ad.budgetUsagePercent).toFixed(1)}</span></div>
+                <div class="phone-metric-full"><span class="pmf-label">📈 CPM (1000 Gösterim)</span><span class="pmf-value">${formatCurrency(ad.cpm)}</span></div>
+                <div class="phone-metric-full"><span class="pmf-label">💸 CPC (Tıklama Başı)</span><span class="pmf-value">${formatCurrency(ad.cpc)}</span></div>
+                <div class="phone-metric-full"><span class="pmf-label">📊 ROI</span><span class="pmf-value" style="color:${getScoreColor(ad.roi)};">%${parseFloat(ad.roi).toFixed(2)}</span></div>
             </div></div>
         </div>
         
-        <!-- 5. DEMOGRAFÄ° -->
+        <!-- 5. DEMOGRAFİ -->
         <div class="accordion-section">
             <div class="accordion-header" onclick="toggleAccordion(this)">
-                <span class="acc-title">ğŸ‘¥ Demografi - YaÅŸ & Cinsiyet</span>
-                <span class="acc-icon">â–¼</span>
+                <span class="acc-title">👥 Demografi - Yaş & Cinsiyet</span>
+                <span class="acc-icon">▼</span>
             </div>
             <div class="accordion-body"><div class="accordion-content">${demoHtml}</div></div>
         </div>
         
-        <!-- 6. ETKÄ°LEÅÄ°M DETAYLARI -->
+        <!-- 6. ETKİLEŞİM DETAYLARI -->
         <div class="accordion-section">
             <div class="accordion-header" onclick="toggleAccordion(this)">
-                <span class="acc-title">â¤ï¸ EtkileÅŸim DetaylarÄ±</span>
-                <span class="acc-icon">â–¼</span>
+                <span class="acc-title">❤️ Etkileşim Detayları</span>
+                <span class="acc-icon">▼</span>
             </div>
             <div class="accordion-body"><div class="accordion-content">
                 <div class="phone-metrics-grid">
-                    <div class="phone-metric-item"><div class="pm-value" style="color:#ef4444;">${formatNumber(ad.likes)}</div><div class="pm-label">â¤ï¸ BeÄŸeni</div></div>
-                    <div class="phone-metric-item"><div class="pm-value" style="color:#3b82f6;">${formatNumber(ad.comments)}</div><div class="pm-label">ğŸ’¬ Yorum</div></div>
-                    <div class="phone-metric-item"><div class="pm-value" style="color:#10b981;">${formatNumber(ad.shares)}</div><div class="pm-label">ğŸ”„ PaylaÅŸÄ±m</div></div>
-                    <div class="phone-metric-item"><div class="pm-value" style="color:#f59e0b;">${formatNumber(ad.saves)}</div><div class="pm-label">ğŸ”– Kaydetme</div></div>
+                    <div class="phone-metric-item"><div class="pm-value" style="color:#ef4444;">${formatNumber(ad.likes)}</div><div class="pm-label">❤️ Beğeni</div></div>
+                    <div class="phone-metric-item"><div class="pm-value" style="color:#3b82f6;">${formatNumber(ad.comments)}</div><div class="pm-label">💬 Yorum</div></div>
+                    <div class="phone-metric-item"><div class="pm-value" style="color:#10b981;">${formatNumber(ad.shares)}</div><div class="pm-label">🔄 Paylaşım</div></div>
+                    <div class="phone-metric-item"><div class="pm-value" style="color:#f59e0b;">${formatNumber(ad.saves)}</div><div class="pm-label">🔖 Kaydetme</div></div>
                 </div>
-                ${parseFloat(ad.profileVisits) > 0 ? '<div class="phone-metric-full"><span class="pmf-label">ğŸ‘¤ Profil Ziyareti</span><span class="pmf-value">' + formatNumber(ad.profileVisits) + '</span></div>' : ''}
-                ${parseFloat(ad.websiteVisits) > 0 ? '<div class="phone-metric-full"><span class="pmf-label">ğŸŒ Web Ziyareti</span><span class="pmf-value">' + formatNumber(ad.websiteVisits) + '</span></div>' : ''}
+                ${parseFloat(ad.profileVisits) > 0 ? '<div class="phone-metric-full"><span class="pmf-label">👤 Profil Ziyareti</span><span class="pmf-value">' + formatNumber(ad.profileVisits) + '</span></div>' : ''}
+                ${parseFloat(ad.websiteVisits) > 0 ? '<div class="phone-metric-full"><span class="pmf-label">🌐 Web Ziyareti</span><span class="pmf-value">' + formatNumber(ad.websiteVisits) + '</span></div>' : ''}
             </div></div>
         </div>
         
-        <!-- 7. ÅEHÄ°R DAÄILIMI -->
+        <!-- 7. ŞEHİR DAĞILIMI -->
         <div class="accordion-section">
             <div class="accordion-header" onclick="toggleAccordion(this)">
-                <span class="acc-title">ğŸŒ Åehir DaÄŸÄ±lÄ±mÄ±</span>
-                <span class="acc-icon">â–¼</span>
+                <span class="acc-title">🌍 Şehir Dağılımı</span>
+                <span class="acc-icon">▼</span>
             </div>
             <div class="accordion-body"><div class="accordion-content">${cityHtml}</div></div>
         </div>
         
-        <!-- 8. CÄ°HAZ DAÄILIMI -->
+        <!-- 8. CİHAZ DAĞILIMI -->
         <div class="accordion-section">
             <div class="accordion-header" onclick="toggleAccordion(this)">
-                <span class="acc-title">ğŸ“± Cihaz DaÄŸÄ±lÄ±mÄ±</span>
-                <span class="acc-icon">â–¼</span>
+                <span class="acc-title">📱 Cihaz Dağılımı</span>
+                <span class="acc-icon">▼</span>
             </div>
             <div class="accordion-body"><div class="accordion-content">${deviceHtml}</div></div>
         </div>
@@ -860,17 +860,17 @@ function openPhonePopup(adId) {
         ${hashtagHtml ? `
         <div class="accordion-section">
             <div class="accordion-header" onclick="toggleAccordion(this)">
-                <span class="acc-title">#ï¸âƒ£ Hashtag'ler</span>
-                <span class="acc-icon">â–¼</span>
+                <span class="acc-title">#️⃣ Hashtag'ler</span>
+                <span class="acc-icon">▼</span>
             </div>
             <div class="accordion-body"><div class="accordion-content">${hashtagHtml}</div></div>
         </div>` : ''}
         
         <!-- Kaynak bilgisi -->
         <div class="source-info">
-            ğŸ“¡ Veri KaynaÄŸÄ±: <strong>${ad.dataSource}</strong>
-            ${ad.tags ? ' Â· ğŸ·ï¸ <strong>' + ad.tags + '</strong>' : ''}
-            <br>ğŸ• GÃ¼ncelleme: ${ad.createdAt}
+            📡 Veri Kaynağı: <strong>${ad.dataSource}</strong>
+            ${ad.tags ? ' · 🏷️ <strong>' + ad.tags + '</strong>' : ''}
+            <br>🕐 Güncelleme: ${ad.createdAt}
         </div>
         
         <div class="phone-action-row">

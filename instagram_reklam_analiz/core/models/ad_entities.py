@@ -48,6 +48,11 @@ class Campaign(models.Model):
     platform_campaign_id = models.CharField(max_length=255)
 
     name = models.CharField(max_length=255)
+    local_name = models.CharField(max_length=255, blank=True, default="")
+
+    @property
+    def display_name(self):
+        return self.local_name or self.name
     objective = models.CharField(max_length=50, choices=OBJECTIVE_CHOICES, default="UNKNOWN")
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="UNKNOWN")
 
@@ -300,6 +305,11 @@ class Ad(models.Model):
     ad_library_id = models.CharField(max_length=255, blank=True, null=True)
 
     name = models.CharField(max_length=255, blank=True, null=True)
+    local_name = models.CharField(max_length=255, blank=True, default="")
+
+    @property
+    def display_name(self):
+        return self.local_name or self.name or self.headline or f"Reklam #{self.pk}"
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="UNKNOWN")
 
     ad_format = models.CharField(max_length=100, blank=True, null=True)

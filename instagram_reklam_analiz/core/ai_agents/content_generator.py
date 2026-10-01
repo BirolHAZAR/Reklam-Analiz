@@ -1,7 +1,7 @@
 ﻿# core/ai_agents/content_generator.py
 """
-AI Destekli Ä°Ã§erik Ãœretici
-Instagram iÃ§in Ã¶zgÃ¼n iÃ§erik fikirleri, baÅŸlÄ±klar, hashtag'ler ve post ÅŸablonlarÄ± Ã¼retir
+AI Destekli İçerik Üretici
+Instagram için özgün içerik fikirleri, başlıklar, hashtag'ler ve post şablonları üretir
 """
 
 import json
@@ -21,20 +21,20 @@ except ImportError:
 
 class ContentGenerator:
     """
-    AI destekli iÃ§erik Ã¼retici sÄ±nÄ±fÄ±
-    Instagram gÃ¶nderileri iÃ§in yaratÄ±cÄ± iÃ§erik fikirleri Ã¼retir
+    AI destekli içerik üretici sınıfı
+    Instagram gönderileri için yaratıcı içerik fikirleri üretir
     """
     
     def __init__(self, api_key=None, user=None, organization=None):
         self.user = user
         self.organization = organization
-        """Ä°Ã§erik Ã¼reticiyi baÅŸlat"""
+        """İçerik üreticiyi başlat"""
         self.api_key = api_key or getattr(settings, 'OPENAI_API_KEY', None)
         self.use_openai = OPENAI_AVAILABLE and self.api_key
         self.client = OpenAI(api_key=self.api_key, timeout=60, max_retries=2) if self.use_openai else None
     
     def generate_post_ideas(self, niche, count=5, content_type='mixed'):
-        """Post fikirleri Ã¼ret"""
+        """Post fikirleri üret"""
         if self.use_openai:
             ideas = self._get_ai_post_ideas(niche, count, content_type)
         else:
@@ -56,7 +56,7 @@ class ContentGenerator:
         }
     
     def generate_caption(self, topic, tone='friendly', length='medium', include_hashtags=True):
-        """Caption Ã¼ret"""
+        """Caption üret"""
         if self.use_openai:
             caption = self._get_ai_caption(topic, tone, length, include_hashtags)
         else:
@@ -80,7 +80,7 @@ class ContentGenerator:
         }
     
     def generate_hashtags(self, niche, count=15):
-        """Hashtag Ã¶nerileri Ã¼ret"""
+        """Hashtag önerileri üret"""
         hashtags = self._get_hashtag_suggestions(niche, count)
         
         return {
@@ -93,7 +93,7 @@ class ContentGenerator:
         }
     
     def generate_post_template(self, content_type, niche):
-        """Post ÅŸablonu oluÅŸtur"""
+        """Post şablonu oluştur"""
         templates = {
             'reels': self._get_reels_template(niche),
             'carousel': self._get_carousel_template(niche),
@@ -108,7 +108,7 @@ class ContentGenerator:
         }
     
     def generate_content_calendar(self, niche, days=7):
-        """HaftalÄ±k iÃ§erik takvimi oluÅŸtur"""
+        """Haftalık içerik takvimi oluştur"""
         calendar = []
         start_date = datetime.now()
         
@@ -123,7 +123,7 @@ class ContentGenerator:
                 'content_type': content_types[i % len(content_types)],
                 'topic': topics[i] if i < len(topics) else f"{niche} ile ilgili ipucu",
                 'best_time': self._get_best_time(date.strftime('%A')),
-                'status': 'planlandÄ±'
+                'status': 'planlandı'
             })
         
         return {
@@ -135,12 +135,12 @@ class ContentGenerator:
         }
     
     def generate_engagement_questions(self, topic, count=5):
-        """EtkileÅŸim sorularÄ± Ã¼ret"""
+        """Etkileşim soruları üret"""
         questions = [
-            f"Senin iÃ§in {topic} denince akla ne geliyor?",
-            f"{topic} ile ilgili en sevdiÄŸin anÄ± nedir?",
-            f"{topic} hakkÄ±nda en Ã§ok merak ettiÄŸin ÅŸey ne?",
-            f"Bu {topic} konusunda bir uzmana sorsan ne sorardÄ±n?",
+            f"Senin için {topic} denince akla ne geliyor?",
+            f"{topic} ile ilgili en sevdiğin anı nedir?",
+            f"{topic} hakkında en çok merak ettiğin şey ne?",
+            f"Bu {topic} konusunda bir uzmana sorsan ne sorardın?",
             f"{topic} ile ilgili bir ipucu versen ne verirdin?"
         ]
         
@@ -152,19 +152,19 @@ class ContentGenerator:
         }
     
     def _get_ai_post_ideas(self, niche, count, content_type):
-        """AI ile post fikirleri Ã¼ret"""
+        """AI ile post fikirleri üret"""
         try:
             prompt = f"""
-{niche} niÅŸi iÃ§in Instagram {content_type} iÃ§erik fikirleri Ã¼ret.
-{count} farklÄ± fikir Ã¼ret.
-Her fikir ÅŸunlarÄ± iÃ§ersin:
-- BaÅŸlÄ±k
-- Ä°Ã§erik aÃ§Ä±klamasÄ±
+{niche} nişi için Instagram {content_type} içerik fikirleri üret.
+{count} farklı fikir üret.
+Her fikir şunları içersin:
+- Başlık
+- İçerik açıklaması
 - Hedef kitle
-- Ã–nerilen sÃ¼re (reels iÃ§in) veya gÃ¶rsel sayÄ±sÄ± (carousel iÃ§in)
+- Önerilen süre (reels için) veya görsel sayısı (carousel için)
 
-Fikirler Ã¶zgÃ¼n, trend ve etkileÅŸim odaklÄ± olsun.
-JSON formatÄ±nda cevap ver.
+Fikirler özgün, trend ve etkileşim odaklı olsun.
+JSON formatında cevap ver.
 """
             from core.services.ai_gateway import create_chat_completion
             response = create_chat_completion(
@@ -173,7 +173,7 @@ JSON formatÄ±nda cevap ver.
                 reference="content_generator.post_ideas",
                 model=getattr(settings, "OPENAI_MODEL", "gpt-4o"),
                 messages=[
-                    {"role": "system", "content": "Sen kreatif bir iÃ§erik stratejistisin. Viral olabilecek iÃ§erik fikirleri Ã¼retiyorsun."},
+                    {"role": "system", "content": "Sen kreatif bir içerik stratejistisin. Viral olabilecek içerik fikirleri üretiyorsun."},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=800,
@@ -181,11 +181,11 @@ JSON formatÄ±nda cevap ver.
             )
             return self._parse_ai_ideas(response.choices[0].message.content, count)
         except Exception as e:
-            print(f"AI fikir Ã¼retme hatasÄ±: {str(e)}")
+            print(f"AI fikir üretme hatası: {str(e)}")
             return []
     
     def _get_ai_caption(self, topic, tone, length, include_hashtags):
-        """AI ile caption Ã¼ret"""
+        """AI ile caption üret"""
         try:
             length_map = {'short': 50, 'medium': 150, 'long': 300}
             max_length = length_map.get(length, 150)
@@ -195,8 +195,8 @@ Konu: {topic}
 Ton: {tone}
 Maksimum karakter: {max_length}
 
-Bu konu iÃ§in Instagram caption'Ä± yaz.
-Caption dikkat Ã§ekici, samimi ve harekete geÃ§irici olsun.
+Bu konu için Instagram caption'ı yaz.
+Caption dikkat çekici, samimi ve harekete geçirici olsun.
 {'Sonuna 5-10 ilgili hashtag ekle.' if include_hashtags else ''}
 """
             from core.services.ai_gateway import create_chat_completion
@@ -206,7 +206,7 @@ Caption dikkat Ã§ekici, samimi ve harekete geÃ§irici olsun.
                 reference="content_generator.caption",
                 model=getattr(settings, "OPENAI_MODEL", "gpt-4o"),
                 messages=[
-                    {"role": "system", "content": "Sen bir sosyal medya uzmanÄ±sÄ±n. Etkileyici caption'lar yazÄ±yorsun."},
+                    {"role": "system", "content": "Sen bir sosyal medya uzmanısın. Etkileyici caption'lar yazıyorsun."},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=400,
@@ -217,36 +217,36 @@ Caption dikkat Ã§ekici, samimi ve harekete geÃ§irici olsun.
             
             return {'text': caption_text, 'hashtags': hashtags}
         except Exception as e:
-            print(f"AI caption hatasÄ±: {str(e)}")
+            print(f"AI caption hatası: {str(e)}")
             return {'text': '', 'hashtags': []}
     
     def _get_hashtag_suggestions(self, niche, count):
-        """Hashtag Ã¶nerileri"""
+        """Hashtag önerileri"""
         hashtag_db = {
             'moda': {
-                'popular': ['#moda', '#stil', '#outfit', '#streetstyle', '#kombin', '#giyim', '#modatrendleri', '#ÅŸÄ±k'],
-                'niche': ['#kapsÃ¼lgardÄ±rop', '#sÃ¼rdÃ¼rÃ¼lebilirmoda', '#vintage', '#secondhand', '#slowfashion'],
-                'brand': ['#markaadÄ±', '#kampanya', '#indirim']
+                'popular': ['#moda', '#stil', '#outfit', '#streetstyle', '#kombin', '#giyim', '#modatrendleri', '#şık'],
+                'niche': ['#kapsülgardırop', '#sürdürülebilirmoda', '#vintage', '#secondhand', '#slowfashion'],
+                'brand': ['#markaadı', '#kampanya', '#indirim']
             },
             'yemek': {
-                'popular': ['#yemek', '#tarif', '#lezzet', '#pratiktarifler', '#mutfak', '#evyemekleri', '#saÄŸlÄ±klÄ±beslenme'],
-                'niche': ['#vegan', '#glutensiz', '#mealprep', '#fitrehber', '#ÅŸefÃ¶nerisi'],
-                'brand': ['#markaadÄ±', '#lezzettÃ¼yolarÄ±', '#pratikÃ§Ã¶zÃ¼mler']
+                'popular': ['#yemek', '#tarif', '#lezzet', '#pratiktarifler', '#mutfak', '#evyemekleri', '#sağlıklıbeslenme'],
+                'niche': ['#vegan', '#glutensiz', '#mealprep', '#fitrehber', '#şefönerisi'],
+                'brand': ['#markaadı', '#lezzettüyoları', '#pratikçözümler']
             },
             'seyahat': {
                 'popular': ['#seyahat', '#gezi', '#tatil', '#kesfet', '#gezgin', '#travelgram', '#wanderlust'],
-                'niche': ['#saklÄ±cennet', '#bÃ¼tÃ§eliseyahat', '#solotravel', '#roadtrip', '#yereldeneyimler'],
-                'brand': ['#markaadÄ±', '#gezirehberi', '#kampanyaseyahat']
+                'niche': ['#saklıcennet', '#bütçeliseyahat', '#solotravel', '#roadtrip', '#yereldeneyimler'],
+                'brand': ['#markaadı', '#gezirehberi', '#kampanyaseyahat']
             },
             'teknoloji': {
-                'popular': ['#teknoloji', '#yapayzeka', '#gadget', '#tekno', '#inovasyon', '#dijitaldÃ¶nÃ¼ÅŸÃ¼m'],
-                'niche': ['#verimlilik', '#yazÄ±lÄ±m', '#donanÄ±m', '#sibergÃ¼venlik', '#bulutbiliÅŸim'],
-                'brand': ['#markaadÄ±', '#teknolojihaberleri', '#Ã¼rÃ¼nincelemesi']
+                'popular': ['#teknoloji', '#yapayzeka', '#gadget', '#tekno', '#inovasyon', '#dijitaldönüşüm'],
+                'niche': ['#verimlilik', '#yazılım', '#donanım', '#sibergüvenlik', '#bulutbilişim'],
+                'brand': ['#markaadı', '#teknolojihaberleri', '#ürünincelemesi']
             },
             'fitness': {
-                'popular': ['#fitness', '#spor', '#saÄŸlÄ±klÄ±yaÅŸam', '#egzersiz', '#fit', '#motivasyon', '#wellness'],
-                'niche': ['#evdespor', '#pilates', '#yoga', '#kardiyo', '#aÄŸÄ±rlÄ±kÃ§alÄ±ÅŸmasÄ±'],
-                'brand': ['#markaadÄ±', '#fitrehber', '#saÄŸlÄ±klÄ±ipuÃ§larÄ±']
+                'popular': ['#fitness', '#spor', '#sağlıklıyaşam', '#egzersiz', '#fit', '#motivasyon', '#wellness'],
+                'niche': ['#evdespor', '#pilates', '#yoga', '#kardiyo', '#ağırlıkçalışması'],
+                'brand': ['#markaadı', '#fitrehber', '#sağlıklıipuçları']
             }
         }
         
@@ -258,68 +258,68 @@ Caption dikkat Ã§ekici, samimi ve harekete geÃ§irici olsun.
         }
     
     def _get_reels_template(self, niche):
-        """Reels ÅŸablonu"""
+        """Reels şablonu"""
         return {
-            'title': f'{niche.capitalize()} Reels Ä°Ã§erik Åablonu',
+            'title': f'{niche.capitalize()} Reels İçerik Şablonu',
             'duration': '30-60 saniye',
             'structure': [
-                {'time': '0-3 sn', 'content': 'Dikkat Ã§ekici aÃ§Ä±lÄ±ÅŸ (soru veya ilginÃ§ gÃ¶rsel)'},
-                {'time': '3-10 sn', 'content': 'Ana mesajÄ±n Ã¶zeti'},
-                {'time': '10-25 sn', 'content': 'DetaylÄ± aÃ§Ä±klama veya gÃ¶sterim'},
-                {'time': '25-30 sn', 'content': 'Harekete geÃ§irici mesaj (CTA)'}
+                {'time': '0-3 sn', 'content': 'Dikkat çekici açılış (soru veya ilginç görsel)'},
+                {'time': '3-10 sn', 'content': 'Ana mesajın özeti'},
+                {'time': '10-25 sn', 'content': 'Detaylı açıklama veya gösterim'},
+                {'time': '25-30 sn', 'content': 'Harekete geçirici mesaj (CTA)'}
             ],
-            'music_suggestion': 'Trend ve enerjik mÃ¼zik',
-            'caption_suggestion': 'KÄ±sa ve merak uyandÄ±rÄ±cÄ±, soru ile bitir'
+            'music_suggestion': 'Trend ve enerjik müzik',
+            'caption_suggestion': 'Kısa ve merak uyandırıcı, soru ile bitir'
         }
     
     def _get_carousel_template(self, niche):
-        """Carousel ÅŸablonu"""
+        """Carousel şablonu"""
         return {
-            'title': f'{niche.capitalize()} Karousel Ä°Ã§erik Åablonu',
+            'title': f'{niche.capitalize()} Karousel İçerik Şablonu',
             'slide_count': 5,
             'structure': [
-                {'slide': 1, 'content': 'Kapak: Dikkat Ã§ekici baÅŸlÄ±k ve gÃ¶rsel'},
-                {'slide': 2, 'content': 'GiriÅŸ: Konunun Ã¶zeti'},
-                {'slide': 3, 'content': 'Ana iÃ§erik: Maddeler halinde bilgiler'},
-                {'slide': 4, 'content': 'Ã–rnekler veya gÃ¶rseller'},
-                {'slide': 5, 'content': 'Ã–zet ve CTA (yorum, kaydet, paylaÅŸ)'}
+                {'slide': 1, 'content': 'Kapak: Dikkat çekici başlık ve görsel'},
+                {'slide': 2, 'content': 'Giriş: Konunun özeti'},
+                {'slide': 3, 'content': 'Ana içerik: Maddeler halinde bilgiler'},
+                {'slide': 4, 'content': 'Örnekler veya görseller'},
+                {'slide': 5, 'content': 'Özet ve CTA (yorum, kaydet, paylaş)'}
             ],
-            'caption_suggestion': 'Uzun ve bilgilendirici, kaydetmeye teÅŸvik eden mesaj'
+            'caption_suggestion': 'Uzun ve bilgilendirici, kaydetmeye teşvik eden mesaj'
         }
     
     def _get_image_template(self, niche):
-        """GÃ¶rsel ÅŸablonu"""
+        """Görsel şablonu"""
         return {
-            'title': f'{niche.capitalize()} GÃ¶rsel Ä°Ã§erik Åablonu',
+            'title': f'{niche.capitalize()} Görsel İçerik Şablonu',
             'design_tips': [
-                'YÃ¼ksek kontrast kullan',
-                'Metin gÃ¶rselin %20\'sinden az olsun',
+                'Yüksek kontrast kullan',
+                'Metin görselin %20\'sinden az olsun',
                 'Marka renklerini kullan',
-                'Sade ve anlaÅŸÄ±lÄ±r tasarÄ±m'
+                'Sade ve anlaşılır tasarım'
             ],
-            'caption_suggestion': 'Bilgilendirici ve deÄŸer katan, soru sor'
+            'caption_suggestion': 'Bilgilendirici ve değer katan, soru sor'
         }
     
     def _get_story_template(self, niche):
-        """Story ÅŸablonu"""
+        """Story şablonu"""
         return {
-            'title': f'{niche.capitalize()} Story Ä°Ã§erik Åablonu',
-            'interactive_elements': ['Anket', 'Soru kutusu', 'KaydÄ±rma Ã§ubuÄŸu', 'BaÄŸlantÄ±'],
+            'title': f'{niche.capitalize()} Story İçerik Şablonu',
+            'interactive_elements': ['Anket', 'Soru kutusu', 'Kaydırma çubuğu', 'Bağlantı'],
             'duration': '5-15 saniye',
-            'suggestion': 'Arka arkaya 3-5 story paylaÅŸarak hikaye anlat'
+            'suggestion': 'Arka arkaya 3-5 story paylaşarak hikaye anlat'
         }
     
     def _get_daily_topics(self, niche, days):
-        """GÃ¼nlÃ¼k konular"""
+        """Günlük konular"""
         topics = {
-            'moda': ['Kombin Ã¶nerileri', 'Trend renkler', 'AlÄ±ÅŸveriÅŸ ipuÃ§larÄ±', 'KÄ±yafet bakÄ±mÄ±', 'Sezon stilleri', 'Aksesuar seÃ§imi', 'KapsÃ¼l gardÄ±rop'],
-            'yemek': ['Pratik tarifler', 'SaÄŸlÄ±klÄ± beslenme', 'Malzeme tÃ¼yolarÄ±', 'Sunum Ã¶nerileri', 'Mevsimsel yemekler', 'Diyet tarifleri', 'Mutfak dÃ¼zeni'],
-            'seyahat': ['Seyahat planlamasÄ±', 'BÃ¼tÃ§eli rotalar', 'Paketleme ipuÃ§larÄ±', 'Yerel lezzetler', 'Konaklama Ã¶nerileri', 'Aktiviteler', 'GÃ¼venli seyahat']
+            'moda': ['Kombin önerileri', 'Trend renkler', 'Alışveriş ipuçları', 'Kıyafet bakımı', 'Sezon stilleri', 'Aksesuar seçimi', 'Kapsül gardırop'],
+            'yemek': ['Pratik tarifler', 'Sağlıklı beslenme', 'Malzeme tüyoları', 'Sunum önerileri', 'Mevsimsel yemekler', 'Diyet tarifleri', 'Mutfak düzeni'],
+            'seyahat': ['Seyahat planlaması', 'Bütçeli rotalar', 'Paketleme ipuçları', 'Yerel lezzetler', 'Konaklama önerileri', 'Aktiviteler', 'Güvenli seyahat']
         }
         return topics.get(niche, topics['moda'])[:days]
     
     def _get_best_time(self, day):
-        """En iyi paylaÅŸÄ±m zamanÄ±"""
+        """En iyi paylaşım zamanı"""
         times = {
             'Monday': '19:00',
             'Tuesday': '20:00',
@@ -332,35 +332,35 @@ Caption dikkat Ã§ekici, samimi ve harekete geÃ§irici olsun.
         return times.get(day, '19:00')
     
     def _get_calendar_recommendations(self, niche):
-        """Takvim Ã¶nerileri"""
+        """Takvim önerileri"""
         return [
-            f"Haftada 3-4 {niche} iÃ§eriÄŸi paylaÅŸÄ±n",
-            "PerÅŸembe ve Cuma gÃ¼nleri akÅŸam saatlerinde paylaÅŸÄ±m yapÄ±n",
-            "Reels videolarÄ±na aÄŸÄ±rlÄ±k verin",
-            "TakipÃ§ilerinize sorular sorarak etkileÅŸimi artÄ±rÄ±n"
+            f"Haftada 3-4 {niche} içeriği paylaşın",
+            "Perşembe ve Cuma günleri akşam saatlerinde paylaşım yapın",
+            "Reels videolarına ağırlık verin",
+            "Takipçilerinize sorular sorarak etkileşimi artırın"
         ]
     
     def _generate_poll_options(self, topic):
-        """Anket seÃ§enekleri oluÅŸtur"""
+        """Anket seçenekleri oluştur"""
         return [
-            f"{topic} ile ilgili en sevdiÄŸim ÅŸey",
-            f"{topic} Ã¶ÄŸrenmek istediÄŸim konu",
-            f"{topic} hakkÄ±nda bir ipucu"
+            f"{topic} ile ilgili en sevdiğim şey",
+            f"{topic} öğrenmek istediğim konu",
+            f"{topic} hakkında bir ipucu"
         ]
     
     def _parse_ai_ideas(self, response_text, count):
-        """AI yanÄ±tÄ±nÄ± parse et"""
+        """AI yanıtını parse et"""
         try:
             json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
             if json_match:
                 ideas = json.loads(json_match.group())
                 return ideas[:count]
         except Exception as e:
-            print(f"JSON parse hatasÄ±: {str(e)}")
+            print(f"JSON parse hatası: {str(e)}")
         return []
     
     def _extract_hashtags(self, text):
-        """Metinden hashtag'leri Ã§Ä±kar"""
+        """Metinden hashtag'leri çıkar"""
         hashtags = re.findall(r'#\w+', text)
         return hashtags[:10]
 

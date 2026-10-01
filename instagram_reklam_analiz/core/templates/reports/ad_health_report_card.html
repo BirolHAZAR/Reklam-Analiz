@@ -58,7 +58,7 @@
               <label for="healthCardAgencyClient"><i class="fas fa-building-user"></i> Ajans Müşterisi</label>
               <select id="healthCardAgencyClient" name="agency_client" onchange="if(this.form.elements.ad){this.form.elements.ad.value='';}this.form.submit()">
                 <option value=""{% if not agency_scope.selected_client %} selected{% endif %}>Tüm müşteriler</option>
-                {% for client in agency_scope.clients %}<option value="{{ client.id }}"{% if agency_scope.selected_client.id == client.id %} selected{% endif %}>{{ client.organization.name }} · {{ client.name }}</option>{% endfor %}
+                {% for client in agency_scope.clients %}<option value="{{ client.id }}"{% if agency_scope.selected_client.id == client.id %} selected{% endif %}>{{ client.name }}</option>{% endfor %}
               </select>
               <small>{% if agency_scope.selected_client %}Yalnız {{ agency_scope.selected_client.name }} reklamları gösteriliyor.{% else %}Ajans geneli gösteriliyor.{% endif %}</small>
             </div>
@@ -79,8 +79,8 @@
         <div class="rc-ad-list">
           {% for ad in ads %}
           <a class="rc-ad-option {% if selected_ad and ad.id == selected_ad.id %}active{% endif %}" href="?ad={{ ad.id }}&gun={{ days }}{% if agency_scope.selected_client %}&agency_client={{ agency_scope.selected_client.id }}{% endif %}">
-            <strong>{{ ad.name|default:ad.headline|default:"Reklam" }}</strong>
-            <span>{{ ad.platform_account.platform.name|default:"Platform" }} · {{ ad.platform_account.account_name|default:ad.platform_account.account_id|default:"Hesap" }}</span>
+            <strong>{{ ad.display_name|default:ad.headline|default:"Reklam" }}</strong>
+            <span>{{ ad.platform_account.platform.name|default:"Platform" }} · {{ ad.platform_account.display_name|default:ad.platform_account.account_name|default:ad.platform_account.account_id|default:"Hesap" }}</span>
           </a>
           {% empty %}
           <div class="rc-empty">Henüz karne oluşturulacak reklam bulunamadı.</div>
@@ -112,7 +112,7 @@
             <section class="rc-ad-top">
               <div class="rc-media">{% if image_url %}<img src="{{ image_url }}" alt="Reklam görseli">{% else %}<i class="fas fa-rectangle-ad"></i>{% endif %}</div>
               <div>
-                <h3 class="rc-ad-name">{{ selected_ad.name|default:selected_ad.headline|default:"Reklam" }}</h3>
+                <h3 class="rc-ad-name">{{ selected_ad.display_name|default:selected_ad.headline|default:"Reklam" }}</h3>
                 <div class="rc-meta-grid">
                   <div class="rc-meta"><small>Platform</small><b>{{ platform }}</b></div>
                   <div class="rc-meta"><small>Hesap</small><b>{{ account }}</b></div>

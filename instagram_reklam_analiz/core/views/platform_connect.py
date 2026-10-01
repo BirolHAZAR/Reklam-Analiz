@@ -99,6 +99,9 @@ def platform_account_update(request, account_id):
         user=request.user,
     )
     account_name = request.POST.get("account_name", "").strip()
+    if len(account_name) > 200:
+        messages.error(request, "Hesap adı en fazla 200 karakter olabilir.")
+        return redirect("platform_connections")
     external_account_id = request.POST.get("account_id", "").strip()
     connection_id = request.POST.get("connection", "").strip()
 
@@ -121,18 +124,18 @@ def platform_account_update(request, account_id):
             platform=account.platform,
         )
 
-    account.account_name = account_name
+    account.local_name = account_name
     account.account_id = external_account_id
     account.connection = connection
     account.is_active = request.POST.get("is_active") == "on"
     try:
         account.save(update_fields=[
-            "account_name", "account_id", "connection", "is_active", "updated_at"
+            "local_name", "account_id", "connection", "is_active", "updated_at"
         ])
     except IntegrityError:
         messages.error(request, "Bu Platform ID aynı platformda zaten kayıtlı.")
     else:
-        messages.success(request, f"{account.account_name or account.account_id} hesabı güncellendi.")
+        messages.success(request, f"{account.display_name} hesabı güncellendi.")
     return redirect("platform_connections")
 
 

@@ -1,5 +1,37 @@
 # Platform entegrasyonları
 
+## Instagram Login: canlıya çıkış hazırlığı
+
+Üye akışı: Hesap Ekle → Instagram'ı bağla → Instagram izni → bağlı hesaplar.
+Ajans üyeleri bağlantıdan önce müşterisini seçer. Üyeden token, uygulama kimliği
+veya gizli anahtar istenmez. Instagram bağlantısı organik profil ve istatistik
+okuma içindir; reklam verileri Meta Ads bağlantısından alınır.
+
+Canlı sunucuda aşağıdaki tek seferlik yönetici ayarları gerekir:
+
+- Migration'ları uygulayın; bu çalışma grubunda `0078_local_display_names` de vardır.
+- Instagram uygulama kimliği ve gizli anahtarını canlı admin panelindeki Instagram
+  kaydına girin ve bağlantıyı etkinleştirin. Facebook App Secret ile karıştırmayın.
+- Dönüş adresini `https://reklamanaliz.net/connect/instagram/callback/` yapın.
+  Meta Instagram Business Login ayarında da aynı adresi kaydedin.
+  Yerel veritabanındaki `127.0.0.1:8443` ayarı canlıya kopyalanmamalıdır.
+- Ortam değişkenleri kullanılacaksa `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`,
+  `INSTAGRAM_REDIRECT_URI` tanımlayın. Admin kaydı varsa ortam değişkenlerinden
+  önceliklidir; kapalı bir admin kaydı ortam değişkenleriyle aşılmaz.
+- Canlı ayarlarla `python manage.py check_instagram_setup` çalıştırın.
+  Bu komut değişiklik yapmaz, anahtarları göstermez ve Meta'ya istek göndermez.
+- Web/Celery süreçlerini güncelleyin ve mevcut platform token bakım görevinin
+  çalıştığını doğrulayın. Instagram Login tokenları Instagram üzerinden yenilenir.
+- Meta incelemesinde `instagram_business_basic` ve
+  `instagram_business_manage_insights` izinlerini tamamlayın. Uygulama modunu
+  ve dış kullanıcı erişimini Meta onayına göre açın.
+- Gerçek profesyonel test hesabıyla izin → dönüş → hesap kaydı → organik veri
+  okuma akışını, ardından rolü olmayan bir aboneyle bağlantıyı doğrulayın.
+
+Otomatik testler sağlayıcı yanıtlarını taklit ederek akışı ve hata durumlarını
+sınar; gerçek Meta onayının veya uçtan uca bağlantı testinin yerine geçmez.
+Yerel `start_dev_https.py` ve yerel sertifikalar canlı dağıtımda kullanılmaz.
+
 ## Sekiz platform için merkezi admin ayarları
 
 `/admin/core/integrationapplication/` ekranında Meta, Google Ads, Instagram,
@@ -11,8 +43,8 @@ genel CSV dışa aktarma ve toplu etkinleştirme eylemleri kapalıdır.
 
 `core.0077_expand_platform_application_settings` migration'ı yerelde uygulandı;
 canlıya dağıtımda `python manage.py migrate --noinput` çalıştırılmalıdır.
-Google Ads ve Meta mevcut OAuth servislerini kullanır. Instagram ayarı mevcut
-token bakım servisinin uygulama kimliği/gizli anahtar kaynağıdır; kayıt yoksa
+Google Ads, Meta ve Instagram OAuth servislerini kullanır. Instagram ayarı
+giriş ve token bakım servisinin uygulama kimliği/gizli anahtar kaynağıdır; kayıt yoksa
 ortam değişkenleri kullanılır. Diğer beş platformun uygulama OAuth akışı bu
 çalışmayla eklenmedi: ayarlar hazırlık olarak saklanır ve etkinleştirme engellenir.
 Çalışmayan callback adresleri otomatik üretilmez. Sosyal oturum açma ayarları

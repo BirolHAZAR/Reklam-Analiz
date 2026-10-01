@@ -73,6 +73,53 @@ class AdsIntegrationTests(TestCase):
         self.assertGreater(len(params["state"][0]), 30)
         self.assertNotIn("secret", result.url)
 
+    @patch("core.views.ads_integrations._client", side_effect=api.IntegrationError("Önce hesabın bağlanacağı ajans müşterisini seçin."))
+    def test_connect_error_is_visible_after_redirect(self, client_scope):
+        response = self.client.post(reverse("integration_connect", args=["facebook"]), follow=True)
+        self.assertContains(response, "Önce hesabın bağlanacağı ajans müşterisini seçin.")
+        self.assertContains(response, 'role="alert"')
+
+    def test_common_connection_screen_handles_agency_with_and_without_clients(self):
+        from core.models import Organization, AgencyClient
+        self.user.is_superuser = True
+        self.user.save()
+        url = reverse("hesap_ekle")
+        response = self.client.get(url)
+        self.assertTemplateUsed(response, "hesap_ekle.html")
+        self.assertNotContains(response, 'name="agency_client"')
+        organization = Organization.objects.create(owner=self.user, name="Agency")
+        response = self.client.get(url)
+        self.assertTemplateUsed(response, "hesap_ekle.html")
+        self.assertContains(response, "Hesap bağlamadan önce bir müşteri/marka ekleyin.")
+        brand = AgencyClient.objects.create(organization=organization, name="Brand")
+        response = self.client.get(url, {"agency_client": brand.pk})
+        self.assertTemplateUsed(response, "hesap_ekle.html")
+        self.assertContains(response, f'value="{brand.pk}" selected')
+        self.assertContains(response, 'name="agency_client" required')
+        legacy = reverse("agency_client_platform_account_create", args=[organization.pk, brand.pk])
+        self.assertRedirects(self.client.get(legacy), url + f"?agency_client={brand.pk}", fetch_redirect_response=False)
+
+    @patch("core.views.hesap_ekle._save_verified_instagram_accounts", return_value=[])
+    def test_common_instagram_form_validates_agency_client_before_provider_call(self, save):
+        from core.models import Organization, AgencyClient
+        self.user.is_superuser = True
+        self.user.save()
+        organization = Organization.objects.create(owner=self.user, name="Agency")
+        brand = AgencyClient.objects.create(organization=organization, name="Brand")
+        url = reverse("hesap_ekle")
+        data = {"platform": "instagram", "access_token": "private-token"}
+        response = self.client.post(url, data, follow=True)
+        self.assertContains(response, "Önce hesabın bağlanacağı ajans müşterisini seçin.")
+        save.assert_not_called()
+        response = self.client.post(url, {**data, "agency_client": brand.pk})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(save.call_args.kwargs["agency_client"], brand)
+
+    @patch("core.views.hesap_ekle._save_verified_instagram_accounts", return_value=[])
+    def test_individual_instagram_form_needs_no_client(self, save):
+        self.client.post(reverse("hesap_ekle"), {"platform": "instagram", "access_token": "private-token"})
+        self.assertIsNone(save.call_args.kwargs["agency_client"])
+
     @patch("core.services.ads_integrations.exchange_code")
     def test_wrong_expired_or_cross_user_state_never_exchanges_code(self, exchange):
         for overrides, state in (({}, "wrong"), ({"created": 0}, "nonce"), ({"user": self.other.pk}, "nonce")):
