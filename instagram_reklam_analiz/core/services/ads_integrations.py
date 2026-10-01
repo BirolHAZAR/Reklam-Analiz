@@ -43,7 +43,8 @@ def application_values(provider):
     else:
         values = [getattr(settings, name, "") or "" for name in names]
     values = [value.strip() if isinstance(value, str) else value for value in values]
-    if not all(values):
+    required_values = values[:3] if provider == "google_ads" else values
+    if not all(required_values):
         raise IntegrationError("Platform bağlantısı sunucuda henüz yapılandırılmamış. Yöneticiyle iletişime geçin.")
     candidate = IntegrationApplication(
         provider=provider, client_id=values[0], client_secret=values[1],
@@ -185,7 +186,13 @@ def connection_token(connection):
 
 
 def _google_headers(token, manager_id=""):
-    headers = {"Authorization": f"Bearer {token}", "developer-token": application_values("google_ads")[3]}
+    developer_token = application_values("google_ads")[3]
+    headers = {"Authorization": f"Bearer {token}"}
+    # Google sunset developer tokens on 2026-09-09. Existing migrated
+    # projects may keep sending one for compatibility, while new projects
+    # are authorized by their Google Cloud project and omit this header.
+    if developer_token:
+        headers["developer-token"] = developer_token
     if manager_id:
         headers["login-customer-id"] = str(manager_id)
     return headers

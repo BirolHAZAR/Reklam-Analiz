@@ -33,7 +33,8 @@ class IntegrationApplicationForm(forms.ModelForm):
             self.fields["client_id"].label = "Google OAuth İstemci Kimliği"
             self.fields["client_id"].help_text = "Google Cloud → Google Auth Platform → Clients → Web application. .apps.googleusercontent.com ile biter."
             self.fields["client_secret"].label = "Google OAuth İstemci Gizli Anahtarı"
-            self.fields["developer_token"].help_text = "Google Ads yönetici hesabı → API Merkezi. OAuth gizli anahtarından ayrıdır. Şifreli saklanır; boş bırakmak kayıtlı değeri korur."
+            self.fields["developer_token"].label = "Eski Google Ads geliştirici tokenı (isteğe bağlı)"
+            self.fields["developer_token"].help_text = "9 Eylül 2026 öncesinden aktarılmış bir tokenınız varsa geriye dönük uyumluluk için saklayabilirsiniz. Yeni Google Cloud projelerinde boş bırakın."
         self.fields["redirect_uri"].help_text = "Bu adresi sağlayıcının izin verilen OAuth dönüş adreslerine de birebir ekleyin. localhost ile 127.0.0.1 farklı oturumlardır."
         if spec:
             self.fields["client_id"].label = spec["client_label"]
@@ -76,8 +77,6 @@ class IntegrationApplicationAdmin(admin.ModelAdmin):
         required = [obj.client_id, obj.client_secret]
         if spec["mode"] == "oauth":
             required.append(obj.redirect_uri)
-        if obj.provider == "google_ads":
-            required.append(obj.developer_token)
         if not all(required):
             return "Gerekli bilgiler eksik"
         return "Ayar etkin — gerçek erişim ayrıca doğrulanmalı" if obj.enabled else "Bilgiler kayıtlı — devre dışı"

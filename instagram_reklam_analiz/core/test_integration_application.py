@@ -23,6 +23,13 @@ class IntegrationApplicationTests(TestCase):
         self.assertEqual(application_values("google_ads")[1], self.data["client_secret"])
         self.assertEqual(application_values("google_ads")[3], self.data["developer_token"])
 
+    def test_new_google_cloud_project_does_not_require_legacy_developer_token(self):
+        self.application.developer_token = ""
+        self.application.full_clean()
+        self.application.save()
+
+        self.assertEqual(application_values("google_ads")[3], "")
+
     @override_settings(GOOGLE_ADS_CLIENT_ID="fallback", GOOGLE_ADS_CLIENT_SECRET="fallback", GOOGLE_ADS_DEVELOPER_TOKEN="fallback")
     def test_disabled_application_cannot_fall_back_to_environment(self):
         self.application.enabled = False

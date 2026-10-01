@@ -213,6 +213,13 @@ class AdsIntegrationTests(TestCase):
         self.assertEqual(request.call_args.kwargs["headers"]["login-customer-id"], "111")
         self.assertEqual(request.call_args.kwargs["json"]["pageToken"], "next")
 
+    @patch("core.services.ads_integrations.application_values", return_value=["client", "secret", "https://reklamanaliz.net/connect/google-ads/callback/", ""])
+    def test_google_headers_omit_legacy_developer_token_for_new_projects(self, values):
+        headers = api._google_headers("access-token", "111")
+
+        self.assertNotIn("developer-token", headers)
+        self.assertEqual(headers["login-customer-id"], "111")
+
     @patch("core.services.ads_integrations._request")
     def test_meta_uses_ad_accounts_and_fixed_origin_pagination(self, request):
         request.side_effect = [{"data": [{"id": "act_1", "account_status": 1}], "paging": {"next": "https://untrusted.invalid/?token=secret", "cursors": {"after": "cursor"}}}, {"data": [{"id": "act_2", "account_status": 2}]}]

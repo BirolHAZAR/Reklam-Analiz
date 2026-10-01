@@ -40,8 +40,6 @@ class IntegrationApplication(models.Model):
             required = ["client_id", "client_secret"]
             if spec["mode"] == "oauth":
                 required.append("redirect_uri")
-            if self.provider == "google_ads":
-                required.append("developer_token")
             missing = {name: "Bağlantıyı etkinleştirmek için gereklidir." for name in required if not (getattr(self, name, "") or "").strip()}
             if missing:
                 raise ValidationError(missing)
