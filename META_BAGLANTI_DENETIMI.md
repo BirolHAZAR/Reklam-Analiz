@@ -1,5 +1,9 @@
 # Instagram ve Facebook bağlantı denetimi — 2 Ekim 2026
 
+Güncelleme: Canlı SSH denetimi ve düzeltmeler sonradan tamamlandı. Güncel sonuçlar
+[canlı denetim raporunda](CANLI_META_VE_WORKER_RAPORU.md) bulunur. Aşağıdaki metin
+ilk, kaynak kod üzerinden yapılan incelemeyi anlatır.
+
 Bu inceleme kaynak kod ve izole test veritabanı üzerinde yapıldı. Canlı sunucuya
 dağıtım yapılmadı; canlı tokenların geçerliliği ve çalışan worker/beat süreçleri
 bu ortamdan doğrulanmadı. Mevcut uygulama kimlikleri, secret değerleri, dönüş

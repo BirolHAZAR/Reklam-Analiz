@@ -114,6 +114,8 @@ LEGAL_DOCUMENTS = [
             ("5. Kontrolünüz", "Bağlı platform erişimi kaldırılabilir; hesap bilgileri düzeltilebilir; pazarlama tercihleri değiştirilebilir; erişim, dışa aktarma ve silme talepleri [[KVKK_EMAIL]] adresine iletilebilir."),
             ("6. Güvenlik ve saklama", "Erişim kontrolü, şifreleme, günlükleme, yedekleme ve olay müdahale önlemleri uygulanır. Veriler yalnızca amaç ve yasal yükümlülük için gerekli süre boyunca saklanır; ayrıntılar Veri Saklama ve Veri Silme politikalarındadır."),
             ("7. İletişim", "Gizlilik soruları ve başvurular için: [[COMPANY_NAME]], [[ADDRESS]], [[KVKK_EMAIL]]."),
+            ("8. YouTube ve Google Analytics 4 verileri", "YouTube ve Google Analytics 4 bağlantıları, kullanıcının resmi Google OAuth 2.0 izin ekranında verdiği yetkiyle kurulur. YouTube için yalnızca youtube.readonly kapsamı kullanılır; seçilen kanalın kimliği, adı ve temel kanal istatistikleri alınır. GA4 için yalnızca analytics.readonly kapsamı kullanılır; erişilebilir mülk bilgileri ve kullanıcının seçtiği mülke ait toplulaştırılmış günlük ve açılış sayfası raporları alınır. Bu veriler bağlantı yönetimi, senkronizasyon ve kullanıcıya görünen raporlama için kullanılır. YouTube içerikleri ve Analytics ayarları değiştirilmez. Erişim ve yenileme belirteçleri şifreli saklanır. Veri saklama ve silme esasları bu politikadaki ilgili bölümler ve Veri Saklama / Veri Silme politikaları kapsamında uygulanır. Kullanıcı uygulamanın bağlantı yönetiminden veya Google Hesabı üçüncü taraf erişim ayarlarından yetkiyi kaldırabilir; silme taleplerini [[KVKK_EMAIL]] adresine iletebilir."),
+            ("9. Google API verileri için Sınırlı Kullanım", "Google API verileri satılmaz, ilgisiz reklamcılık amacıyla aktarılmaz ve genel amaçlı yapay zekâ modeli eğitimi için kullanılmaz. Aktarım yalnızca kullanıcıya görünen özelliği sağlayan altyapı işleyenlerine, kullanıcının açık talimat verdiği kişilere veya hukuki zorunluluk halinde yetkili kurumlara yapılır. İnsan erişimi kullanıcının açık izniyle destek sağlanması, güvenlik veya hukuki gereklilik gibi sınırlı durumlarla kısıtlanır. [[BRAND_NAME]]'in Google API'lerinden aldığı bilgileri kullanması ve diğer uygulamalara aktarması, Sınırlı Kullanım koşulları dahil Google API Services User Data Policy'ye tabidir: https://developers.google.com/terms/api-services-user-data-policy."),
         ),
     },
     {
@@ -317,4 +319,3 @@ LEGAL_DOCUMENTS = [
         ),
     },
 ]
-
