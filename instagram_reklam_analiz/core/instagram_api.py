@@ -28,13 +28,21 @@ class InstagramAPI:
         params['access_token'] = self.access_token
         resp = None
         try:
+            from core.services.meta_rate_limit import before_request, after_response
+            request_options = {"params": params, "data": data}
+            before_request(url, request_options)
             if method == 'GET':
                 resp = requests.get(url, params=params, timeout=30)
             else:
                 resp = requests.post(url, params=params, data=data, timeout=30)
+            payload = resp.json()
+            after_response(url, request_options, resp, payload)
             resp.raise_for_status()
-            return resp.json()
+            return payload
         except Exception as e:
+            from core.services.meta_rate_limit import MetaRateLimitError
+            if isinstance(e, MetaRateLimitError):
+                return {'error': str(e), 'status_code': 429, 'retry_after': e.retry_after}
             response_body = ""
             if resp is not None:
                 try:

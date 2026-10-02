@@ -75,8 +75,14 @@ def publish_post(post):
     token, code = _token_for_post(post), _platform_code(post)
     try:
         if code == "facebook":
-            response = requests.post(f"{settings.FACEBOOK_GRAPH_URL}/{post.platform_account.account_id}/photos", data={"url": post.image_url, "message": post.caption or "", "access_token": token}, timeout=45)
-            payload = response.json(); post_id = payload.get("post_id") or payload.get("id")
+            from core.services.meta_rate_limit import before_request, after_response
+            url = f"{settings.FACEBOOK_GRAPH_URL}/{post.platform_account.account_id}/photos"
+            options = {"data": {"url": post.image_url, "message": post.caption or "", "access_token": token}}
+            before_request(url, options)
+            response = requests.post(url, **options, timeout=45)
+            payload = response.json()
+            after_response(url, options, response, payload)
+            post_id = payload.get("post_id") or payload.get("id")
             return _complete(post, post_id, payload, "Facebook gönderisi yayınlandı.") if response.ok and post_id else _fail(post, "Facebook", payload)
         if code == "instagram":
             account_id = (post.platform_account.extra_data or {}).get("instagram_business_account_id") or post.platform_account.account_id

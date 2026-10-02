@@ -24,6 +24,18 @@ ENV_FAILURE_DEDUPE_WINDOW = timedelta(hours=6)
 logger = logging.getLogger(__name__)
 
 
+def _meta_get(url, **kwargs):
+    from core.services.meta_rate_limit import before_request, after_response
+    before_request(url, kwargs)
+    try:
+        response = requests.get(url, **kwargs)
+        payload = response.json()
+    except (requests.RequestException, ValueError):
+        raise RuntimeError("Meta servisine ulaşılamadı veya yanıt doğrulanamadı.") from None
+    after_response(url, kwargs, response, payload)
+    return response
+
+
 def _safe_error(exc, token=""):
     text = str(exc or "")
     return text.replace(str(token), "[ACCESS_TOKEN]")[:500] if token else text[:500]
@@ -42,8 +54,9 @@ def _debug_meta_token(token, platform_code):
         from core.services.platform_application import instagram_application_credentials
         app_id, app_secret = instagram_application_credentials()
     else:
-        app_id, app_secret = settings.FACEBOOK_APP_ID, settings.FACEBOOK_APP_SECRET
-    response = requests.get(
+        from core.services.ads_integrations import configuration
+        app_id, app_secret, _ = configuration("facebook")
+    response = _meta_get(
         f"{settings.FACEBOOK_GRAPH_URL}/debug_token",
         params={"input_token": token, "access_token": f"{app_id}|{app_secret}"},
         timeout=30,
@@ -51,7 +64,7 @@ def _debug_meta_token(token, platform_code):
     payload = response.json()
     if not response.ok or payload.get("error"):
         error = payload.get("error") or {}
-        raise RuntimeError(error.get("message") or "Meta token kontrolü tamamlanamadı.")
+        raise RuntimeError("Meta token kontrolü tamamlanamadı.")
     data = payload.get("data") or {}
     return {
         "valid": bool(data.get("is_valid")),
@@ -62,7 +75,7 @@ def _debug_meta_token(token, platform_code):
 
 def _refresh_instagram_token(token, *, instagram_login=False):
     if instagram_login or str(token).startswith("IG"):
-        response = requests.get(
+        response = _meta_get(
             "https://graph.instagram.com/refresh_access_token",
             params={"grant_type": "ig_refresh_token", "access_token": token},
             timeout=30,
@@ -70,7 +83,7 @@ def _refresh_instagram_token(token, *, instagram_login=False):
     else:
         from core.services.platform_application import instagram_application_credentials
         app_id, app_secret = instagram_application_credentials()
-        response = requests.get(
+        response = _meta_get(
             f"{settings.FACEBOOK_GRAPH_URL}/oauth/access_token",
             params={
                 "grant_type": "fb_exchange_token",
@@ -83,8 +96,12 @@ def _refresh_instagram_token(token, *, instagram_login=False):
     payload = response.json()
     if not response.ok or payload.get("error"):
         error = payload.get("error") or {}
-        raise RuntimeError(error.get("message") or "Instagram tokenı yenilenemedi.")
-    return payload.get("access_token") or "", int(payload.get("expires_in") or 0)
+        raise RuntimeError("Instagram tokenı yenilenemedi.")
+    new_token = payload.get("access_token") or ""
+    expires_in = int(payload.get("expires_in") or 0)
+    if not new_token or expires_in <= 0:
+        raise RuntimeError("Instagram token yenileme yanıtında token veya geçerli süre yok.")
+    return new_token, expires_in
 
 
 def _validate_connection(connection):
@@ -105,7 +122,10 @@ def _validate_connection(connection):
     if connection.platform.code in {"instagram", "facebook"}:
         try:
             return _debug_meta_token(token, connection.platform.code)
-        except Exception:
+        except Exception as exc:
+            from core.services.meta_rate_limit import MetaRateLimitError
+            if isinstance(exc, MetaRateLimitError):
+                raise
             # Token başka bir Meta uygulaması tarafından üretildiyse debug_token
             # reddedilebilir. Bu durumda gerçek, salt-okunur uç noktayı prob et.
             if connection.platform.code == "instagram":
@@ -115,7 +135,7 @@ def _validate_connection(connection):
             else:
                 url = f"{settings.FACEBOOK_GRAPH_URL}/me"
                 params = {"fields": "id,name", "access_token": token}
-            response = requests.get(url, params=params, timeout=30)
+            response = _meta_get(url, params=params, timeout=30)
             if response.ok:
                 return {"valid": True, "expires_at": connection.token_expiry, "validation": "live_probe"}
             payload = response.json()
@@ -147,7 +167,7 @@ def _notify_connection_issue(connection, message, *, critical=False):
 
 
 def _validate_env_instagram_token(token):
-    response = requests.get(
+    response = _meta_get(
         f"{settings.FACEBOOK_GRAPH_URL}/me/accounts",
         params={"fields": "id,instagram_business_account{id,username}", "access_token": token},
         timeout=30,
@@ -155,7 +175,7 @@ def _validate_env_instagram_token(token):
     payload = response.json()
     accounts = payload.get("data") or []
     instagram_accounts = [row.get("instagram_business_account") for row in accounts if row.get("instagram_business_account")]
-    permissions_response = requests.get(
+    permissions_response = _meta_get(
         f"{settings.FACEBOOK_GRAPH_URL}/me/permissions",
         params={"access_token": token},
         timeout=30,
@@ -165,7 +185,7 @@ def _validate_env_instagram_token(token):
         row.get("permission") for row in permissions_payload.get("data", [])
         if row.get("status") == "granted"
     }
-    ad_accounts_response = requests.get(
+    ad_accounts_response = _meta_get(
         f"{settings.FACEBOOK_GRAPH_URL}/me/adaccounts",
         params={"fields": "id", "access_token": token},
         timeout=30,
@@ -188,7 +208,7 @@ def _validate_env_instagram_token(token):
 
 
 def _validate_meta_ad_library_token(token):
-    response = requests.get(
+    response = _meta_get(
         f"{settings.FACEBOOK_GRAPH_URL}/ads_archive",
         params={
             "access_token": token,
@@ -272,6 +292,18 @@ def _notify_admins_for_env_failure(label, message):
 
 
 def check_and_refresh_platform_tokens():
+    lock_key = "platform_token_health:running"
+    owner = uuid.uuid4().hex
+    if not cache.add(lock_key, owner, timeout=1800):
+        return {"success": True, "skipped": True, "reason": "already_running"}
+    try:
+        return _check_and_refresh_platform_tokens()
+    finally:
+        if cache.get(lock_key) == owner:
+            cache.delete(lock_key)
+
+
+def _check_and_refresh_platform_tokens():
     now = timezone.now()
     results = []
     connections = PlatformConnection.objects.select_related("platform").filter(is_active=True)
@@ -282,31 +314,38 @@ def check_and_refresh_platform_tokens():
         row = {"connection_id": connection.id, "platform": connection.platform.code}
         try:
             health = _validate_connection(connection)
-            expiry = health.get("expires_at") or health.get("data_access_expires_at") or connection.token_expiry
+            expiry = health.get("expires_at") or connection.token_expiry
+            data_expiry = health.get("data_access_expires_at")
+            if data_expiry:
+                connection.extra_data = {**(connection.extra_data or {}), "data_access_expires_at": data_expiry.isoformat()}
             if expiry:
                 connection.token_expiry = expiry
             if not health.get("valid"):
                 connection.status = "expired"
                 row.update({"valid": False, "status": "expired"})
                 _notify_connection_issue(connection, "Token API tarafından reddedildi; yeniden yetkilendirme gerekli.", critical=True)
-            elif connection.platform.code == "instagram" and expiry and expiry <= now + REFRESH_WINDOW:
+            elif connection.platform.code == "instagram" and expiry and now < expiry <= now + REFRESH_WINDOW:
                 if (connection.extra_data or {}).get("auth_type") == "instagram_login":
                     new_token, expires_in = _refresh_instagram_token(token, instagram_login=True)
                 else:
                     new_token, expires_in = _refresh_instagram_token(token)
                 if new_token:
                     connection.access_token = new_token
-                    connection.accounts.update(access_token=new_token)
                 if expires_in:
                     connection.token_expiry = now + timedelta(seconds=expires_in)
-                    connection.accounts.update(token_expiry=connection.token_expiry)
                 connection.status = "active"
                 row.update({"valid": True, "status": "refreshed"})
             else:
                 connection.status = "active"
                 row.update({"valid": True, "status": "active"})
+            deadlines = [date for date in (connection.token_expiry, data_expiry) if date]
+            if health.get("valid") and connection.platform.code in {"instagram", "facebook"} and deadlines and min(deadlines) <= now + REFRESH_WINDOW:
+                row["reauthorization_required_soon"] = True
+                _notify_connection_issue(connection, "Erişim süresi yaklaşıyor; bağlantıyı yeniden yetkilendirin.")
             connection.extra_data = {**(connection.extra_data or {}), "token_health_checked_at": now.isoformat(), "token_health_status": row["status"], "token_health_failure_count": 0}
             connection.save(update_fields=["access_token", "token_expiry", "status", "extra_data", "updated_at"])
+            if health.get("valid"):
+                connection.accounts.update(access_token=connection.access_token, token_expiry=connection.token_expiry)
         except Exception as exc:
             row.update({"valid": None, "status": "check_failed", "error": _safe_error(exc, token)})
             failure_count = int((connection.extra_data or {}).get("token_health_failure_count") or 0) + 1

@@ -215,6 +215,9 @@ def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=
             response = api.get_ads_insights(account.account_id, since_days=days_back)
 
             if isinstance(response, dict) and response.get("error"):
+                if response.get("status_code") == 429:
+                    from core.services.meta_rate_limit import MetaRateLimitError
+                    raise MetaRateLimitError(response.get("retry_after") or 60)
                 if _is_non_retryable_api_error(response):
                     logger.warning(
                         "V2 ad sync non-retryable API error account=%s platform=%s status=%s error=%s",
@@ -304,6 +307,9 @@ def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=
 
     except Exception as exc:
         logger.exception("V2 sync hatası account=%s platform=%s", account_id, platform_code)
+        retry_after = getattr(exc, "retry_after", None)
+        if retry_after:
+            raise self.retry(exc=exc, countdown=max(300, retry_after))
         raise self.retry(exc=exc)
 
 

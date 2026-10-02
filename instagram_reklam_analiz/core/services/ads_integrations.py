@@ -23,6 +23,12 @@ class IntegrationError(ValueError):
     pass
 
 
+class IntegrationRateLimitError(IntegrationError):
+    def __init__(self, error):
+        self.retry_after = error.retry_after
+        super().__init__(str(error))
+
+
 def application_values(provider):
     if provider == "google_ads":
         names = ("GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_ADS_REDIRECT_URI", "GOOGLE_ADS_DEVELOPER_TOKEN")
@@ -79,9 +85,14 @@ def authorization_url(provider, state):
 def _request(method, url, *, operation="", **kwargs):
     # Never expose requests exceptions (URLs may contain authorization codes),
     # response bodies or provider-echoed credentials to notifications/logs.
+    from core.services.meta_rate_limit import before_request, after_response, MetaRateLimitError
     try:
+        before_request(url, kwargs)
         response = requests.request(method, url, timeout=30, **kwargs)
         payload = response.json()
+        after_response(url, kwargs, response, payload)
+    except MetaRateLimitError as exc:
+        raise IntegrationRateLimitError(exc) from None
     except (requests.RequestException, ValueError):
         prefix = f"{operation}: " if operation else ""
         raise IntegrationError(f"{prefix}Platforma ulaşılamadı. Lütfen tekrar deneyin.") from None
@@ -138,6 +149,25 @@ def exchange_code(provider, code):
             "grant_type": "fb_exchange_token", "client_id": client_id,
             "client_secret": secret, "fb_exchange_token": data["access_token"],
         })
+        # Do not silently turn a valid long-lived grant into a one-hour local
+        # connection when Meta omits expires_in. Read its actual deadline.
+        if not data.get("access_token"):
+            raise IntegrationError("Meta erişim bilgisi alınamadı.")
+        try:
+            expires_in = int(data.get("expires_in") or 0)
+        except (ValueError, TypeError):
+            expires_in = 0
+        if expires_in <= 0:
+            debug = _request("GET", f"{settings.FACEBOOK_GRAPH_URL}/debug_token", params={
+                "input_token": data["access_token"], "access_token": f"{client_id}|{secret}",
+            }, operation="Meta erişim süresini doğrulama").get("data", {})
+            try:
+                expires_in = int(debug.get("expires_at") or 0) - int(timezone.now().timestamp())
+            except (ValueError, TypeError):
+                expires_in = 0
+            if not debug.get("is_valid") or expires_in <= 0:
+                raise IntegrationError("Meta erişim süresi doğrulanamadı. Yeniden bağlanın.")
+        data["expires_in"] = expires_in
         permissions = meta_rows(data.get("access_token", ""), "me/permissions", {})
         granted = [row["permission"] for row in permissions if row.get("status") == "granted"]
         if not {"ads_read", "ads_management"}.intersection(granted):
