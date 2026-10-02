@@ -213,9 +213,7 @@
                         <div><h5 class="card-title fw-bold mb-0">YouTube</h5><small class="text-muted">Organik kanal</small></div>
                     </div>
                     <p class="card-text small text-muted mb-3">Kanal bağlantısı organik içerik içindir. YouTube reklamları için Google Ads bağlantısını kullanın.</p>
-                    <button class="btn btn-outline-danger w-100 btn-connect" onclick="openOctoPopup('modalYouTube')" type="button">
-                        <i class="fas fa-plus-circle me-2"></i> Hesap Bağla
-                    </button>
+                    {% for provider in providers %}{% if provider.code == 'youtube' %}{% include 'platforms/account_connect_form.html' %}{% endif %}{% endfor %}
                 </div>
             </div>
         </div>
@@ -272,8 +270,8 @@
                         <div class="platform-icon google-analytics me-3"><i class="fab fa-google"></i></div>
                         <div><h5 class="card-title fw-bold mb-0">Google Analytics 4</h5><small class="text-muted">Web & Uygulama metrikleri</small></div>
                     </div>
-                    <p class="card-text small text-muted mb-3">Mülk yetkilendirmesi ve gerçek performans aktarımı henüz tamamlanmadı.</p>
-                    <button class="btn btn-outline-secondary w-100" disabled>Bağlantı henüz desteklenmiyor</button>
+                    <p class="card-text small text-muted mb-3">Google hesabınızla giriş yapın ve analiz edilecek GA4 mülkünü seçin.</p>
+                    {% for provider in providers %}{% if provider.code == 'google_analytics' %}{% include 'platforms/account_connect_form.html' %}{% endif %}{% endfor %}
                 </div>
             </div>
         </div>

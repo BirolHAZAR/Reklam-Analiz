@@ -336,6 +336,13 @@ GOOGLE_ADS_DEVELOPER_TOKEN = config('GOOGLE_ADS_DEVELOPER_TOKEN', default='')
 GOOGLE_ADS_REDIRECT_URI = config('GOOGLE_ADS_REDIRECT_URI', default='https://reklamanaliz.net/connect/google-ads/callback/')
 GOOGLE_ADS_API_VERSION = config('GOOGLE_ADS_API_VERSION', default='v25')
 
+YOUTUBE_CLIENT_ID = config('YOUTUBE_CLIENT_ID', default='')
+YOUTUBE_CLIENT_SECRET = config('YOUTUBE_CLIENT_SECRET', default='')
+YOUTUBE_REDIRECT_URI = config('YOUTUBE_REDIRECT_URI', default='https://www.reklamanaliz.net/connect/youtube/callback/')
+GOOGLE_ANALYTICS_CLIENT_ID = config('GOOGLE_ANALYTICS_CLIENT_ID', default='')
+GOOGLE_ANALYTICS_CLIENT_SECRET = config('GOOGLE_ANALYTICS_CLIENT_SECRET', default='')
+GOOGLE_ANALYTICS_REDIRECT_URI = config('GOOGLE_ANALYTICS_REDIRECT_URI', default='https://www.reklamanaliz.net/connect/google-analytics/callback/')
+
 FACEBOOK_APP_ID = os.getenv(
     'FACEBOOK_APP_ID'
 )
@@ -1675,6 +1682,10 @@ CELERY_TASK_ROUTES = {
 # ============================================================
 
 CELERY_BEAT_SCHEDULE = {
+    "sync-google-analytics-readonly": {
+        "task": "core.tasks.analytics_tasks.sync_all_analytics_accounts",
+        "schedule": 14400.0,
+    },
 
     "dispatch-lifecycle-emails": {
         "task":

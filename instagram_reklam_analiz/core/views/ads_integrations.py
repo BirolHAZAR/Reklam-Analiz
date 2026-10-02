@@ -41,7 +41,7 @@ def integrations(request):
 def account_connection_context(request):
     scope = get_agency_scope(request)
     providers = []
-    for code, name in {**api.PROVIDERS, "instagram": "Instagram"}.items():
+    for code, name in {**api.CONNECTION_PROVIDERS, "instagram": "Instagram"}.items():
         setup_error = ""
         try:
             api.configuration(code)
@@ -107,14 +107,14 @@ def callback(request, provider):
         token = api.exchange_code(provider, request.GET["code"])
         choices = api.discover_accounts(provider, token["access_token"])
         if not choices:
-            raise api.IntegrationError("Erişilebilir aktif reklam hesabı bulunamadı. Platformdaki reklam hesabı yetkinizi kontrol edin.")
-        platform, _ = Platform.objects.get_or_create(code=provider, defaults={"name": api.PROVIDERS[provider], "is_active": True})
+            raise api.IntegrationError("Erişilebilir kanal veya GA4 mülkü bulunamadı. Google hesabınızın yetkisini kontrol edin." if provider in api.GOOGLE_READ_PROVIDERS else "Erişilebilir aktif reklam hesabı bulunamadı. Platformdaki reklam hesabı yetkinizi kontrol edin.")
+        platform, _ = Platform.objects.get_or_create(code=provider, defaults={"name": api.CONNECTION_PROVIDERS[provider], "is_active": True})
         connection = PlatformConnection.objects.create(
-            user=request.user, platform=platform, name=api.PROVIDERS[provider],
+            user=request.user, platform=platform, name=api.CONNECTION_PROVIDERS[provider],
             access_token=token["access_token"], refresh_token=token.get("refresh_token", ""),
             token_expiry=None if provider == "facebook" and token.get("expires_in") is None else timezone.now() + timedelta(seconds=int(token.get("expires_in", 3600))),
             scopes=token.get("scope", "").split(), is_active=False, status="disconnected",
-            extra_data={"source": "ads_oauth", "pending": True, "choices": choices,
+            extra_data={"source": "google_read_oauth" if provider in api.GOOGLE_READ_PROVIDERS else "ads_oauth", "pending": True, "choices": choices,
                         "agency_client": client.pk if client else None},
         )
         request.session[f"ads_pending:{provider}"] = connection.pk
@@ -140,7 +140,7 @@ def select_accounts(request, provider):
             selected = set(request.POST.getlist("accounts"))
             allowed = {str(row["id"]): row for row in choices}
             if not selected or not selected <= allowed.keys():
-                raise api.IntegrationError("Listeden en az bir reklam hesabı seçin.")
+                raise api.IntegrationError("Listeden en az bir hesap seçin.")
             from core.services.plan_limits import ensure_platform_account_capacity
             with transaction.atomic():
                 # Serialize selections and enforce the existing subscription limit.
@@ -156,7 +156,8 @@ def select_accounts(request, provider):
                     raise api.IntegrationError("Bu hesap seçimi zaten tamamlandı.")
                 ensure_platform_account_capacity(request.user, [(provider, cid) for cid in selected], organization=client.organization if client else None)
                 connection.is_active, connection.status = True, "active"
-                connection.extra_data = {"source": "ads_oauth", "agency_client": client.pk if client else None}
+                source = "google_read_oauth" if provider in api.GOOGLE_READ_PROVIDERS else "ads_oauth"
+                connection.extra_data = {"source": source, "agency_client": client.pk if client else None}
                 connection.save()
                 replaced_connections = set()
                 for cid in sorted(selected):
@@ -165,19 +166,22 @@ def select_accounts(request, provider):
                         raise api.IntegrationError("Seçilen hesap başka bir müşteriyle eşleştirilmiş. Önce mevcut eşleştirmeyi düzenleyin.")
                     if old and old.connection_id:
                         replaced_connections.add(old.connection_id)
-                    PlatformAccount.objects.update_or_create(user=request.user, platform=connection.platform, account_id=cid, defaults={
+                    account, _ = PlatformAccount.objects.update_or_create(user=request.user, platform=connection.platform, account_id=cid, defaults={
                         "connection": connection, "agency_client": client, "account_name": allowed[cid]["name"],
                         "access_token": connection.access_token, "refresh_token": connection.refresh_token,
                         "token_expiry": connection.token_expiry, "is_active": True,
-                        "extra_data": {**(old.extra_data if old else {}), **allowed[cid], "source": "ads_oauth"},
+                        "extra_data": {**(old.extra_data if old else {}), **allowed[cid], "source": source},
                     })
+                    if provider == "google_analytics":
+                        from core.services.analytics_sync_service import upsert_analytics_property
+                        upsert_analytics_property(request.user, account, {"property_id": cid, "property_name": allowed[cid]["name"]})
                 PlatformConnection.objects.filter(pk__in=replaced_connections, user=request.user, accounts__isnull=True).update(is_active=False, status="disconnected")
             request.session.pop(f"ads_pending:{provider}", None)
-            messages.success(request, f"{len(selected)} reklam hesabı bağlandı. Kampanyaları görüntüleyebilirsiniz.")
+            messages.success(request, f"{len(selected)} hesap bağlandı." if provider in api.GOOGLE_READ_PROVIDERS else f"{len(selected)} reklam hesabı bağlandı. Kampanyaları görüntüleyebilirsiniz.")
             return redirect("platform_connections")
         except (api.IntegrationError, ValueError) as exc:
             error = str(exc)
-    return render(request, "platforms/integration_select.html", {"provider_name": api.PROVIDERS.get(provider), "choices": choices, "error": error})
+    return render(request, "platforms/integration_select.html", {"provider_name": api.CONNECTION_PROVIDERS.get(provider), "choices": choices, "error": error})
 
 
 @login_required

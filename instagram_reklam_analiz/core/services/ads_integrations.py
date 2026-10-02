@@ -16,6 +16,8 @@ from django.utils import timezone
 
 ADWORDS_SCOPE = "https://www.googleapis.com/auth/adwords"
 PROVIDERS = {"google_ads": "Google Ads", "facebook": "Meta Ads (Facebook ve Instagram)"}
+GOOGLE_READ_PROVIDERS = {"youtube": "YouTube", "google_analytics": "Google Analytics 4"}
+CONNECTION_PROVIDERS = {**PROVIDERS, **GOOGLE_READ_PROVIDERS}
 logger = logging.getLogger(__name__)
 
 
@@ -36,6 +38,9 @@ def application_values(provider):
         names = ("FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET", "FACEBOOK_REDIRECT_URI")
     elif provider == "instagram":
         names = ("INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET", "INSTAGRAM_REDIRECT_URI")
+    elif provider in GOOGLE_READ_PROVIDERS:
+        prefix = "YOUTUBE" if provider == "youtube" else "GOOGLE_ANALYTICS"
+        names = (f"{prefix}_CLIENT_ID", f"{prefix}_CLIENT_SECRET", f"{prefix}_REDIRECT_URI")
     else:
         raise IntegrationError("Bu platform için reklam OAuth bağlantısı henüz desteklenmiyor.")
     from core.models import IntegrationApplication
@@ -71,6 +76,9 @@ def configuration(provider):
 
 
 def authorization_url(provider, state):
+    if provider in GOOGLE_READ_PROVIDERS:
+        from core.services.google_read_oauth import authorization_url as google_url
+        return google_url(provider, state)
     client_id, _, redirect_uri = configuration(provider)
     params = {"client_id": client_id, "redirect_uri": redirect_uri, "response_type": "code", "state": state}
     if provider == "google_ads":
@@ -129,6 +137,9 @@ def _request(method, url, *, operation="", **kwargs):
 
 
 def exchange_code(provider, code):
+    if provider in GOOGLE_READ_PROVIDERS:
+        from core.services.google_read_oauth import exchange_code as google_exchange
+        return google_exchange(provider, code)
     client_id, secret, redirect_uri = configuration(provider)
     if provider == "google_ads":
         data = _request("POST", "https://oauth2.googleapis.com/token", data={
@@ -183,6 +194,9 @@ def exchange_code(provider, code):
 
 
 def connection_token(connection):
+    if connection.platform.code in GOOGLE_READ_PROVIDERS:
+        from core.services.google_read_oauth import connection_token as google_token
+        return google_token(connection)
     if not connection.is_active:
         raise IntegrationError("Bağlantı etkin değil. Hesabı yeniden bağlayın.")
     if connection.platform.code != "google_ads":
@@ -271,6 +285,9 @@ def meta_rows(token, path, params):
 
 
 def discover_accounts(provider, token):
+    if provider in GOOGLE_READ_PROVIDERS:
+        from core.services.google_read_oauth import discover_accounts as google_accounts
+        return google_accounts(provider, token)
     if provider == "facebook":
         return [{"id": r["id"], "name": r.get("name", r["id"]),
                  "currency": r.get("currency", ""), "timezone": r.get("timezone_name", ""),

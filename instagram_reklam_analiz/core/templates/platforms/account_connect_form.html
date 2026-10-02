@@ -5,7 +5,7 @@
 <form method="post" action="{% if provider.code == 'instagram' %}{% url 'instagram_connect' %}{% else %}{% url 'integration_connect' provider.code %}{% endif %}">
   {% csrf_token %}
   {% include 'platforms/connection_client_select.html' %}
-  <button class="btn btn-outline-primary w-100" type="submit"{% if connection_is_agency and not clients %} disabled{% endif %}>{% if provider.code == 'instagram' %}Instagram'ı bağla{% elif provider.code == 'facebook' %}Meta Ads'i bağla{% else %}Google Ads'i bağla{% endif %}</button>
+<button class="btn btn-outline-primary w-100" type="submit"{% if connection_is_agency and not clients %} disabled{% endif %}>{{ provider.name }} bağla</button>
 </form>
 {% else %}
 <p class="alert alert-warning" role="status">{% if request.user.is_superuser %}{{ provider.setup_error }}{% else %}Bu platformun bağlantı kurulumu henüz tamamlanmadı.{% endif %}</p>

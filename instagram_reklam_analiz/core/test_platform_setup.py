@@ -41,7 +41,7 @@ class PlatformSetupTests(TestCase):
     @override_settings(INSTAGRAM_APP_ID="env-id", INSTAGRAM_APP_SECRET="env-secret")
     def test_instagram_runtime_uses_encrypted_saved_settings_and_respects_disabled(self):
         self.assertEqual(instagram_application_credentials(), ("env-id", "env-secret"))
-        form = IntegrationApplicationForm(data={"provider": "instagram", "client_id": "saved-id", "client_secret": "saved-secret", "redirect_uri": "", "enabled": True})
+        form = IntegrationApplicationForm(data={"provider": "instagram", "client_id": "saved-id", "client_secret": "saved-secret", "redirect_uri": "https://www.reklamanaliz.net/connect/instagram/callback/", "enabled": True})
         self.assertTrue(form.is_valid(), form.errors)
         app = form.save()
         self.assertEqual(instagram_application_credentials(), ("saved-id", "saved-secret"))

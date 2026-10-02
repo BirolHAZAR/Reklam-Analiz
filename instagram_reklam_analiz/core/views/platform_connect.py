@@ -105,7 +105,7 @@ def platform_account_update(request, account_id):
     external_account_id = request.POST.get("account_id", "").strip()
     connection_id = request.POST.get("connection", "").strip()
 
-    if (account.extra_data or {}).get("source") == "ads_oauth" and (
+    if (account.extra_data or {}).get("source") in {"ads_oauth", "google_read_oauth"} and (
         external_account_id != account.account_id or connection_id != str(account.connection_id or "")
     ):
         messages.error(request, "Yetkilendirilmiş reklam hesabının ID veya bağlantısı elle değiştirilemez. Hesap Ekle ekranından yeniden bağlayın.")

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% block title %}Reklam hesabı seç · ReklamAnaliz{% endblock %}
+{% block title %}Hesap seç · ReklamAnaliz{% endblock %}
 {% block content %}<div class="container py-4" style="max-width:760px">
-<h1>{{ provider_name }} hesapları</h1><p>Bağlamak istediğiniz reklam hesaplarını seçin.</p>
+<h1>{{ provider_name }} hesapları</h1><p>Bağlamak istediğiniz hesapları seçin.</p>
 {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
 <form method="post">{% csrf_token %}
 {% for choice in choices %}<label class="card p-3 mb-2 d-block"><input type="checkbox" name="accounts" value="{{ choice.id }}"> <strong>{{ choice.name }}</strong> · {{ choice.id }} · {{ choice.currency }}</label>{% endfor %}

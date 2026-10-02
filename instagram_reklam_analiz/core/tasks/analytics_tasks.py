@@ -1,6 +1,8 @@
 from celery import shared_task
 from django.utils import timezone
 import logging
+import uuid
+from django.core.cache import cache
 
 from core.services.analytics_sync_service import sync_ga4_property
 
@@ -28,6 +30,17 @@ def _get_analytics_api_class(platform_code):
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)
 def sync_analytics_account(self, account_id):
+    key, owner = f"ga4_sync:running:{account_id}", uuid.uuid4().hex
+    if not cache.add(key, owner, timeout=1800):
+        return {"account_id": account_id, "skipped": True, "reason": "already_running"}
+    try:
+        return _sync_analytics_account(self, account_id)
+    finally:
+        if cache.get(key) == owner:
+            cache.delete(key)
+
+
+def _sync_analytics_account(task, account_id):
     from core.models import PlatformAccount
 
     account = PlatformAccount.objects.select_related(
@@ -37,8 +50,8 @@ def sync_analytics_account(self, account_id):
     ).get(id=account_id, is_active=True)
 
     platform_code = _normalize_analytics_code(account.platform)
-    if platform_code == "google_analytics":
-        return {"account_id": account.id, "skipped": True, "reason": "analytics_provider_not_implemented"}
+    if not account.connection or not account.connection.is_active or (account.connection.extra_data or {}).get("source") != "google_read_oauth":
+        return {"account_id": account.id, "skipped": True, "reason": "oauth_reconnection_required"}
     api_class = _get_analytics_api_class(platform_code)
 
     if not api_class:
@@ -94,7 +107,7 @@ def sync_analytics_account(self, account_id):
 
     except Exception as exc:
         logger.exception("Analytics sync hatası account=%s", account_id)
-        raise self.retry(exc=exc)
+        raise task.retry(exc=exc, countdown=getattr(exc, "retry_after", 300))
 
 
 @shared_task
@@ -110,7 +123,7 @@ def sync_all_analytics_accounts():
     for account in accounts:
         platform_code = _normalize_analytics_code(account.platform)
 
-        if platform_code != "google_analytics":
+        if platform_code != "google_analytics" or not account.connection or not account.connection.is_active or account.connection.extra_data.get("source") != "google_read_oauth":
             continue
 
         task = sync_analytics_account.delay(account.id)
