@@ -62,6 +62,14 @@ class MetaCooldownTests(SimpleTestCase):
         token = ads.exchange_code("facebook", "code")
         self.assertGreater(token["expires_in"], 4999990)
 
+    @patch("core.services.ads_integrations.configuration", return_value=("app", "secret", "https://example.com/callback"))
+    @patch("core.services.ads_integrations._request")
+    def test_explicit_zero_meta_expiry_does_not_invent_a_deadline(self, request, config):
+        request.side_effect = [{"access_token": "short"}, {"access_token": "long"},
+            {"data": {"is_valid": True, "expires_at": 0, "data_access_expires_at": 2000000000}},
+            {"data": [{"permission": "ads_read", "status": "granted"}]}]
+        self.assertIsNone(ads.exchange_code("facebook", "code")["expires_in"])
+
 
 @override_settings(INSTAGRAM_ACCESS_TOKEN="", META_AD_LIBRARY_ACCESS_TOKEN="")
 class MetaHealthTests(TestCase):
@@ -116,6 +124,20 @@ class MetaHealthTests(TestCase):
         self.connection.refresh_from_db()
         self.assertEqual(result["check_failed"], 1)
         self.assertEqual(self.connection.status, "active")
+        self.assertEqual(self.connection.access_token, "old-token")
+
+    @patch.object(health, "_validate_connection", return_value={"valid": True, "expiry_known": True, "expires_at": None})
+    def test_meta_no_expiry_repairs_false_local_expiry_without_replacing_token(self, validate):
+        facebook, _ = Platform.objects.get_or_create(code="facebook", defaults={"name": "Facebook"})
+        self.connection.platform = facebook
+        self.connection.token_expiry = timezone.now() - timedelta(hours=1)
+        self.connection.save()
+        result = health.check_and_refresh_platform_tokens()
+        self.connection.refresh_from_db()
+        self.account.refresh_from_db()
+        self.assertEqual(result["active"], 1)
+        self.assertIsNone(self.connection.token_expiry)
+        self.assertIsNone(self.account.token_expiry)
         self.assertEqual(self.connection.access_token, "old-token")
 
     @patch.object(health, "_notify_connection_issue")

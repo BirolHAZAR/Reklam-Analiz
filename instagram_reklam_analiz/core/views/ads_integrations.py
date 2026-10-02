@@ -112,7 +112,7 @@ def callback(request, provider):
         connection = PlatformConnection.objects.create(
             user=request.user, platform=platform, name=api.PROVIDERS[provider],
             access_token=token["access_token"], refresh_token=token.get("refresh_token", ""),
-            token_expiry=timezone.now() + timedelta(seconds=int(token.get("expires_in", 3600))),
+            token_expiry=None if provider == "facebook" and token.get("expires_in") is None else timezone.now() + timedelta(seconds=int(token.get("expires_in", 3600))),
             scopes=token.get("scope", "").split(), is_active=False, status="disconnected",
             extra_data={"source": "ads_oauth", "pending": True, "choices": choices,
                         "agency_client": client.pk if client else None},

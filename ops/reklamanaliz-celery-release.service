@@ -1,0 +1,10 @@
+[Unit]
+Description=Align ReklamAnaliz Celery services with the running web release
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/reklamanaliz/sync_celery_release.py
+TimeoutStartSec=300
+UMask=0027

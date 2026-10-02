@@ -165,7 +165,11 @@ def exchange_code(provider, code):
                 expires_in = int(debug.get("expires_at") or 0) - int(timezone.now().timestamp())
             except (ValueError, TypeError):
                 expires_in = 0
-            if not debug.get("is_valid") or expires_in <= 0:
+            if debug.get("is_valid") and debug.get("expires_at") == 0:
+                # Meta explicitly reports no token deadline. Data-access expiry
+                # is independent and is tracked by the health service.
+                expires_in = None
+            elif not debug.get("is_valid") or expires_in <= 0:
                 raise IntegrationError("Meta erişim süresi doğrulanamadı. Yeniden bağlanın.")
         data["expires_in"] = expires_in
         permissions = meta_rows(data.get("access_token", ""), "me/permissions", {})

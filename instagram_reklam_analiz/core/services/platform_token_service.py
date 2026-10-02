@@ -68,6 +68,7 @@ def _debug_meta_token(token, platform_code):
     data = payload.get("data") or {}
     return {
         "valid": bool(data.get("is_valid")),
+        "expiry_known": "expires_at" in data,
         "expires_at": _expiry_from_timestamp(data.get("expires_at")),
         "data_access_expires_at": _expiry_from_timestamp(data.get("data_access_expires_at")),
     }
@@ -314,11 +315,11 @@ def _check_and_refresh_platform_tokens():
         row = {"connection_id": connection.id, "platform": connection.platform.code}
         try:
             health = _validate_connection(connection)
-            expiry = health.get("expires_at") or connection.token_expiry
+            expiry = health.get("expires_at") if health.get("expiry_known") else health.get("expires_at") or connection.token_expiry
             data_expiry = health.get("data_access_expires_at")
             if data_expiry:
                 connection.extra_data = {**(connection.extra_data or {}), "data_access_expires_at": data_expiry.isoformat()}
-            if expiry:
+            if expiry or (health.get("valid") and health.get("expiry_known")):
                 connection.token_expiry = expiry
             if not health.get("valid"):
                 connection.status = "expired"
