@@ -335,6 +335,9 @@ class MarketplaceProductResearchForm(forms.ModelForm):
 
 
 class AgencyCompetitorForm(forms.ModelForm):
+    facebook_page_id = forms.CharField(required=False,
+        label="Facebook sayfa ID / Reklam Kütüphanesi bağlantısı",
+        widget=forms.TextInput(attrs={"class": "form-control"}))
     class Meta:
         model = Competitor
         fields = ["agency_client", "platform", "platform_account", "platform_identifier", "name", "website", "category", "description", "is_active"]
@@ -352,10 +355,28 @@ class AgencyCompetitorForm(forms.ModelForm):
 
     def __init__(self, *args, organization=None, **kwargs):
         super().__init__(*args, **kwargs)
+        from core.services.competitor_live_sync import SUPPORTED_META_PLATFORMS
+        from core.models import Platform
+        self.fields["platform"].queryset = Platform.objects.filter(is_active=True, code__in=SUPPORTED_META_PLATFORMS)
+        self.fields["platform"].required = True
         if organization is not None:
             clients = organization.clients.filter(is_active=True).order_by("name")
             self.fields["agency_client"].queryset = clients
-            self.fields["platform_account"].queryset = PlatformAccount.objects.filter(agency_client__organization=organization).select_related("platform", "agency_client")
+            self.fields["platform_account"].queryset = PlatformAccount.objects.filter(agency_client__organization=organization, platform__code__in=SUPPORTED_META_PLATFORMS).select_related("platform", "agency_client")
+
+    def clean_facebook_page_id(self):
+        from core.services.competitor_live_sync import parse_meta_page_reference
+        try:
+            return parse_meta_page_reference(self.cleaned_data.get("facebook_page_id"))
+        except ValueError as exc:
+            raise forms.ValidationError(str(exc)) from exc
+
+    def clean(self):
+        cleaned = super().clean()
+        account = cleaned.get("platform_account")
+        if account and (account.platform != cleaned.get("platform") or account.agency_client != cleaned.get("agency_client")):
+            raise forms.ValidationError("Bağlı hesap, seçilen platform ve ajans müşterisiyle eşleşmelidir.")
+        return cleaned
 
 
 class OrganizationMemberInviteForm(forms.Form):

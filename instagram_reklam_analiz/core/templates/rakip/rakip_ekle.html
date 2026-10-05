@@ -872,7 +872,7 @@ body.modal-open {
                         <img src="{% static 'images/octo-one.webp' %}" alt="Octo AI">
                         <div>
                             <strong>Octo rakipleri platformlara göre düzenler.</strong>
-                            <span>Instagram, Facebook, TikTok, LinkedIn, X, Google Ads veya diğer kanallardaki rakiplerinizi segmentleyerek izleyin.</span>
+                            <span>Instagram ve Facebook rakiplerinizi ekleyin. Reklamveren eşleşmesi ve reklam kaynağının erişim durumu ayrıca kontrol edilir.</span>
                         </div>
                     </div>
 
@@ -893,6 +893,13 @@ body.modal-open {
                             <label class="form-label"><i class="fas fa-at"></i> HESAP ADI / ID</label>
                             <input type="text" name="platform_identifier" class="form-control" 
                                    placeholder="Instagram kullanıcı adı, Facebook sayfa ID, marka hesabı" required>
+                            <small>Hesap kaydı, reklamveren doğrulaması tamamlanana kadar doğrulanmamış olarak gösterilir.</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">FACEBOOK SAYFA ID / REKLAM KÜTÜPHANESİ BAĞLANTISI</label>
+                            <input type="text" name="facebook_page_id" class="form-control" placeholder="Sayfa ID veya Meta Reklam Kütüphanesi bağlantısı">
+                            <small>Instagram reklamlarında da reklamverenin Facebook sayfa kimliği kullanılır.</small>
+                            <small class="d-block">Meta'nın otomatik reklam kaynağı kapsamı sınırlıdır; Türkiye'deki tüm ticari reklamları kapsamaz. Google Ads ve diğer platformlar için otomatik rakip reklam takibi henüz bağlı değildir.</small>
                         </div>
                         
                         <div class="form-group">
@@ -984,6 +991,10 @@ body.modal-open {
                 <div class="form-group">
                     <label class="form-label">Hesap Adı / ID</label>
                     <input type="text" id="update_platform_identifier" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Facebook sayfa ID / Reklam Kütüphanesi bağlantısı</label>
+                    <input type="text" id="update_facebook_page_id" class="form-control">
                 </div>
 
                 <div class="form-group">
@@ -1169,7 +1180,14 @@ body.modal-open {
                         <tr>
                             <td><strong>${escapeHtml(comp.platform_identifier || '-')}</strong></td>
                             <td>${escapeHtml(comp.name || '-')}</td>
-                            <td><span class="badge-status ads-pill">${Number(comp.total_ads || 0)}</span></td>
+                            <td><span class="badge-status ads-pill">${Number(comp.total_ads || 0)}</span>
+                                ${comp.sync_error ? `<small class="d-block text-danger">${escapeHtml(comp.sync_error)}</small>` : ''}
+                                ${comp.sync_warning ? `<small class="d-block">${escapeHtml(comp.sync_warning)}</small>` : ''}
+                                <small class="d-block">${comp.identity_status === 'matched' ? 'Reklamveren eşleşti' : 'Reklamveren doğrulanmadı'}</small>
+                                ${comp.identity_message ? `<small class="d-block">${escapeHtml(comp.identity_message)}</small>` : ''}
+                                <a href="${escapeHtml(comp.library_url)}" target="_blank" rel="noopener noreferrer">Kütüphanede kontrol et</a>
+                                ${comp.sync_status === 'queued' ? '<small class="d-block">Reklamlar çekiliyor…</small>' : ''}
+                            </td>
                             <td><span class="badge-status ${categoryClass}">${categoryText}</span></td>
                             <td><span class="badge-status ${statusClass}">${statusText}</span></td>
                             <td class="action-buttons">
@@ -1264,6 +1282,7 @@ body.modal-open {
                 document.getElementById('update_id').value = comp.id;
                 document.getElementById('update_platform').value = comp.platform_id || '';
                 document.getElementById('update_platform_identifier').value = comp.platform_identifier || '';
+                document.getElementById('update_facebook_page_id').value = comp.facebook_page_id || '';
                 document.getElementById('update_name').value = comp.name || '';
                 document.getElementById('update_website').value = comp.website || '';
                 document.getElementById('update_category').value = comp.category || 'direct';
@@ -1282,6 +1301,7 @@ body.modal-open {
         const data = {
             platform_id: document.getElementById('update_platform').value,
             platform_identifier: document.getElementById('update_platform_identifier').value,
+            facebook_page_id: document.getElementById('update_facebook_page_id').value,
             name: document.getElementById('update_name').value,
             website: document.getElementById('update_website').value,
             category: document.getElementById('update_category').value,

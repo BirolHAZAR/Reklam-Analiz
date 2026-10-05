@@ -167,6 +167,7 @@ def api_rakip_reklam_sync(request, competitor_id):
     try:
         result = sync_competitor_live(competitor)
     except CompetitorSyncError as exc:
+        CacheService.bump_version("competitors", request.user.id)
         total = Ad.objects.filter(source_type="COMPETITOR", competitor=competitor).count()
         return JsonResponse({
             "success": False,
@@ -187,5 +188,5 @@ def api_rakip_reklam_sync(request, competitor_id):
         "total": result["total"],
         "fetched": result["fetched"],
         "provider": result["provider"],
-        "message": f"{result['fetched']} kayit cekildi, {result['created']} yeni reklam yazildi, {result['updated']} reklam guncellendi.",
+        "message": result.get("warning") or f"{result['fetched']} kayit cekildi, {result['created']} yeni reklam yazildi, {result['updated']} reklam guncellendi.",
     })

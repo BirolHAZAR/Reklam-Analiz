@@ -5,6 +5,7 @@ import logging
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -17,7 +18,7 @@ from core.services.agency_scope import (
     scope_queryset,
 )
 from core.services.cache_service import CacheService
-from core.services.competitor_live_sync import SUPPORTED_META_PLATFORMS
+from core.services.competitor_live_sync import SUPPORTED_META_PLATFORMS, parse_meta_page_reference, competitor_library_url
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,13 @@ def _competitor_payload(competitor):
         "category": competitor.category or "direct",
         "description": competitor.description or "",
         "is_active": competitor.is_active,
+        "sync_status": (competitor.raw_data or {}).get("last_live_sync_status", "pending"),
+        "sync_error": (competitor.raw_data or {}).get("last_live_sync_error", ""),
+        "sync_warning": (competitor.raw_data or {}).get("last_live_sync_warning", ""),
+        "identity_status": (competitor.raw_data or {}).get("identity_status", "unverified"),
+        "identity_message": (competitor.raw_data or {}).get("identity_check_message", ""),
+        "facebook_page_id": (competitor.raw_data or {}).get("facebook_page_id", ""),
+        "library_url": competitor_library_url(competitor),
         "total_ads": competitor.ads.filter(source_type="COMPETITOR").count(),
         "created_at": competitor.created_at.isoformat() if competitor.created_at else None,
     }
@@ -89,6 +97,11 @@ def rakip_ekle(request):
         _invalidate_competitor_cache(request.user)
         platform_id = request.POST.get("platform")
         platform_identifier = (request.POST.get("platform_identifier") or "").strip()
+        try:
+            page_id = parse_meta_page_reference(request.POST.get("facebook_page_id"))
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect("rakip_ekle")
         name = (request.POST.get("name") or "").strip() or platform_identifier
         website = (request.POST.get("website") or "").strip()
         category = request.POST.get("category") or "direct"
@@ -143,12 +156,17 @@ def rakip_ekle(request):
             is_active=is_active,
             raw_data={
                 "created_from": "rakip_ekle",
+                "facebook_page_id": page_id,
+                "identity_status": "unverified",
                 "platform_code": _platform_code(platform),
                 "platform_name": platform.name,
                 "created_at": timezone.now().isoformat(),
             },
         )
 
+        if competitor.is_active:
+            from core.tasks.competitor_sync import queue_competitor_sync
+            transaction.on_commit(lambda: queue_competitor_sync(competitor.id))
         messages.success(request, f"{competitor.name} başarıyla eklendi.")
         return redirect("rakip_ekle")
 
@@ -213,8 +231,12 @@ def api_rakip_guncelle(request, competitor_id):
         return JsonResponse({"success": False, "error": "Geçersiz JSON."}, status=400)
 
     platform_id = payload.get("platform_id")
+    try:
+        page_id = parse_meta_page_reference(payload.get("facebook_page_id", (competitor.raw_data or {}).get("facebook_page_id", "")))
+    except ValueError as exc:
+        return JsonResponse({"success": False, "error": str(exc)}, status=400)
     platform = Platform.objects.filter(id=platform_id, code__in=SUPPORTED_META_PLATFORMS).first() if platform_id else competitor.platform
-    if platform and _platform_code(platform) not in SUPPORTED_META_PLATFORMS:
+    if not platform or _platform_code(platform) not in SUPPORTED_META_PLATFORMS:
         return JsonResponse({"success": False, "error": "Bu platform icin canli rakip reklam cekimi desteklenmiyor."}, status=400)
     platform_account = _get_user_platform_account(request, platform, competitor.agency_client)
 
@@ -254,12 +276,18 @@ def api_rakip_guncelle(request, competitor_id):
 
     raw_data = competitor.raw_data or {}
     raw_data.update({
+        "facebook_page_id": page_id,
+        "identity_status": "unverified",
         "platform_code": _platform_code(platform),
         "platform_name": platform.name if platform else "Diğer",
         "updated_at": timezone.now().isoformat(),
     })
     competitor.raw_data = raw_data
     competitor.save()
+    _invalidate_competitor_cache(request.user, competitor.id)
+    if competitor.is_active:
+        from core.tasks.competitor_sync import queue_competitor_sync
+        transaction.on_commit(lambda: queue_competitor_sync(competitor.id))
 
     # Bağlı rakip reklamları da yeni rakip bilgisiyle eşitlenir.
     Ad.objects.filter(competitor=competitor, source_type="COMPETITOR").update(

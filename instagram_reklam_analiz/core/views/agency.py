@@ -548,7 +548,11 @@ def agency_competitor_create(request, organization_id):
             competitor.user = request.user
             if competitor.platform_account and not competitor.platform:
                 competitor.platform = competitor.platform_account.platform
+            competitor.raw_data = {"facebook_page_id": form.cleaned_data.get("facebook_page_id", ""), "identity_status": "unverified"}
             competitor.save()
+            if competitor.is_active:
+                from core.tasks.competitor_sync import queue_competitor_sync
+                transaction.on_commit(lambda: queue_competitor_sync(competitor.pk))
             _invalidate_agency_cache(organization)
             messages.success(request, f"{competitor.name} rakibi müşteri alanına eklendi.")
             return redirect("agency_client_detail", organization_id=organization.id, client_id=competitor.agency_client_id)

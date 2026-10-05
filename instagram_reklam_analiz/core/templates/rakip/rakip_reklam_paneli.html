@@ -978,8 +978,20 @@
         if (!currentCompetitorId) return;
         const overlay = document.getElementById('syncOverlay');
         overlay.classList.add('active');
-        await fetch(`/api/rakip-reklam-sync/${currentCompetitorId}/`, { method: 'POST', headers: {'X-CSRFToken': csrftoken} });
-        setTimeout(() => { overlay.classList.remove('active'); loadAds(currentCompetitorId); }, 2000);
+        const button = document.getElementById('refreshBtn');
+        button.disabled = true;
+        try {
+            const response = await fetch(`/api/rakip-reklam-sync/${currentCompetitorId}/`, { method: 'POST', headers: {'X-CSRFToken': csrftoken} });
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.message || 'Reklamlar alınamadı.');
+            await loadAds(currentCompetitorId);
+            alert(result.message);
+        } catch (error) {
+            alert(error.message || 'Bağlantı kurulamadı. Lütfen tekrar deneyin.');
+        } finally {
+            overlay.classList.remove('active');
+            button.disabled = false;
+        }
     };
     
     function formatNumber(n) { return window.raFormatNumber(n); }

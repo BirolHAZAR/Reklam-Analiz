@@ -4,6 +4,24 @@ from celery import shared_task
 from core.models import Competitor
 from core.services.cache_service import CacheService
 from core.services.competitor_live_sync import CompetitorSyncError, SUPPORTED_META_PLATFORMS, sync_competitor_live
+from django.utils import timezone
+import logging
+
+
+def queue_competitor_sync(competitor_id):
+    """Persist dispatch failure so a saved competitor never silently stalls."""
+    competitor = Competitor.objects.get(pk=competitor_id)
+    competitor.raw_data = {**(competitor.raw_data or {}), "last_live_sync_status": "queued",
+                           "last_live_sync_error": ""}
+    competitor.save(update_fields=["raw_data", "updated_at"])
+    try:
+        return sync_competitor_live_ads.delay(competitor_id)
+    except Exception:
+        logging.getLogger(__name__).exception("Competitor sync dispatch failed: %s", competitor_id)
+        competitor.raw_data.update(last_live_sync_status="error",
+            last_live_sync_error="Reklam çekme görevi başlatılamadı. Yenile düğmesiyle tekrar deneyin.",
+            last_live_sync_attempt_at=timezone.now().isoformat())
+        competitor.save(update_fields=["raw_data", "updated_at"])
 
 
 @shared_task(name="core.tasks.competitor_sync.sync_competitor_live_ads")
@@ -22,9 +40,14 @@ def sync_competitor_live_ads(competitor_id):
     try:
         policy = policy_for_user(competitor.user)
         if not policy:
+            competitor.raw_data = {**(competitor.raw_data or {}), "last_live_sync_status": "error",
+                "last_live_sync_error": "Rakip reklam takibi için aktif abonelik gerekiyor."}
+            competitor.save(update_fields=["raw_data", "updated_at"])
+            CacheService.bump_version("competitors", competitor.user_id)
             return {"success": False, "skipped": True, "reason": "active_subscription_required", "competitor_id": competitor.id}
         result = sync_competitor_live(competitor, limit=policy.max_records)
     except CompetitorSyncError as exc:
+        CacheService.bump_version("competitors", competitor.user_id)
         return {
             "success": False,
             "skipped": True,

@@ -5,6 +5,10 @@ from decimal import Decimal
 from typing import Any
 
 import requests
+import json
+import re
+import unicodedata
+from urllib.parse import urlsplit, parse_qs, urlencode
 from django.conf import settings
 from django.utils import timezone
 
@@ -61,6 +65,10 @@ def _q2(value):
 
 
 def _token_for_competitor(competitor):
+    # Instagram Login tokens cannot authenticate the Facebook ads_archive API.
+    dedicated = getattr(settings, "META_AD_LIBRARY_ACCESS_TOKEN", "")
+    if dedicated:
+        return dedicated
     account = competitor.platform_account
     connection = getattr(account, "connection", None) if account else None
     token = ""
@@ -76,9 +84,7 @@ def _token_for_competitor(competitor):
 def _ad_reached_countries_param():
     countries = getattr(settings, "META_AD_LIBRARY_COUNTRIES", ["TR"]) or ["TR"]
     countries = [str(country).strip().upper() for country in countries if str(country).strip()]
-    if getattr(settings, "META_AD_LIBRARY_COUNTRIES_FORMAT", "comma") == "array_string":
-        return "[" + ",".join(f"'{country}'" for country in countries) + "]"
-    return ",".join(countries)
+    return json.dumps(countries)
 
 
 def _normalize_page_ids(value):
@@ -91,6 +97,29 @@ def _normalize_page_ids(value):
         if page_id.isdigit():
             page_ids.append(page_id)
     return page_ids
+
+
+def parse_meta_page_reference(value):
+    value = str(value or "").strip()
+    if not value:
+        return ""
+    if value.isascii() and value.isdigit():
+        return value
+    parsed = urlsplit(value)
+    if parsed.scheme in {"https", "http"} and parsed.hostname in {"facebook.com", "www.facebook.com", "m.facebook.com", "business.facebook.com"}:
+        query = parse_qs(parsed.query)
+        candidate = (query.get("view_all_page_id") or query.get("id") or [parsed.path.strip("/")])[0]
+        if str(candidate).isascii() and str(candidate).isdigit():
+            return str(candidate)
+    raise ValueError("Facebook sayfa ID'sini veya sayfaya ait Meta Reklam Kütüphanesi bağlantısını girin.")
+
+
+def competitor_library_url(competitor):
+    ids = _page_ids_for_competitor(competitor)
+    params = {"active_status": "all", "ad_type": "all", "country": "TR"}
+    params.update({"view_all_page_id": ids[0], "search_type": "page"} if ids else
+                  {"q": _search_term(competitor), "search_type": "keyword_unordered"})
+    return "https://www.facebook.com/ads/library/?" + urlencode(params)
 
 
 def _page_ids_for_competitor(competitor):
@@ -107,6 +136,11 @@ def _page_ids_for_competitor(competitor):
 def _search_term(competitor):
     raw = (competitor.platform_identifier or competitor.name or "").strip()
     return raw.lstrip("@").replace("_", " ") or competitor.name
+
+
+def _normalized_name(value):
+    value = unicodedata.normalize("NFKD", str(value or "").casefold())
+    return re.sub(r"[^a-z0-9]", "", value)
 
 
 class MetaAdLibraryCompetitorSync:
@@ -129,6 +163,19 @@ class MetaAdLibraryCompetitorSync:
 
         payload = self._fetch(limit=limit)
         rows = payload.get("data") or []
+        page_ids = _page_ids_for_competitor(self.competitor)
+        if page_ids:
+            rows = [row for row in rows if str(row.get("page_id")) in page_ids]
+        elif rows:
+            names = {_normalized_name(self.competitor.name), _normalized_name(_search_term(self.competitor))} - {""}
+            matching_ids = {str(row.get("page_id")) for row in rows
+                            if row.get("page_id") and _normalized_name(row.get("page_name")) in names}
+            if len(matching_ids) != 1:
+                raise CompetitorSyncError(
+                    "Reklamveren doğrulanamadı. Rakibi düzenleyerek Meta Reklam Kütüphanesi bağlantısını "
+                    "veya Facebook sayfa ID'sini girin; anahtar kelime sonuçları başka firmalara ait olabilir."
+                )
+            rows = [row for row in rows if str(row.get("page_id")) in matching_ids]
         created = 0
         updated = 0
         ads = []
@@ -147,7 +194,17 @@ class MetaAdLibraryCompetitorSync:
         ).count()
         self.competitor.last_seen_at = timezone.now()
         raw_data = self.competitor.raw_data or {}
+        identity = {"status": "matched" if rows else "unverified", "message": ""}
+        if not rows and page_ids:
+            identity = self._check_page_identity(page_ids[0])
         raw_data.update({
+            "identity_status": identity["status"],
+            "identity_check_message": identity["message"],
+            "last_live_sync_warning": "" if rows else (
+                "Meta API bu sorgu için reklam döndürmedi. Bu sonuç hesabın olmadığı veya reklam yayınlamadığı anlamına gelmez. "
+                "Reklam Kütüphanesi'nden kontrol edin; API kapsamı web sitesinden farklı olabilir."
+                " Türkiye'deki ticari reklamların tamamı resmi API kapsamında değildir."
+            ),
             "last_live_sync_at": timezone.now().isoformat(),
             "last_live_sync_source": "meta_ad_library",
             "last_live_sync_count": len(rows),
@@ -164,8 +221,22 @@ class MetaAdLibraryCompetitorSync:
             "updated": updated,
             "total": self.competitor.total_ads_seen,
             "fetched": len(rows),
+            "warning": raw_data.get("last_live_sync_warning", ""),
             "ads": [ad.id for ad in ads],
         }
+
+    def _check_page_identity(self, page_id):
+        try:
+            response = requests.get(f"{self.graph_url}/{page_id}",
+                params={"access_token": self.token, "fields": "id,name"}, timeout=15)
+            data = response.json()
+        except (requests.RequestException, ValueError):
+            return {"status": "unverified", "message": "Reklamveren kimlik kontrolüne ulaşılamadı."}
+        if response.ok and str(data.get("id")) == page_id and data.get("name"):
+            return {"status": "matched", "message": str(data["name"])}
+        return {"status": "unverified", "message":
+            "Meta sayfa kimliğini doğrulamadı. Sayfa erişimi veya Page Public Metadata Access izni gerekebilir; "
+            "bu yanıt hesabın bulunmadığı anlamına gelmez."}
 
     def _fetch(self, limit=None):
         page_ids = _page_ids_for_competitor(self.competitor)
@@ -188,7 +259,6 @@ class MetaAdLibraryCompetitorSync:
                 "ad_snapshot_url",
                 "currency",
                 "demographic_distribution",
-                "funding_entity",
                 "impressions",
                 "page_id",
                 "page_name",
@@ -197,9 +267,27 @@ class MetaAdLibraryCompetitorSync:
             ]),
         }
         if page_ids:
-            params["search_page_ids"] = ",".join(page_ids)
+            params["search_page_ids"] = json.dumps(page_ids)
+            params.pop("search_type", None)
         else:
             params["search_terms"] = _search_term(self.competitor)
+        total_limit = max(1, params["limit"])
+        params["limit"] = min(total_limit, 100)
+        rows = []
+        cursors = set()
+        while len(rows) < total_limit:
+            data = self._request(dict(params))
+            rows.extend((data.get("data") or [])[:total_limit - len(rows)])
+            paging = data.get("paging") or {}
+            cursor = (paging.get("cursors") or {}).get("after")
+            if not paging.get("next") or not cursor or cursor in cursors:
+                break
+            cursors.add(cursor)
+            params["after"] = cursor
+            params["limit"] = min(100, total_limit - len(rows))
+        return {"data": rows}
+
+    def _request(self, params):
         try:
             response = requests.get(f"{self.graph_url}/ads_archive", params=params, timeout=30)
         except requests.RequestException as exc:
@@ -330,4 +418,16 @@ class MetaAdLibraryCompetitorSync:
 
 
 def sync_competitor_live(competitor: Competitor, limit=None):
-    return MetaAdLibraryCompetitorSync(competitor).sync(limit=limit)
+    try:
+        result = MetaAdLibraryCompetitorSync(competitor).sync(limit=limit)
+    except CompetitorSyncError as exc:
+        competitor.raw_data = {**(competitor.raw_data or {}),
+            "last_live_sync_status": "error", "last_live_sync_error": str(exc),
+            "last_live_sync_attempt_at": timezone.now().isoformat()}
+        competitor.save(update_fields=["raw_data", "updated_at"])
+        raise
+    competitor.raw_data = {**(competitor.raw_data or {}),
+        "last_live_sync_status": "success", "last_live_sync_error": "",
+        "last_live_sync_attempt_at": timezone.now().isoformat()}
+    competitor.save(update_fields=["raw_data", "updated_at"])
+    return result
