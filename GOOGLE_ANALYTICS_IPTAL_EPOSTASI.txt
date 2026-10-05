@@ -1,0 +1,11 @@
+Hello Third Party Data Safety Team,
+
+Regarding project 967191475167 (Project ID: reklam-analiz-youtube-ga4), we have decided to discontinue the Google Analytics integration in ReklamAnaliz.net. We no longer require https://www.googleapis.com/auth/analytics.readonly and have removed this scope from the project's Data Access settings.
+
+Please cancel the verification requirement for the analytics.readonly scope mentioned in your email. The remaining youtube.readonly scope is separate from this cancellation request.
+
+Our separate Google Ads project, 346819732863 (Project ID: project-ba6a63a8-5a5c-4618-95f), remains in use for advertising account, campaign and performance reporting. Please keep its OAuth verification request active.
+
+Thank you,
+Birol HAZAR
+ReklamAnaliz.net

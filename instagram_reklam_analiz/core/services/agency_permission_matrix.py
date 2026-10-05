@@ -77,13 +77,6 @@ AGENCY_MENU_PERMISSION_GROUPS = [
         ],
     },
     {
-        "key": "google_analytics",
-        "label": "Google Analytics",
-        "items": [
-            ("google_analytics_center", "GA4 Genel Bakis"),
-        ],
-    },
-    {
         "key": "system",
         "label": "Sistem ve Ajans",
         "items": [

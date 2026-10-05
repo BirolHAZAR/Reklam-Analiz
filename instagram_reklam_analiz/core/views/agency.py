@@ -15,7 +15,7 @@ from core.forms import (
     OrganizationMemberRoleForm,
     OrganizationBrandingForm,
 )
-from core.models import AgencyRoleGroup, AnalyticsProperty, AgencyClient, Competitor, Organization, OrganizationMember, Platform, PlatformAccount
+from core.models import AgencyRoleGroup, AgencyClient, Competitor, Organization, OrganizationMember, Platform, PlatformAccount
 from core.services.cache_service import CacheService
 from core.services.agency_roles import ensure_default_agency_role_groups
 from core.services.notification_helper import NotificationHelper
@@ -463,9 +463,9 @@ def _connect_agency_platform_account(request, organization, client_id=None):
     posted_client_id = request.POST.get("agency_client") or client_id
     client = get_object_or_404(organization.clients.filter(is_active=True), id=posted_client_id)
     platform_code = (request.POST.get("platform") or "").strip()
-    if platform_code in {"google_ads", "facebook", "google_analytics"}:
+    if platform_code in {"google_ads", "facebook"}:
         request.session["active_agency_client_id"] = client.pk
-        messages.info(request, "Google Ads ve Meta hesaplarını Hesap Ekle ekranından izin vererek bağlayın. GA4 henüz desteklenmiyor.")
+        messages.info(request, "Google Ads ve Meta hesaplarını Hesap Ekle ekranından izin vererek bağlayın.")
         return redirect("hesap_ekle")
     account_name = (request.POST.get("account_name") or "").strip()
     account_id = (request.POST.get("account_id") or "").strip()
@@ -502,11 +502,6 @@ def _connect_agency_platform_account(request, organization, client_id=None):
             account.is_active = True
             account.save(update_fields=["account_name", "access_token", "agency_client", "is_active", "updated_at"])
             saved = [(account, created)]
-            if platform_code == "google_analytics":
-                AnalyticsProperty.objects.update_or_create(
-                    user=request.user, platform_account=account, property_id=account_id,
-                    defaults={"property_name": account_name or f"GA4 Property {account_id}", "property_type": "GA4", "raw_data": {"source": "manual_connection", "account_id": account_id, "account_name": account_name}, "is_active": True},
-                )
     except (requests.RequestException, ValueError) as exc:
         messages.error(request, f"{platform.name} hesabı doğrulanamadı: {exc}")
         return redirect(request.path)

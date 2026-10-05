@@ -15,9 +15,10 @@ class PlatformSetupTests(TestCase):
         self.admin = get_user_model().objects.create_user(username="all-platform-admin", is_staff=True, is_superuser=True)
         self.client.force_login(self.admin)
 
-    def test_all_eight_platforms_have_separate_admin_forms(self):
+    def test_supported_platforms_have_separate_admin_forms(self):
         response = self.client.get(reverse("admin:core_integrationapplication_changelist"))
-        self.assertEqual(len(response.context["setup_links"]), 8)
+        self.assertEqual(len(response.context["setup_links"]), 7)
+        self.assertNotContains(response, "Google Analytics")
         for provider, spec in PLATFORM_SETUP.items():
             with self.subTest(provider=provider):
                 response = self.client.get(reverse("admin:core_integrationapplication_add"), {"provider": provider})

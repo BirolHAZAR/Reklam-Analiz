@@ -27,11 +27,6 @@ PLATFORM_ALIASES = {
     "google_ads": "google_ads",
     "google ads": "google_ads",
     "adwords": "google_ads",
-    "analytics": "google_analytics",
-    "ga4": "google_analytics",
-    "google_analytics": "google_analytics",
-    "google analytics": "google_analytics",
-    "google analytics 4": "google_analytics",
 
     # LinkedIn
     "linkedin": "linkedin",

@@ -421,7 +421,7 @@ def _octo_ai_score_engine(
     """
     Octo AI Skoru V2.1
 
-    GA4 kullanmaz. Skor yalnızca reklam veritabanı metriklerinden ve
+    Skor yalnızca reklam veritabanı metriklerinden ve
     Control Tower içindeki gerçek aksiyon/uyarı sinyallerinden oluşur.
 
     Önemli davranış:
@@ -465,7 +465,6 @@ def _octo_ai_score_engine(
         }
 
     # Reklam performansı için okunabilir hedefler.
-    # Bunlar skor hedefidir; para birimi veya GA4 içermez.
     roas_score = _score(roas_v, 4)                         # ROAS 4 = 100
     ctr_score = _score(ctr_v, 3)                           # CTR %3 = 100
     conversion_score = _score(conversion_v, 5)             # Dönüşüm %5 = 100

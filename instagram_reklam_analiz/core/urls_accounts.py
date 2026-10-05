@@ -9,7 +9,6 @@ from core.views import instagram_oauth
 
 urlpatterns = [
     path('connect/youtube/callback/', ads_integrations.callback, {'provider': 'youtube'}, name='youtube_callback'),
-    path('connect/google-analytics/callback/', ads_integrations.callback, {'provider': 'google_analytics'}, name='google_analytics_callback'),
     path('connect/instagram/', instagram_oauth.connect, name='instagram_connect'),
     path('connect/instagram/callback/', instagram_oauth.callback, name='instagram_oauth_callback'),
     path('names/<str:kind>/<int:object_id>/', local_names.rename, name='local_name_update'),

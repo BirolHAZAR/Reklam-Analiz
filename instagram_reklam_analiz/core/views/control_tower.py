@@ -594,7 +594,6 @@ def control_tower(request):
     octo_components = {}
     octo_delta = 0
 
-    # GA4 / AnalyticsDailyMetric Control Tower hesaplamalarından tamamen çıkarıldı.
     # Bu sayfadaki tüm ana metrikler reklam veritabanı tablolarından gelir.
 
     campaign_health = []
@@ -1155,15 +1154,13 @@ def control_tower(request):
         "instagram": "fab fa-instagram",
         "google": "fab fa-google",
         "google ads": "fab fa-google",
-        "google_analytics": "fas fa-chart-line",
-        "google analytics": "fas fa-chart-line",
         "tiktok": "fab fa-tiktok",
         "linkedin": "fab fa-linkedin-in",
         "x": "fab fa-x-twitter",
         "twitter": "fab fa-x-twitter",
         "youtube": "fab fa-youtube",
     }
-    platform_order = ["Meta", "Instagram", "Google Ads", "Google Analytics", "TikTok", "LinkedIn", "X", "YouTube"]
+    platform_order = ["Meta", "Instagram", "Google Ads", "TikTok", "LinkedIn", "X", "YouTube"]
     platform_strip_cards = []
     try:
         connection_rows = list(
@@ -1755,7 +1752,6 @@ def control_tower(request):
     trend_prev_totals = {"spend": trend_prev_summary["total_spend"], "roas": trend_prev_summary["avg_roas"], "revenue": trend_prev_summary["total_revenue"]}
 
     # Performans trendi Campaign Center ile tutarlı olması için sadece reklam/kampanya
-    # conversion_value verisini kullanır. GA4 bu sayfada hiçbir hesaplamaya dahil edilmez.
     trend_revenue = trend_totals.get("revenue") or 0
     trend_prev_revenue = trend_prev_totals.get("revenue") or 0
 
@@ -1830,7 +1826,6 @@ def control_tower(request):
     # Radar artık tek tek KPI değerlerinin kendisini değil, normalize edilmiş 0-100 sağlık skorunu gösterir.
     # Üst KPI kartları ile çelişmemesi için ROAS/CTR/Dönüşüm aynı hesaplardan beslenir.
     # Control Tower ana skorları sadece reklam veritabanı metriklerinden hesaplanır.
-    # GA4 hiçbir şekilde fallback veya alternatif kaynak olarak kullanılmaz.
     effective_roas = _num(avg_roas)
     effective_conversion_rate = _num(conversion_rate)
     creative_score = (

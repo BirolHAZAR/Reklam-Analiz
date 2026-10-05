@@ -25,7 +25,6 @@ READ_ONLY_MENU_KEYS = {
     "reklam_karsilastirma",
     "reklam_tarihcesi",
     "daily_budget_report",
-    "google_analytics_center",
     "agency_dashboard",
     "notification_center",
     "fihrist",

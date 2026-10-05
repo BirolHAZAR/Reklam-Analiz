@@ -16,7 +16,7 @@ from django.utils import timezone
 
 ADWORDS_SCOPE = "https://www.googleapis.com/auth/adwords"
 PROVIDERS = {"google_ads": "Google Ads", "facebook": "Meta Ads (Facebook ve Instagram)"}
-GOOGLE_READ_PROVIDERS = {"youtube": "YouTube", "google_analytics": "Google Analytics 4"}
+GOOGLE_READ_PROVIDERS = {"youtube": "YouTube"}
 CONNECTION_PROVIDERS = {**PROVIDERS, **GOOGLE_READ_PROVIDERS}
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def application_values(provider):
     elif provider == "instagram":
         names = ("INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET", "INSTAGRAM_REDIRECT_URI")
     elif provider in GOOGLE_READ_PROVIDERS:
-        prefix = "YOUTUBE" if provider == "youtube" else "GOOGLE_ANALYTICS"
+        prefix = "YOUTUBE"
         names = (f"{prefix}_CLIENT_ID", f"{prefix}_CLIENT_SECRET", f"{prefix}_REDIRECT_URI")
     else:
         raise IntegrationError("Bu platform için reklam OAuth bağlantısı henüz desteklenmiyor.")

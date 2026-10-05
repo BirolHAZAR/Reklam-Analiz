@@ -9,7 +9,6 @@ class Command(BaseCommand):
             {'name': 'Instagram', 'code': 'instagram', 'icon': 'fab fa-instagram'},
             {'name': 'Facebook', 'code': 'facebook', 'icon': 'fab fa-facebook'},
             {'name': 'Google Ads', 'code': 'google_ads', 'icon': 'fab fa-google'},
-            {'name': 'Google Analytics 4', 'code': 'google_analytics', 'icon': 'fas fa-chart-pie'},
             {'name': 'TikTok', 'code': 'tiktok', 'icon': 'fab fa-tiktok'},
             {'name': 'LinkedIn', 'code': 'linkedin', 'icon': 'fab fa-linkedin'},
             {'name': 'X', 'code': 'x', 'icon': 'fab fa-x-twitter'},

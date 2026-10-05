@@ -42,7 +42,6 @@ urlpatterns = [
     path('', include('core.urls_social_content')),
     path('', include('core.urls_marketplace')),
     path('', include('core.urls_influencers')),
-    path('', include('core.urls_google_analytics')),
     
     path("octo-gorev-merkezi/", octo_task_center, name="octo_task_center"),
     path("octo-gorev-merkezi/<int:task_id>/update/", octo_task_update, name="octo_task_update"),

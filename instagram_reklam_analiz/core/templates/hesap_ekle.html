@@ -262,19 +262,6 @@
                 </div>
             </div>
         </div>
-        <!-- Google Analytics -->
-        <div class="col-md-6 col-lg-4">
-            <div class="platform-card card h-100">
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="platform-icon google-analytics me-3"><i class="fab fa-google"></i></div>
-                        <div><h5 class="card-title fw-bold mb-0">Google Analytics 4</h5><small class="text-muted">Web & Uygulama metrikleri</small></div>
-                    </div>
-                    <p class="card-text small text-muted mb-3">Google hesabınızla giriş yapın ve analiz edilecek GA4 mülkünü seçin.</p>
-                    {% for provider in providers %}{% if provider.code == 'google_analytics' %}{% include 'platforms/account_connect_form.html' %}{% endif %}{% endfor %}
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Mevcut Bağlı Hesaplar (Platform Bazlı Gruplanmış) -->
@@ -302,7 +289,6 @@
                                             {% elif platform.code == 'tiktok' %}<i class="fab fa-tiktok"></i>
                                             {% elif platform.code == 'linkedin' %}<i class="fab fa-linkedin text-linkedin"></i>
                                             {% elif platform.code == 'x' %}<i class="fab fa-twitter text-info"></i>
-                                            {% elif platform.code == 'google_analytics' %}<i class="fab fa-google text-primary"></i>
                                             {% else %}<i class="fas fa-ad"></i>{% endif %}
                                         {% endwith %}
                                     </span>
@@ -311,7 +297,6 @@
                                             {{ group.grouper.name }}
                                         {% else %}
                                             {% if group.grouper.code == 'google_ads' %}Google Ads
-                                            {% elif group.grouper.code == 'google_analytics' %}Google Analytics 4
                                             {% elif group.grouper.code == 'youtube' %}YouTube
                                             {% else %}{{ group.grouper.code|capfirst }}{% endif %}
                                         {% endif %}

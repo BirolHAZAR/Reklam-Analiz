@@ -362,12 +362,6 @@ def handle(self, *args, **options):
     )
 
     self.stdout.write(
-        f"GA4 property/metrik gunu: "
-        f"{ad_summary['ga_properties']}/"
-        f"{ad_summary['ga_days']}"
-    )
-
-    self.stdout.write(
         f"Anomali/Firsat: "
         f"{anomaly_count}/"
         f"{opportunity_count}"

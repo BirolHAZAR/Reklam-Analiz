@@ -120,7 +120,7 @@ def _validate_connection(connection):
         from core.services.ads_integrations import connection_token
         connection_token(connection)
         return {"valid": True, "expires_at": connection.token_expiry, "validation": "oauth_refresh"}
-    if connection.platform.code in {"youtube", "google_analytics"} and (connection.extra_data or {}).get("source") == "google_read_oauth":
+    if connection.platform.code in {"youtube"} and (connection.extra_data or {}).get("source") == "google_read_oauth":
         from core.services.google_read_oauth import connection_token
         connection_token(connection)
         return {"valid": True, "expires_at": connection.token_expiry, "validation": "oauth_refresh"}

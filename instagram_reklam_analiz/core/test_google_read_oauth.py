@@ -9,10 +9,9 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from core.models import AnalyticsProperty, IntegrationApplication, Platform, PlatformAccount, PlatformConnection
+from core.models import IntegrationApplication, Platform, PlatformAccount, PlatformConnection
 from core.services import ads_integrations as ads
 from core.services import google_read_oauth as api
-from core.platforms.google_analytics import GoogleAnalyticsAPI
 
 
 class GoogleReadOAuthTests(TestCase):
@@ -24,7 +23,7 @@ class GoogleReadOAuthTests(TestCase):
         for provider in api.SCOPES:
             self.platforms[provider], _ = Platform.objects.get_or_create(code=provider, defaults={"name": provider})
             IntegrationApplication.objects.create(provider=provider, client_id=provider+"-client", client_secret=provider+"-secret",
-                redirect_uri="https://www.reklamanaliz.net" + ("/connect/youtube/callback/" if provider == "youtube" else "/connect/google-analytics/callback/"), enabled=True)
+                redirect_uri="https://www.reklamanaliz.net" + "/connect/youtube/callback/", enabled=True)
 
     def connection(self, provider="youtube", **kwargs):
         return PlatformConnection.objects.create(user=self.user, platform=self.platforms[provider],
@@ -37,6 +36,16 @@ class GoogleReadOAuthTests(TestCase):
             self.assertNotIn(ads.ADWORDS_SCOPE, query["scope"])
             self.assertEqual(query["client_id"], [provider+"-client"])
             self.assertEqual(query["access_type"], ["offline"])
+
+    @patch("core.services.ads_integrations.authorization_url")
+    def test_retired_analytics_links_do_not_start_oauth(self, authorization):
+        response = self.client.post(reverse("integration_connect", args=["google_analytics"]))
+        self.assertEqual(response.status_code, 404)
+        response = self.client.get(reverse("integration_select", args=["google_analytics"]))
+        self.assertEqual(response.status_code, 404)
+        for url in ("/connect/google-analytics/callback/", "/google-analytics/"):
+            self.assertEqual(self.client.get(url).status_code, 404)
+        authorization.assert_not_called()
 
     @patch("core.services.google_read_oauth.request")
     def test_scope_or_refresh_denial_does_not_create_connection(self, request):
@@ -78,65 +87,3 @@ class GoogleReadOAuthTests(TestCase):
         session.save()
         self.client.get(reverse("youtube_callback"), {"state": "wrong", "code": "secret"})
         exchange.assert_not_called()
-
-    @patch("core.services.plan_limits.ensure_platform_account_capacity")
-    @patch("core.services.google_read_oauth.discover_accounts")
-    @patch("core.services.google_read_oauth.exchange_code")
-    def test_ga4_selection_only_saves_verified_property(self, exchange, discover, limit):
-        exchange.return_value = {"access_token": "secret", "refresh_token": "refresh", "scope": api.SCOPES["google_analytics"]}
-        discover.return_value = [{"id": "123", "name": "Site", "property_id": "123", "kind": "ga4_property"}]
-        session = self.client.session
-        session["ads_oauth:google_analytics"] = {"state": "nonce", "user": self.user.pk, "created": time.time()}
-        session.save()
-        self.client.get(reverse("google_analytics_callback"), {"state": "nonce", "code": "secret"})
-        url = reverse("integration_select", args=["google_analytics"])
-        self.client.post(url, {"accounts": ["forged"]})
-        self.assertFalse(PlatformAccount.objects.exists())
-        self.client.post(url, {"accounts": ["123"]})
-        account = PlatformAccount.objects.get()
-        self.assertEqual(account.extra_data["source"], "google_read_oauth")
-        self.assertEqual(AnalyticsProperty.objects.get().platform_connection_id, account.connection_id)
-        self.assertEqual(self.client.get(reverse("integration_campaigns", args=[account.pk])).status_code, 404)
-
-    @patch("core.services.google_read_oauth.request")
-    def test_property_discovery_paginates_and_deduplicates(self, request):
-        request.side_effect = [
-            {"accountSummaries": [{"propertySummaries": [{"property": "properties/123", "displayName": "Site"}]}], "nextPageToken": "next"},
-            {"accountSummaries": [{"propertySummaries": [{"property": "properties/123", "displayName": "Site"}, {"property": "properties/456"}]}]},
-        ]
-        self.assertEqual([r["id"] for r in api.discover_accounts("google_analytics", "token")], ["123", "456"])
-        self.assertEqual(request.call_args.kwargs["params"]["pageToken"], "next")
-
-    @patch("core.platforms.google_analytics.request")
-    def test_ga4_report_maps_dates_and_metrics_and_rejects_other_property(self, request):
-        connection = self.connection("google_analytics", token_expiry=timezone.now()+timedelta(hours=1))
-        account = PlatformAccount.objects.create(user=self.user, platform=self.platforms["google_analytics"], connection=connection, account_id="123")
-        request.return_value = {"rowCount": 1, "rows": [{"dimensionValues": [{"value": "20261001"}],
-            "metricValues": [{"value": str(i+1)} for i in range(len(GoogleAnalyticsAPI.DAILY))]}]}
-        api_obj = GoogleAnalyticsAPI(account)
-        row = api_obj.get_daily_metrics("123")[0]
-        self.assertEqual(row["date"], "2026-10-01")
-        self.assertEqual(row["sessions"], "1")
-        self.assertEqual(row["conversions"], row["key_events"])
-        self.assertLessEqual(len(request.call_args.kwargs["json"]["metrics"]), 10)
-        with self.assertRaises(ads.IntegrationError):
-            api_obj.get_daily_metrics("456")
-
-    @patch("core.platforms.google_analytics.GoogleAnalyticsAPI")
-    def test_worker_persists_real_report_and_skips_duplicate_jobs(self, api_class):
-        from core.tasks.analytics_tasks import sync_analytics_account
-        connection = self.connection("google_analytics", token_expiry=timezone.now()+timedelta(hours=1))
-        account = PlatformAccount.objects.create(user=self.user, platform=self.platforms["google_analytics"], connection=connection, account_id="123")
-        api_class.return_value.get_properties.return_value = [{"property_id": "123", "property_name": "Site", "currency": "USD"}]
-        api_class.return_value.get_daily_metrics.return_value = [{"date": "2026-10-01", "sessions": "17", "users": "12"}]
-        api_class.return_value.get_landing_page_metrics.return_value = [{"date": "2026-10-01", "landing_page": "/", "sessions": "11"}]
-        cache.set(f"ga4_sync:running:{account.pk}", "other-worker", 1800)
-        self.assertEqual(sync_analytics_account.run(account.pk)["reason"], "already_running")
-        api_class.assert_not_called()
-        cache.delete(f"ga4_sync:running:{account.pk}")
-        result = sync_analytics_account.run(account.pk)
-        self.assertEqual(result["daily_metrics"], 1)
-        prop = AnalyticsProperty.objects.get()
-        self.assertEqual(prop.daily_metrics.get().sessions, 17)
-        self.assertEqual(prop.landing_page_metrics.get().sessions, 11)
-        self.assertEqual(prop.currency, "USD")

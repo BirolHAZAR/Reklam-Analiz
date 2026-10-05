@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -78,6 +79,8 @@ def account_connection_context(request):
 @require_POST
 @never_cache
 def connect(request, provider):
+    if provider not in api.CONNECTION_PROVIDERS:
+        raise Http404
     try:
         client = _client(request, request.POST.get("agency_client"))
         state = secrets.token_urlsafe(32)
@@ -95,6 +98,8 @@ def connect(request, provider):
 @require_GET
 @never_cache
 def callback(request, provider):
+    if provider not in api.CONNECTION_PROVIDERS:
+        raise Http404
     flow = request.session.pop(f"ads_oauth:{provider}", None)
     if not flow or flow.get("user") != request.user.pk or time.time() - flow["created"] > 600 or not secrets.compare_digest(flow["state"], request.GET.get("state", "")):
         messages.error(request, "Bağlantı isteği geçersiz veya süresi dolmuş. Yeniden başlatın.")
@@ -107,7 +112,7 @@ def callback(request, provider):
         token = api.exchange_code(provider, request.GET["code"])
         choices = api.discover_accounts(provider, token["access_token"])
         if not choices:
-            raise api.IntegrationError("Erişilebilir kanal veya GA4 mülkü bulunamadı. Google hesabınızın yetkisini kontrol edin." if provider in api.GOOGLE_READ_PROVIDERS else "Erişilebilir aktif reklam hesabı bulunamadı. Platformdaki reklam hesabı yetkinizi kontrol edin.")
+            raise api.IntegrationError("Erişilebilir YouTube kanalı bulunamadı. Google hesabınızın yetkisini kontrol edin." if provider in api.GOOGLE_READ_PROVIDERS else "Erişilebilir aktif reklam hesabı bulunamadı. Platformdaki reklam hesabı yetkinizi kontrol edin.")
         platform, _ = Platform.objects.get_or_create(code=provider, defaults={"name": api.CONNECTION_PROVIDERS[provider], "is_active": True})
         connection = PlatformConnection.objects.create(
             user=request.user, platform=platform, name=api.CONNECTION_PROVIDERS[provider],
@@ -128,6 +133,8 @@ def callback(request, provider):
 @require_http_methods(["GET", "POST"])
 @never_cache
 def select_accounts(request, provider):
+    if provider not in api.CONNECTION_PROVIDERS:
+        raise Http404
     connection = get_object_or_404(PlatformConnection, pk=request.session.get(f"ads_pending:{provider}"), user=request.user, platform__code=provider)
     if not connection.extra_data.get("pending") or connection.created_at < timezone.now() - timedelta(minutes=15):
         messages.error(request, "Hesap seçiminin süresi doldu. Bağlantıyı yeniden başlatın.")
@@ -172,9 +179,6 @@ def select_accounts(request, provider):
                         "token_expiry": connection.token_expiry, "is_active": True,
                         "extra_data": {**(old.extra_data if old else {}), **allowed[cid], "source": source},
                     })
-                    if provider == "google_analytics":
-                        from core.services.analytics_sync_service import upsert_analytics_property
-                        upsert_analytics_property(request.user, account, {"property_id": cid, "property_name": allowed[cid]["name"]})
                 PlatformConnection.objects.filter(pk__in=replaced_connections, user=request.user, accounts__isnull=True).update(is_active=False, status="disconnected")
             request.session.pop(f"ads_pending:{provider}", None)
             messages.success(request, f"{len(selected)} hesap bağlandı." if provider in api.GOOGLE_READ_PROVIDERS else f"{len(selected)} reklam hesabı bağlandı. Kampanyaları görüntüleyebilirsiniz.")

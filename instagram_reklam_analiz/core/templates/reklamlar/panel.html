@@ -580,8 +580,8 @@
             <div>
                 <span class="octo-kicker"><i class="fas fa-brain"></i> Octo Reklam Komuta Merkezi</span>
                 <h1>Tüm reklam hesaplarınız tek panelde, tek zekâ ile yönetilir.</h1>
-                <p>Meta, TikTok, Google Ads, LinkedIn, X ve Google Analytics verilerinizi birleştirin; reklamlarınızı çekin, performansı görün ve AI destekli aksiyon önerileriyle bütçenizi daha bilinçli yönetin.</p>
-                <div class="octo-chip-row"><span class="octo-chip"><i class="fab fa-google"></i> Google Ads</span><span class="octo-chip"><i class="fas fa-chart-pie"></i> GA4</span><span class="octo-chip"><i class="fab fa-meta"></i> Meta</span><span class="octo-chip"><i class="fab fa-tiktok"></i> TikTok</span><span class="octo-chip"><i class="fas fa-robot"></i> AI Öneri</span></div>
+                <p>Meta, TikTok, Google Ads, LinkedIn ve X reklam verilerinizi birleştirin; reklamlarınızı çekin, performansı görün ve AI destekli aksiyon önerileriyle bütçenizi daha bilinçli yönetin.</p>
+                <div class="octo-chip-row"><span class="octo-chip"><i class="fab fa-google"></i> Google Ads</span><span class="octo-chip"><i class="fab fa-meta"></i> Meta</span><span class="octo-chip"><i class="fab fa-tiktok"></i> TikTok</span><span class="octo-chip"><i class="fas fa-robot"></i> AI Öneri</span></div>
             </div>
             <div class="octo-visual"><img src="{% static 'images/octo-one.webp' %}" alt="Octo AI"></div>
         </div>
@@ -712,8 +712,6 @@
             'google': 'google_ads',
             'googleads': 'google_ads',
             'google-ads': 'google_ads',
-            'ga4': 'google_analytics',
-            'analytics': 'google_analytics',
             'twitter': 'x',
             'twitter_x': 'x'
         };
@@ -918,7 +916,6 @@
             'instagram':'Instagram',
             'facebook':'Facebook',
             'google_ads':'Google Ads',
-            'google_analytics':'Google Analytics',
             'youtube':'YouTube',
             'tiktok':'TikTok',
             'linkedin':'LinkedIn',
@@ -1312,7 +1309,7 @@
     
     function formatNumber(n) { return window.raFormatNumber(n); }
     function formatMoney(n) { return window.raFormatMoney(n); }
-    function getPlatformIcon(c) { return { 'instagram':'fab fa-instagram','facebook':'fab fa-facebook','google_ads':'fab fa-google','google_analytics':'fas fa-chart-pie','youtube':'fab fa-youtube','tiktok':'fab fa-tiktok','linkedin':'fab fa-linkedin','x':'fab fa-x-twitter' }[c] || 'fas fa-ad'; }
+    function getPlatformIcon(c) { return { 'instagram':'fab fa-instagram','facebook':'fab fa-facebook','google_ads':'fab fa-google','youtube':'fab fa-youtube','tiktok':'fab fa-tiktok','linkedin':'fab fa-linkedin','x':'fab fa-x-twitter' }[c] || 'fas fa-ad'; }
     function getCookie(name) { let v = `; ${document.cookie}`; let parts = v.split(`; ${name}=`); if (parts.length===2) return parts.pop().split(';').shift(); }
     function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
     

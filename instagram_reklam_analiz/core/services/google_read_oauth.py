@@ -12,7 +12,6 @@ from core.services.ads_integrations import IntegrationError, configuration
 
 SCOPES = {
     "youtube": "https://www.googleapis.com/auth/youtube.readonly",
-    "google_analytics": "https://www.googleapis.com/auth/analytics.readonly",
 }
 
 
@@ -109,24 +108,17 @@ def connection_token(connection):
 
 
 def discover_accounts(provider, token):
+    if provider not in SCOPES:
+        raise IntegrationError("Desteklenmeyen Google bağlantısı.")
     headers = {"Authorization": f"Bearer {token}"}
     client_id = configuration(provider)[0]
     rows, seen, page = {}, set(), ""
     for _ in range(100):
-        if provider == "youtube":
-            data = request("GET", "https://www.googleapis.com/youtube/v3/channels", quota_key=client_id,
-                           headers=headers, params={"part": "snippet,statistics", "mine": "true", "maxResults": 50, "pageToken": page})
-            for item in data.get("items", []):
-                rows[item["id"]] = {"id": item["id"], "name": item.get("snippet", {}).get("title", item["id"]),
-                                    "kind": "youtube_channel", "statistics": item.get("statistics", {})}
-        else:
-            data = request("GET", "https://analyticsadmin.googleapis.com/v1beta/accountSummaries", quota_key=client_id,
-                           headers=headers, params={"pageSize": 200, "pageToken": page})
-            for account in data.get("accountSummaries", []):
-                for item in account.get("propertySummaries", []):
-                    pid = item.get("property", "").removeprefix("properties/")
-                    if pid.isdigit():
-                        rows[pid] = {"id": pid, "name": item.get("displayName", pid), "kind": "ga4_property", "property_id": pid}
+        data = request("GET", "https://www.googleapis.com/youtube/v3/channels", quota_key=client_id,
+                       headers=headers, params={"part": "snippet,statistics", "mine": "true", "maxResults": 50, "pageToken": page})
+        for item in data.get("items", []):
+            rows[item["id"]] = {"id": item["id"], "name": item.get("snippet", {}).get("title", item["id"]),
+                                "kind": "youtube_channel", "statistics": item.get("statistics", {})}
         page = data.get("nextPageToken", "")
         if not page:
             return list(rows.values())

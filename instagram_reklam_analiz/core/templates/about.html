@@ -22,9 +22,9 @@
                 </h1>
                 <p>
                     {% if current_language == "en" %}
-                    ReklamAnaliz.net brings Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn, X, and Google Analytics data into one center. It does more than show reports: it explains performance, detects risks, tracks competitor ads, and helps you produce better advertising ideas with AI.
+                    ReklamAnaliz.net brings Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn, and X data into one center. It does more than show reports: it explains performance, detects risks, tracks competitor ads, and helps you produce better advertising ideas with AI.
                     {% else %}
-                    ReklamAnaliz.net; Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn, X ve Google Analytics verilerini tek merkezde birleştirir. Sadece rapor göstermez; reklam performansını yorumlar, sorunları tespit eder, rakip reklamlarını takip eder ve yapay zeka ile daha iyi reklam fikirleri üretmenize yardımcı olur.
+                    ReklamAnaliz.net; Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn ve X reklam verilerini tek merkezde birleştirir. Sadece rapor göstermez; reklam performansını yorumlar, sorunları tespit eder, rakip reklamlarını takip eder ve yapay zeka ile daha iyi reklam fikirleri üretmenize yardımcı olur.
                     {% endif %}
                 </p>
                 <div class="ra-actions">
@@ -42,7 +42,7 @@
                 <div class="ra-float f1"><i class="fab fa-facebook"></i> Meta Ads</div>
                 <div class="ra-float f2"><i class="fab fa-google"></i> Google Ads</div>
                 <div class="ra-float f3"><i class="fab fa-tiktok"></i> TikTok</div>
-                <div class="ra-float f4"><i class="fas fa-chart-line"></i> Analytics</div>
+                <div class="ra-float f4"><i class="fas fa-chart-line"></i> {% if current_language == "en" %}Campaigns{% else %}Kampanyalar{% endif %}</div>
                 <div class="ra-float f5"><i class="fas fa-lightbulb"></i> {% if current_language == "en" %}AI Advice{% else %}AI Öneri{% endif %}</div>
             </div>
         </section>
@@ -53,7 +53,7 @@
                 <p>{% if current_language == "en" %}Classic reporting screens give you numbers. ReklamAnaliz.net explains what those numbers mean, which campaigns are losing strength, which creatives can scale, and how competitors are moving in the market.{% else %}Klasik raporlama ekranları size sayı verir. ReklamAnaliz.net ise bu sayıların ne anlama geldiğini, hangi kampanyanın güç kaybettiğini, hangi kreatifin ölçeklenebileceğini ve rakiplerinizin pazarda nasıl hareket ettiğini anlaşılır şekilde sunar.{% endif %}</p>
             </div>
             <div class="ra-grid-3">
-                <div class="ra-card"><div class="ra-icon"><i class="fas fa-plug"></i></div><h3>{% if current_language == "en" %}All channels in one center{% else %}Tüm kanallar tek merkezde{% endif %}</h3><p>{% if current_language == "en" %}Compare ad accounts and Google Analytics results from one professional dashboard instead of jumping between separate panels.{% else %}Reklam hesaplarınızı ve Google Analytics verilerinizi ayrı ayrı takip etmek yerine, performansı tek panelde karşılaştırabilirsiniz.{% endif %}</p></div>
+                <div class="ra-card"><div class="ra-icon"><i class="fas fa-plug"></i></div><h3>{% if current_language == "en" %}All channels in one center{% else %}Tüm kanallar tek merkezde{% endif %}</h3><p>{% if current_language == "en" %}Compare ad account and campaign results from one professional dashboard instead of jumping between separate panels.{% else %}Reklam hesaplarınızı ve kampanyalarınızı ayrı ayrı takip etmek yerine, performansı tek panelde karşılaştırabilirsiniz.{% endif %}</p></div>
                 <div class="ra-card"><div class="ra-icon"><i class="fas fa-wand-magic-sparkles"></i></div><h3>{% if current_language == "en" %}AI-powered recommendations{% else %}AI destekli öneriler{% endif %}</h3><p>{% if current_language == "en" %}The system does not only say performance increased or decreased; it creates practical recommendations for budget, targeting, copy, and creatives.{% else %}Sistem sadece düştü veya yükseldi demez; bütçe, hedefleme, kreatif ve metin tarafında uygulanabilir öneriler üretir.{% endif %}</p></div>
                 <div class="ra-card"><div class="ra-icon"><i class="fas fa-user-secret"></i></div><h3>{% if current_language == "en" %}Competitor ad intelligence{% else %}Rakip reklam zekası{% endif %}</h3><p>{% if current_language == "en" %}Track competitor ads to catch market messages, offers, and creative angles earlier.{% else %}Rakiplerinizin reklam hareketlerini izleyerek pazardaki mesajları, teklifleri ve yaratıcı fikirleri daha hızlı yakalamanızı sağlar.{% endif %}</p></div>
             </div>
@@ -70,7 +70,7 @@
                     </div>
                 </div>
                 <div class="ra-process">
-                    <div class="ra-step"><h4>{% if current_language == "en" %}Connects the data{% else %}Verileri bağlar{% endif %}</h4><p>{% if current_language == "en" %}Advertising platforms and Analytics are collected in a single performance view.{% else %}Tüm reklam platformları ve Google Analytics tek performans görünümünde toplanır.{% endif %}</p></div>
+                    <div class="ra-step"><h4>{% if current_language == "en" %}Connects the data{% else %}Verileri bağlar{% endif %}</h4><p>{% if current_language == "en" %}Advertising platforms are collected in a single performance view.{% else %}Tüm reklam platformları tek performans görünümünde toplanır.{% endif %}</p></div>
                     <div class="ra-step"><h4>{% if current_language == "en" %}Reads performance{% else %}Performansı okur{% endif %}</h4><p>{% if current_language == "en" %}Spend, conversions, ROAS, CTR, CPC, and creative signals are evaluated together.{% else %}Harcama, dönüşüm, ROAS, CTR, CPC ve kreatif performans sinyalleri birlikte değerlendirilir.{% endif %}</p></div>
                     <div class="ra-step"><h4>{% if current_language == "en" %}Creates recommendations{% else %}Öneri ve reklam fikri üretir{% endif %}</h4><p>{% if current_language == "en" %}AI produces new ad copy, creative angles, budget moves, and competitor-based opportunities.{% else %}AI; yeni reklam metinleri, kreatif açıları, bütçe yönlendirmeleri ve rakip bazlı fırsatlar sunar.{% endif %}</p></div>
                 </div>

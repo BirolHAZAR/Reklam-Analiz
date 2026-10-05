@@ -13,9 +13,9 @@
     <div class="pricing-wrap">
         <section class="pricing-hero">
             <div>
-                <div class="eyebrow"><i class="fas fa-layer-group"></i> {% if current_language == "en" %}All ad accounts, Google Analytics, and AI recommendations in one center{% else %}Tüm reklam hesapları, Google Analytics ve AI önerileri tek merkezde{% endif %}</div>
+                <div class="eyebrow"><i class="fas fa-layer-group"></i> {% if current_language == "en" %}All ad accounts, and AI recommendations in one center{% else %}Tüm reklam hesapları ve AI önerileri tek merkezde{% endif %}</div>
                 <h1>{% if current_language == "en" %}Do not just choose a plan;<br><span class="gradient-text">choose an ad growth system.</span>{% else %}Paket seçme değil,<br><span class="gradient-text">reklam büyüme sistemi</span> seçme zamanı.{% endif %}</h1>
-                <p class="hero-lead">{% if current_language == "en" %}ReklamAnaliz.net brings Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn, X, and Google Analytics data into one dashboard. Octo AI analyzes performance, tracks competitor ads, creates new ad ideas, and recommends practical budget actions.{% else %}ReklamAnaliz.net; Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn, X ve Google Analytics verilerini tek panelde toplar. Octo AI performansı analiz eder, rakip reklamlarını izler, yeni reklam fikirleri üretir ve bütçenizi daha akıllı kullanmanız için uygulanabilir öneriler sunar.{% endif %}</p>
+                <p class="hero-lead">{% if current_language == "en" %}ReklamAnaliz.net brings Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn, and X data into one dashboard. Octo AI analyzes performance, tracks competitor ads, creates new ad ideas, and recommends practical budget actions.{% else %}ReklamAnaliz.net; Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn ve X reklam verilerini tek panelde toplar. Octo AI performansı analiz eder, rakip reklamlarını izler, yeni reklam fikirleri üretir ve bütçenizi daha akıllı kullanmanız için uygulanabilir öneriler sunar.{% endif %}</p>
                 <div class="hero-actions">
                     {% if request.user.is_authenticated %}
                     <a href="#paketler" class="btn-ra-primary"><i class="fas fa-tags"></i> {% if current_language == "en" %}View Plans{% else %}Paketleri İncele{% endif %}</a>
@@ -37,7 +37,6 @@
                     <div class="platform-chip chip-google"><i class="fab fa-google"></i><div>Google Ads<small>Search + Display</small></div></div>
                     <div class="platform-chip chip-tiktok"><i class="fab fa-tiktok"></i><div>TikTok Ads<small>{% if current_language == "en" %}Creative analysis{% else %}Kreatif analiz{% endif %}</small></div></div>
                     <div class="platform-chip chip-linkedin"><i class="fab fa-linkedin"></i><div>LinkedIn<small>B2B</small></div></div>
-                    <div class="platform-chip chip-analytics"><i class="fas fa-chart-pie"></i><div>Analytics<small>{% if current_language == "en" %}Conversion data{% else %}Dönüşüm verisi{% endif %}</small></div></div>
                 </div>
             </div>
         </section>
@@ -105,7 +104,7 @@
 
         <section class="platform-strip">
             <div class="strip-title"><h3>{% if current_language == "en" %}The biggest advantage: your entire ad world on one screen{% else %}En büyük avantaj: tüm reklam dünyanız tek ekranda{% endif %}</h3><p>{% if current_language == "en" %}Octo simplifies data that looks complex to clients: which platform works, which ad is tired, which competitor is moving, and what to do in the next campaign.{% else %}Müşteri için karmaşık görünen verileri Octo sadeleştirir: hangi platform iyi çalışıyor, hangi reklam yoruldu, hangi rakip öne çıktı ve bir sonraki kampanyada ne yapılmalı.{% endif %}</p></div>
-            <div class="platform-grid"><div class="platform-box"><i class="fab fa-instagram"></i><span>Instagram</span></div><div class="platform-box"><i class="fab fa-facebook"></i><span>Facebook</span></div><div class="platform-box"><i class="fab fa-google"></i><span>Google Ads</span></div><div class="platform-box"><i class="fab fa-tiktok"></i><span>TikTok Ads</span></div><div class="platform-box"><i class="fab fa-linkedin"></i><span>LinkedIn Ads</span></div><div class="platform-box"><i class="fab fa-x-twitter"></i><span>X Ads</span></div><div class="platform-box"><i class="fas fa-chart-line"></i><span>Google Analytics</span></div></div>
+            <div class="platform-grid"><div class="platform-box"><i class="fab fa-instagram"></i><span>Instagram</span></div><div class="platform-box"><i class="fab fa-facebook"></i><span>Facebook</span></div><div class="platform-box"><i class="fab fa-google"></i><span>Google Ads</span></div><div class="platform-box"><i class="fab fa-tiktok"></i><span>TikTok Ads</span></div><div class="platform-box"><i class="fab fa-linkedin"></i><span>LinkedIn Ads</span></div><div class="platform-box"><i class="fab fa-x-twitter"></i><span>X Ads</span></div></div>
         </section>
 
         {% if agency_plans %}

@@ -284,6 +284,31 @@ class AdsIntegrationTests(TestCase):
             self.assertRedirects(response, reverse("hesap_ekle"), fetch_redirect_response=False)
         self.assertFalse(PlatformAccount.objects.exists())
 
+    @patch("core.services.ads_integrations.requests.request")
+    def test_retired_analytics_oauth_and_pending_selection_are_blocked(self, provider_request):
+        retired, _ = Platform.objects.get_or_create(code="google_analytics", defaults={"name": "Retired provider"})
+        connection = PlatformConnection.objects.create(
+            user=self.user, platform=retired, access_token="old-access", refresh_token="old-refresh",
+            is_active=False, status="disconnected",
+            extra_data={"pending": True, "choices": [{"id": "123", "name": "Old property"}]},
+        )
+        session = self.client.session
+        session["ads_pending:google_analytics"] = connection.pk
+        session.save()
+        self.assertEqual(self.client.post(reverse("integration_connect", args=["google_analytics"])).status_code, 404)
+        self.assertEqual(self.client.post(reverse("integration_select", args=["google_analytics"]), {"accounts": ["123"]}).status_code, 404)
+        self.assertEqual(self.client.get("/connect/google-analytics/callback/").status_code, 404)
+        self.assertEqual(self.client.get("/google-analytics/").status_code, 404)
+        self.assertFalse(PlatformAccount.objects.exists())
+        provider_request.assert_not_called()
+
+    def test_accounts_screen_offers_ads_without_analytics(self):
+        response = self.client.get(reverse("hesap_ekle"))
+        self.assertContains(response, reverse("integration_connect", args=["google_ads"]))
+        self.assertContains(response, reverse("integration_connect", args=["facebook"]))
+        self.assertNotContains(response, "Google Analytics")
+        self.assertNotContains(response, "google_analytics")
+
     def test_agency_client_requires_management_permission(self):
         from core.models import Organization, AgencyClient
         from core.views.ads_integrations import _client

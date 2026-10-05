@@ -26,4 +26,3 @@ from . import control_tower_ai  # noqa: F401
 from . import admin_ops  # noqa: F401
 from . import organic_publish  # noqa: F401
 from . import communications  # noqa: F401
-from . import analytics_tasks  # noqa: F401

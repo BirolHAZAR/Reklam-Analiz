@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 import requests
 
-from core.models import AnalyticsProperty, Platform, PlatformAccount, PlatformConnection
+from core.models import Platform, PlatformAccount, PlatformConnection
 from core.services.cache_service import CacheService
 from core.services.notification_helper import NotificationHelper
 
@@ -19,7 +19,6 @@ PLATFORM_DEFAULTS = {
     "tiktok": {"name": "TikTok", "icon": "fab fa-tiktok"},
     "linkedin": {"name": "LinkedIn", "icon": "fab fa-linkedin"},
     "x": {"name": "X", "icon": "fab fa-x-twitter"},
-    "google_analytics": {"name": "Google Analytics 4", "icon": "fas fa-chart-pie"},
 }
 
 
@@ -254,8 +253,8 @@ def hesap_ekle_view(request):
             messages.error(request, str(exc))
             return redirect("hesap_ekle")
         platform_code = request.POST.get("platform")
-        if platform_code in {"google_ads", "facebook", "google_analytics"}:
-            messages.info(request, "Reklam hesaplarını Hesap Ekle ekranından bağlayın. GA4 bağlantısı henüz desteklenmiyor.")
+        if platform_code in {"google_ads", "facebook"}:
+            messages.info(request, "Reklam hesaplarını Hesap Ekle ekranından bağlayın.")
             return redirect("hesap_ekle")
         account_name = request.POST.get("account_name", "").strip()
         account_id = request.POST.get("account_id", "").strip()
@@ -325,23 +324,6 @@ def hesap_ekle_view(request):
             account.access_token = access_token
             account.is_active = True
             account.save(update_fields=["account_name", "access_token", "is_active", "updated_at"])
-
-        if platform_code == "google_analytics":
-            AnalyticsProperty.objects.update_or_create(
-                user=request.user,
-                platform_account=account,
-                property_id=account_id,
-                defaults={
-                    "property_name": account_name or f"GA4 Property {account_id}",
-                    "property_type": "GA4",
-                    "raw_data": {
-                        "source": "manual_connection",
-                        "account_id": account_id,
-                        "account_name": account_name,
-                    },
-                    "is_active": True,
-                },
-            )
 
         NotificationHelper.platform_account_connected(
             user=request.user,

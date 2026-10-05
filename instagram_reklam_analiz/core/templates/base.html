@@ -52,7 +52,6 @@
                     <span class="ra-platform-chip google connected" title="Google Ads"><i class="fab fa-google"></i><span>Google Ads</span></span>
                     <span class="ra-platform-chip linkedin connected" title="LinkedIn"><i class="fab fa-linkedin-in"></i><span>LinkedIn</span></span>
                     <span class="ra-platform-chip x connected" title="X"><i class="fab fa-x-twitter"></i><span>X</span></span>
-                    <span class="ra-platform-chip analytics connected" title="Google Analytics"><span class="ra-platform-mark">▰</span><span>Analytics</span></span>
                 </div>
             </div>
 
@@ -239,8 +238,7 @@
                         {% can_agency_menu user 'marketplace_price_tracking' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'marketplace_price_tracking' %}"><i class="fas fa-chart-line"></i> {{ labels.price_tracking }}</a>{% endif %}
                         {% can_agency_menu user 'marketplace_price_history_report' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'marketplace_price_history_report' %}"><i class="fas fa-clock-rotate-left"></i> {{ labels.price_history }}</a>{% endif %}
                         <div class="dropdown-divider"></div>
-                        {% can_agency_menu user 'google_analytics_center' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'google_analytics_center' %}"><i class="fas fa-chart-simple"></i> {{ labels.ga4_overview }}</a>{% endif %}
-                        {% can_agency_menu user 'hesap_ekle' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'hesap_ekle' %}"><i class="fas fa-plug"></i> {{ labels.ga4_connect }}</a>{% endif %}
+                        {% can_agency_menu user 'hesap_ekle' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'hesap_ekle' %}"><i class="fas fa-plug"></i> {{ labels.connect_account }}</a>{% endif %}
                     </div>
                 </li>
 

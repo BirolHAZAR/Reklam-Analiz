@@ -133,18 +133,6 @@ from .intelligence import (
     AIRecommendationHistory,
 )
 
-# Google Analytics / web analytics modelleri
-try:
-    from .analytics_entities import (
-        AnalyticsProperty,
-        AnalyticsDailyMetric,
-        AnalyticsLandingPageMetric,
-    )
-except ImportError:
-    AnalyticsProperty = None
-    AnalyticsDailyMetric = None
-    AnalyticsLandingPageMetric = None
-
 __all__ = [
     "User",
     "ContactMessage",
@@ -273,10 +261,3 @@ __all__ = [
 
 from .payment_gateway import PaymentGatewaySettings, HostedPaymentSession
 from .integration_application import IntegrationApplication
-
-if AnalyticsProperty is not None:
-    __all__ += [
-        "AnalyticsProperty",
-        "AnalyticsDailyMetric",
-        "AnalyticsLandingPageMetric",
-    ]

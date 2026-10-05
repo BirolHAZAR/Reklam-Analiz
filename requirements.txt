@@ -3,7 +3,6 @@
 #
 # Generated from the current project requirements and source/config inspection.
 # Existing tested pins were preserved where available.
-# Google Analytics dependencies were added because the project imports them directly.
 #
 celery==5.6.3
 channels==4.2.2
@@ -19,8 +18,6 @@ Django==5.2.14
 django_celery_results==2.6.0
 djangorestframework==3.17.1
 flower==2.0.1
-google-analytics-data>=0.18,<1
-google-auth>=2.0,<3
 langchain-classic==1.0.4
 langchain-community==0.4.1
 langchain-openai==1.1.13
