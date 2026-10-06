@@ -2,3 +2,34 @@
 /instagram_reklam_analiz.zip
 *.zip
 /runtime/local-https/
+
+# Local Python environments and generated caches.
+/.venvs/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Secrets remain on the computer/server; examples may be committed.
+.env
+.env.*
+!.env.example
+!.env.docker.example
+
+# Local logs, validation evidence and backups.
+*.log
+/runtime/launcher/
+/artifacts/
+/gizlilik-gelistirme-1.0-yedek-20261002.json
+/instagram_reklam_analiz/output/pdf/
+/instagram_reklam_analiz/project-tree.txt
+/youtube-*.png
+
+# Generated local audit reports; keep normal project Markdown documentation.
+/GOOGLE_ANALYTICS_IPTAL_DURUMU.md
+/GOOGLE_ANALYTICS_KALDIRMA_20261005.md
+/GOOGLE_GA4_EK_INCELEME_20261005.md
+/RAKIP_AKISI_DUZELTME_SONUCU.md
+/RAKIP_AKISI_INCELEMESI.md
+/RAKIP_ENTEGRASYON_ERISIM_SONUCU_20261006.md
+/RAKIP_REKLAM_INCELEME_20261005.md
