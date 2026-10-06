@@ -690,7 +690,7 @@ function loadData() {
                         <div class="ad-name">${escapeHtml(ad.name.substring(0, 45))}</div>
                         <div class="ad-meta">
                             <span><i class="fab fa-${ad.platform}"></i> ${ad.platform}</span>
-                            <span><i class="fas fa-chart-line"></i> ${ad.performance_score}</span>
+                            <span><i class="fas fa-chart-line"></i> ${ad.performance_score == null ? 'Veri yok' : ad.performance_score}</span>
                         </div>
                     </div>
                 `;
@@ -759,7 +759,7 @@ function updateMainContent(data) {
                 </div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">${data.avg_ctr.toFixed(2)}%</div>
+                <div class="stat-value">${data.avg_ctr == null ? 'Veri yok' : data.avg_ctr.toFixed(2) + '%'}</div>
                 <div class="stat-label">Ort. CTR</div>
             </div>
             <div class="stat-card">
@@ -781,12 +781,12 @@ function updateMainContent(data) {
             tableRows += `
                 <tr>
                     <td>${formattedDate}</td>
-                    <td>${formatNumber(impressions[idx] || 0)}</td>
-                    <td>${formatNumber(clicks[idx] || 0)}</td>
+                    <td>${formatNumber(impressions[idx])}</td>
+                    <td>${formatNumber(clicks[idx])}</td>
                     <td>${formatNumber(budget)} ₺</td>
-                    <td>${formatNumber(spend[idx] || 0)} ₺</td>
-                    <td>${((ctr[idx] || 0)).toFixed(2)}%</td>
-                    <td>${formatNumber(engagement[idx] || 0)}</td>
+                    <td>${formatNumber(spend[idx])} ₺</td>
+                    <td>${ctr[idx] == null ? 'Veri yok' : Number(ctr[idx]).toFixed(2) + '%'}</td>
+                    <td>${formatNumber(engagement[idx])}</td>
                 </tr>
             `;
         }
@@ -796,7 +796,8 @@ function updateMainContent(data) {
     
     const tableHtml = `
         <div class="table-card">
-            <div class="card-header"><i class="fas fa-table me-2"></i> Günlük Metrik Değişimleri</div>
+            <div class="card-header"><i class="fas fa-table me-2"></i> ${data.measurement_type === 'cumulative_snapshot' ? 'Toplam Aralık Anlık Görüntüleri' : 'Günlük Metrik Değişimleri'}</div>
+            ${data.metrics_notice ? `<p class="px-3 text-muted">${escapeHtml(data.metrics_notice)}</p>` : ''}
             <div class="table-container">
                 <table>
                     <thead>
@@ -909,6 +910,7 @@ function refreshWithDateRange() {
 }
 
 function formatNumber(num) {
+    if (num == null) return 'Veri yok';
     return window.raFormatNumber(num);
 }
 

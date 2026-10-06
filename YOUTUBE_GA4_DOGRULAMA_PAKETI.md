@@ -1,5 +1,9 @@
 # YouTube ve GA4 Google OAuth doğrulama paketi
 
+## Güncel ek inceleme — 5 Ekim 2026
+
+Google e-posta ile tam ve okunabilir izin ekranı, `analytics.readonly` işlevinin uygulamada gösterilmesi ve aktif test erişimi istedi. Başvuru henüz onaylanmadı. Canlı GA4 detay ekranında 5 Ekim 08:58 son senkron görünmesine rağmen günlük/açılış sayfası raporları boş. Yeni demo, test erişimi kontrolleri ve Google'a yanıt taslağı [ek inceleme hazırlığında](GOOGLE_GA4_EK_INCELEME_20261005.md). Yeni video ve test hesabı henüz tamamlanmadı; aynı e-postaya düzeltmeler tamamlandıktan sonra yanıt verilmeli.
+
 2 Ekim 2026. Proje: `reklam-analiz-youtube-ga4`. Google Ads'in ayrı ve incelemedeki projesi değiştirilmedi.
 
 ## Son durum: Google incelemesine alındı

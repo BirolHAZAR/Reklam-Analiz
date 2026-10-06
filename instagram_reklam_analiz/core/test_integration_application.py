@@ -8,6 +8,96 @@ from core.models import IntegrationApplication
 from core.services.ads_integrations import application_values, IntegrationError
 
 
+class CompetitorSourceSettingTests(TestCase):
+    def setUp(self):
+        from core.models import CompetitorSourceSetting
+        self.data = dict(platform='instagram', source='searchapi', credential='competitor-test-secret',
+                         countries='TR', enabled=True)
+        self.setting = CompetitorSourceSetting.objects.create(**self.data)
+
+    def test_encrypted_key_is_used_without_changing_other_platform(self):
+        from core.models import CompetitorSourceSetting
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT credential FROM core_competitorsourcesetting WHERE id=%s', [self.setting.pk])
+            stored = cursor.fetchone()[0]
+        self.assertTrue(stored.startswith('enc:v1:'))
+        self.assertNotIn(self.data['credential'], stored)
+        self.assertEqual(CompetitorSourceSetting.runtime('instagram')['credential'], self.data['credential'])
+        with override_settings(META_COMPETITOR_SOURCE='graph'):
+            self.assertEqual(CompetitorSourceSetting.runtime('facebook')['source'], 'graph')
+
+    def test_blank_secret_is_preserved_but_never_rendered(self):
+        from core.integration_admin import CompetitorSourceForm
+        form = CompetitorSourceForm(instance=self.setting)
+        self.assertNotIn(self.data['credential'], form.as_p())
+        form = CompetitorSourceForm(data={**self.data, 'credential': ''}, instance=self.setting)
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+        self.setting.refresh_from_db()
+        self.assertEqual(self.setting.credential, self.data['credential'])
+
+    def test_changing_provider_does_not_reuse_another_providers_secret(self):
+        from core.integration_admin import CompetitorSourceForm
+        form = CompetitorSourceForm(data={**self.data, 'source': 'graph', 'credential': ''}, instance=self.setting)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data['credential'], '')
+
+    @override_settings(SEARCHAPI_API_KEY='environment-must-not-be-used')
+    def test_disabled_platform_blocks_source_and_reports_member_notice(self):
+        from types import SimpleNamespace
+        from core.services.competitor_public_sources import competitor_source, source_status
+        from core.services.competitor_live_sync import CompetitorSyncError
+        self.setting.enabled = False
+        self.setting.save()
+        competitor = SimpleNamespace(platform=SimpleNamespace(code='instagram'))
+        self.assertFalse(source_status(competitor)['configured'])
+        with self.assertRaises(CompetitorSyncError):
+            competitor_source(competitor)
+
+    def test_provider_country_and_platform_validation(self):
+        from core.integration_admin import CompetitorSourceForm
+        for changes, error in [({'source': 'serpapi'}, 'source'), ({'countries': 'Turkey'}, 'countries'),
+                               ({'countries': 'TR,DE'}, 'countries'), ({'platform': 'facebook'}, 'platform')]:
+            form = CompetitorSourceForm(data={**self.data, **changes}, instance=self.setting)
+            self.assertFalse(form.is_valid())
+            self.assertIn(error, form.errors)
+            self.setting.refresh_from_db()
+
+    def test_admin_is_superuser_only_and_has_no_export_action(self):
+        from django.contrib import admin
+        from django.test import RequestFactory
+        from core.models import CompetitorSourceSetting
+        model_admin = admin.site._registry[CompetitorSourceSetting]
+        request = RequestFactory().get('/')
+        request.user = get_user_model().objects.create_user(username='source-staff', is_staff=True)
+        self.assertFalse(model_admin.has_view_permission(request))
+        self.client.force_login(request.user)
+        self.assertEqual(self.client.get(reverse('admin:core_competitorsourcesetting_changelist')).status_code, 403)
+        request.user.is_superuser = True
+        self.assertEqual(set(model_admin.get_actions(request)), {'test_connection'})
+        self.assertFalse(model_admin.has_delete_permission(request))
+
+    def test_admin_test_does_not_store_secrets_from_provider_errors(self):
+        from unittest.mock import patch
+        from django.contrib import admin
+        from django.test import RequestFactory
+        from core.models import CompetitorSourceSetting, Competitor, Platform
+        user = get_user_model().objects.create_user(username='source-test-admin', is_superuser=True, is_staff=True)
+        platform = Platform.objects.create(code='instagram', name='Instagram')
+        competitor = Competitor.objects.create(user=user, platform=platform, name='Example', platform_identifier='example')
+        self.setting.test_competitor = competitor
+        self.setting.save()
+        request = RequestFactory().post('/')
+        request.user = user
+        model_admin = admin.site._registry[CompetitorSourceSetting]
+        with patch('core.services.competitor_public_sources.competitor_source', side_effect=RuntimeError(self.data['credential'])), patch.object(model_admin, 'message_user'):
+            model_admin.test_connection(request, CompetitorSourceSetting.objects.filter(pk=self.setting.pk))
+        self.setting.refresh_from_db()
+        self.assertNotIn(self.data['credential'], self.setting.last_test_result)
+        self.assertIsNotNone(self.setting.last_test_at)
+        self.assertFalse(competitor.ads.exists())
+
+
 class IntegrationApplicationTests(TestCase):
     def setUp(self):
         self.data = dict(provider="google_ads", client_id="test-client",

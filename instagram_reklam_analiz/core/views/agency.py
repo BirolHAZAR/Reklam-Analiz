@@ -535,6 +535,7 @@ def agency_platform_account_create(request, organization_id, client_id=None):
 
 
 @login_required
+@transaction.atomic
 def agency_competitor_create(request, organization_id):
     organization = _get_organization_for_user(request.user, organization_id)
     if not _user_has_permission(organization, request.user, "manage_competitors"):
@@ -542,13 +543,23 @@ def agency_competitor_create(request, organization_id):
         return redirect("agency_dashboard_org", organization_id=organization.id)
 
     if request.method == "POST":
+        # Serialize all competitor form inserts in this organization, including
+        # inserts by different member users.
+        type(organization).objects.select_for_update().get(pk=organization.pk)
         form = AgencyCompetitorForm(request.POST, organization=organization)
+        raw_client_id = str(request.POST.get("agency_client") or "")
+        client = form.fields["agency_client"].queryset.filter(pk=raw_client_id).first() if raw_client_id.isdigit() else None
+        if client:
+            from core.services.competitor_identity import lock_competitor_scope
+            lock_competitor_scope(request.user, client)
         if form.is_valid():
             competitor = form.save(commit=False)
             competitor.user = request.user
             if competitor.platform_account and not competitor.platform:
                 competitor.platform = competitor.platform_account.platform
-            competitor.raw_data = {"facebook_page_id": form.cleaned_data.get("facebook_page_id", ""), "identity_status": "unverified"}
+            from core.services.competitor_identity import platform_identity_metadata
+            competitor.raw_data = {**platform_identity_metadata(competitor.platform, competitor.platform_identifier),
+                                   "facebook_page_id": form.cleaned_data.get("facebook_page_id", ""), "identity_status": "unverified"}
             competitor.save()
             if competitor.is_active:
                 from core.tasks.competitor_sync import queue_competitor_sync

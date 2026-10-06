@@ -1,3 +1,4 @@
+from core.services.competitor_metrics import LIBRARY_PROVIDERS
 # core/views/rakip_reklam_hareketleri.py
 from datetime import timedelta
 
@@ -11,6 +12,7 @@ from core.models import Ad, AdMetricHistory, Competitor, Platform
 from core.services.agency_scope import get_agency_scope, scope_client_queryset, scope_queryset
 from core.services.cache_service import CacheService
 from core.services.competitor_live_sync import SUPPORTED_META_PLATFORMS
+from core.services.competitor_metrics import metric_values, is_library_metric, summarize_metrics
 
 
 COMPETITOR_MOVEMENTS_CACHE_TIMEOUT = 300
@@ -86,7 +88,7 @@ def _ad_short_payload(ad):
         eng_score = min(100, engagement_rate * 12)
         score = round((ctr_score + eng_score) / 2) if (ctr_score or eng_score) else 0
 
-    return {
+    payload = {
         "id": ad.id,
         "name": ad.name or "Rakip Reklam",
         "platform": _platform_code(platform),
@@ -97,6 +99,12 @@ def _ad_short_payload(ad):
         "clicks": clicks,
         "engagement": engagement,
     }
+    if is_library_metric(latest) or raw.get("provider") in LIBRARY_PROVIDERS:
+        values = metric_values(latest)
+        payload.update(impressions=int(values["impressions"]) if values["impressions"] is not None else None,
+                       clicks=None, engagement=None, performance_score=None,
+                       media_type=ad.ad_format or "UNKNOWN")
+    return payload
 
 
 def _selected_ad_payload(ad):
@@ -107,6 +115,8 @@ def _selected_ad_payload(ad):
         "spend": raw.get("spend", 0),
         "ctr": raw.get("ctr", 0),
     })
+    if raw.get("provider") in LIBRARY_PROVIDERS:
+        p.update(budget=None, spend=None, ctr=None)
     return p
 
 
@@ -258,14 +268,6 @@ def api_rakip_reklam_hareketleri(request):
         .order_by("date")
     )
 
-    # Eğer seçilen aralıkta veri yoksa en son kayıtları göster.
-    if not history.exists():
-        history = (
-            AdMetricHistory.objects
-            .filter(ad=selected_ad)
-            .order_by("date")
-        )
-
     labels = []
     impressions = []
     clicks = []
@@ -277,31 +279,37 @@ def api_rakip_reklam_hareketleri(request):
     raw = selected_ad.raw_data or {}
     raw_budget = _safe_float(raw.get("budget"))
 
+    snapshot_mode = (selected_ad.raw_data or {}).get("provider") in LIBRARY_PROVIDERS
     for h in history:
+        values = metric_values(h)
+        snapshot_mode = snapshot_mode or h.is_competitor_snapshot
         labels.append(h.date.isoformat())
-        impressions.append(int(h.impressions or 0))
-        clicks.append(int(h.clicks or 0))
-        spend.append(float(h.spend or 0))
-        budget.append(raw_budget)
-        ctr.append(float(h.ctr or 0))
-        engagement.append(int(h.engagement or 0))
+        impressions.append(int(values["impressions"]) if values["impressions"] is not None else None)
+        clicks.append(values["clicks"])
+        spend.append(float(values["spend"]) if values["spend"] is not None else None)
+        budget.append(None if is_library_metric(h) else raw_budget)
+        ctr.append(float(values["ctr"]) if values["ctr"] is not None else None)
+        engagement.append(values["engagement"])
 
-    total_impressions = sum(impressions)
-    total_clicks = sum(clicks)
-    total_spend = round(sum(spend), 2)
-    total_engagement = sum(engagement)
-    avg_ctr = round((total_clicks / total_impressions) * 100, 2) if total_impressions else 0
+    totals = summarize_metrics(history)
+    total_impressions = int(totals["impressions"]) if totals["impressions"] is not None else None
+    total_clicks = totals["clicks"]
+    total_spend = float(totals["spend"]) if totals["spend"] is not None else None
+    total_engagement = totals["engagement"]
+    avg_ctr = round((total_clicks / total_impressions) * 100, 2) if total_impressions and total_clicks is not None else None
 
     midpoint = max(len(labels) // 2, 1)
-    prev_impressions = sum(impressions[:midpoint])
-    cur_impressions = sum(impressions[midpoint:])
-    prev_clicks = sum(clicks[:midpoint])
-    cur_clicks = sum(clicks[midpoint:])
-    prev_spend = sum(spend[:midpoint])
-    cur_spend = sum(spend[midpoint:])
+    prev_impressions = sum(value or 0 for value in impressions[:midpoint])
+    cur_impressions = sum(value or 0 for value in impressions[midpoint:])
+    prev_clicks = sum(value or 0 for value in clicks[:midpoint])
+    cur_clicks = sum(value or 0 for value in clicks[midpoint:])
+    prev_spend = sum(value or 0 for value in spend[:midpoint])
+    cur_spend = sum(value or 0 for value in spend[midpoint:])
 
     response_payload = {
         "success": True,
+        "measurement_type": "cumulative_snapshot" if snapshot_mode else "daily",
+        "metrics_notice": "Toplamlar son anlık görüntüdür; grafik günlük artışı göstermez. Kaynağın vermediği metrikler veri yok olarak gösterilir." if snapshot_mode else "",
         "reklamlar": reklamlar,
         "selected_reklam": _selected_ad_payload(selected_ad),
         "chart_labels": labels,
@@ -316,9 +324,9 @@ def api_rakip_reklam_hareketleri(request):
         "total_spend": total_spend,
         "total_engagement": total_engagement,
         "avg_ctr": avg_ctr,
-        "impressions_change": _change_percent(cur_impressions, prev_impressions),
-        "clicks_change": _change_percent(cur_clicks, prev_clicks),
-        "spend_change": _change_percent(cur_spend, prev_spend),
+        "impressions_change": 0 if snapshot_mode else _change_percent(cur_impressions, prev_impressions),
+        "clicks_change": 0 if snapshot_mode else _change_percent(cur_clicks, prev_clicks),
+        "spend_change": 0 if snapshot_mode else _change_percent(cur_spend, prev_spend),
     }
     CacheService.set(
         "competitor_movements",

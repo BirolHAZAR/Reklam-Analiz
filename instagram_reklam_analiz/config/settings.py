@@ -287,8 +287,14 @@ FACEBOOK_GRAPH_URL = config(
 
 META_AD_LIBRARY_ACCESS_TOKEN = config(
     'META_AD_LIBRARY_ACCESS_TOKEN',
-    default=INSTAGRAM_ACCESS_TOKEN,
+    default='',
 )
+
+TIKTOK_AD_LIBRARY_ACCESS_TOKEN = config('TIKTOK_AD_LIBRARY_ACCESS_TOKEN', default='')
+SEARCHAPI_API_KEY = config('SEARCHAPI_API_KEY', default='')
+GOOGLE_COMPETITOR_DETAILS_ENABLED = config('GOOGLE_COMPETITOR_DETAILS_ENABLED', default=True, cast=bool)
+META_COMPETITOR_SOURCE = config('META_COMPETITOR_SOURCE', default='graph')
+TIKTOK_AD_LIBRARY_COUNTRIES = [item.strip().upper() for item in config('TIKTOK_AD_LIBRARY_COUNTRIES', default='').split(',') if item.strip()]
 
 META_AD_LIBRARY_COUNTRIES = [
     item.strip().upper()
@@ -340,13 +346,9 @@ YOUTUBE_CLIENT_ID = config('YOUTUBE_CLIENT_ID', default='')
 YOUTUBE_CLIENT_SECRET = config('YOUTUBE_CLIENT_SECRET', default='')
 YOUTUBE_REDIRECT_URI = config('YOUTUBE_REDIRECT_URI', default='https://www.reklamanaliz.net/connect/youtube/callback/')
 
-FACEBOOK_APP_ID = os.getenv(
-    'FACEBOOK_APP_ID'
-)
+FACEBOOK_APP_ID = config('FACEBOOK_APP_ID', default='')
 
-FACEBOOK_APP_SECRET = os.getenv(
-    'FACEBOOK_APP_SECRET'
-)
+FACEBOOK_APP_SECRET = config('FACEBOOK_APP_SECRET', default='')
 
 FACEBOOK_REDIRECT_URI = config(
     'FACEBOOK_REDIRECT_URI',
@@ -2056,4 +2058,3 @@ REFERRAL_PROGRAM_ENABLED = os.getenv(
     "yes",
     "on",
 }
-

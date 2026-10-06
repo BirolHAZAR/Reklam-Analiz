@@ -18,7 +18,12 @@ from core.services.agency_scope import (
     scope_queryset,
 )
 from core.services.cache_service import CacheService
-from core.services.competitor_live_sync import SUPPORTED_META_PLATFORMS, parse_meta_page_reference, competitor_library_url
+from core.services.competitor_live_sync import parse_meta_page_reference, competitor_library_url
+from core.services.competitor_public_sources import SUPPORTED_COMPETITOR_PLATFORMS, source_status, competitor_user_error
+from core.services.competitor_identity import (
+    normalize_competitor_identifier, duplicate_competitors, lock_competitor_scope,
+    identity_change_error, set_page_reference, platform_identity_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +60,14 @@ def _competitor_payload(competitor):
         "description": competitor.description or "",
         "is_active": competitor.is_active,
         "sync_status": (competitor.raw_data or {}).get("last_live_sync_status", "pending"),
-        "sync_error": (competitor.raw_data or {}).get("last_live_sync_error", ""),
+        "sync_error": competitor_user_error((competitor.raw_data or {}).get("last_live_sync_error", "")),
         "sync_warning": (competitor.raw_data or {}).get("last_live_sync_warning", ""),
         "identity_status": (competitor.raw_data or {}).get("identity_status", "unverified"),
         "identity_message": (competitor.raw_data or {}).get("identity_check_message", ""),
         "facebook_page_id": (competitor.raw_data or {}).get("facebook_page_id", ""),
+        "instagram_user_id": (competitor.raw_data or {}).get("instagram_user_id", ""),
         "library_url": competitor_library_url(competitor),
+        "source_status": source_status(competitor),
         "total_ads": competitor.ads.filter(source_type="COMPETITOR").count(),
         "created_at": competitor.created_at.isoformat() if competitor.created_at else None,
     }
@@ -81,6 +88,7 @@ def _get_user_platform_account(request, platform, agency_client=None):
 
 
 @login_required
+@transaction.atomic
 def rakip_ekle(request):
     """
     Rakip ekleme sayfası.
@@ -91,14 +99,19 @@ def rakip_ekle(request):
     """
 
     agency_scope = get_agency_scope(request)
-    platforms = Platform.objects.filter(is_active=True, code__in=SUPPORTED_META_PLATFORMS).order_by("name")
+    platforms = Platform.objects.filter(is_active=True, code__in=SUPPORTED_COMPETITOR_PLATFORMS).order_by("name")
 
     if request.method == "POST":
         _invalidate_competitor_cache(request.user)
         platform_id = request.POST.get("platform")
+        if not platform_id:
+            messages.error(request, "Lütfen bir platform seçin.")
+            return redirect("rakip_ekle")
+        platform = get_object_or_404(Platform, id=platform_id, is_active=True, code__in=SUPPORTED_COMPETITOR_PLATFORMS)
         platform_identifier = (request.POST.get("platform_identifier") or "").strip()
         try:
-            page_id = parse_meta_page_reference(request.POST.get("facebook_page_id"))
+            platform_identifier = normalize_competitor_identifier(platform_identifier, platform.code)
+            page_id = parse_meta_page_reference(request.POST.get("facebook_page_id")) if platform.code in {'instagram', 'facebook'} else ''
         except ValueError as exc:
             messages.error(request, str(exc))
             return redirect("rakip_ekle")
@@ -126,17 +139,13 @@ def rakip_ekle(request):
             messages.error(request, "Hesap adı / ID boş olamaz.")
             return redirect("rakip_ekle")
 
-        platform = get_object_or_404(Platform, id=platform_id, is_active=True, code__in=SUPPORTED_META_PLATFORMS)
+        if platform.code == "facebook" and platform_identifier.isdigit() and page_id and platform_identifier != page_id:
+            messages.error(request, "Hesap ID'si ile Facebook sayfa ID'si eşleşmiyor.")
+            return redirect("rakip_ekle")
         platform_account = _get_user_platform_account(request, platform, selected_client)
 
-        existing_qs = Competitor.objects.filter(
-            platform=platform,
-            platform_account=platform_account,
-            agency_client=selected_client,
-            platform_identifier__iexact=platform_identifier,
-        )
-        if selected_client is None:
-            existing_qs = existing_qs.filter(user=request.user)
+        lock_competitor_scope(request.user, selected_client)
+        existing_qs = duplicate_competitors(request.user, platform, platform_identifier, selected_client, page_id)
         existing = existing_qs.first()
 
         if existing:
@@ -155,6 +164,7 @@ def rakip_ekle(request):
             description=description,
             is_active=is_active,
             raw_data={
+                **platform_identity_metadata(platform, platform_identifier),
                 "created_from": "rakip_ekle",
                 "facebook_page_id": page_id,
                 "identity_status": "unverified",
@@ -186,7 +196,7 @@ def api_rakipler(request):
     competitors = (
         scope_client_queryset(
             request,
-            Competitor.objects.filter(platform__code__in=SUPPORTED_META_PLATFORMS),
+            Competitor.objects.filter(platform__code__in=SUPPORTED_COMPETITOR_PLATFORMS),
         )
         .select_related("platform", "platform_account")
         .order_by("platform__name", "name")
@@ -222,49 +232,58 @@ def api_rakip_detay(request, competitor_id):
 
 @login_required
 @require_http_methods(["POST"])
+@transaction.atomic
 def api_rakip_guncelle(request, competitor_id):
     competitor = get_object_or_404(scope_client_queryset(request, Competitor.objects.all()), id=competitor_id)
+    lock_competitor_scope(competitor.user, competitor.agency_client)
+    competitor = Competitor.objects.select_for_update().get(pk=competitor.pk)
 
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, UnicodeDecodeError):
         return JsonResponse({"success": False, "error": "Geçersiz JSON."}, status=400)
+    if not isinstance(payload, dict):
+        return JsonResponse({"success": False, "error": "JSON nesnesi gerekiyor."}, status=400)
 
     platform_id = payload.get("platform_id")
+    if platform_id and not str(platform_id).isdigit():
+        return JsonResponse({"success": False, "error": "Geçerli platform ID'si gerekiyor."}, status=400)
+    platform = Platform.objects.filter(id=platform_id, code__in=SUPPORTED_COMPETITOR_PLATFORMS).first() if platform_id else competitor.platform
+    if not platform or _platform_code(platform) not in SUPPORTED_COMPETITOR_PLATFORMS:
+        return JsonResponse({"success": False, "error": "Bu platform için rakip reklam takibi desteklenmiyor."}, status=400)
     try:
-        page_id = parse_meta_page_reference(payload.get("facebook_page_id", (competitor.raw_data or {}).get("facebook_page_id", "")))
+        page_id = parse_meta_page_reference(payload.get("facebook_page_id", (competitor.raw_data or {}).get("facebook_page_id", ""))) if platform.code in {'instagram', 'facebook'} else ''
+        platform_identifier = normalize_competitor_identifier(payload.get("platform_identifier", competitor.platform_identifier), platform.code)
     except ValueError as exc:
         return JsonResponse({"success": False, "error": str(exc)}, status=400)
-    platform = Platform.objects.filter(id=platform_id, code__in=SUPPORTED_META_PLATFORMS).first() if platform_id else competitor.platform
-    if not platform or _platform_code(platform) not in SUPPORTED_META_PLATFORMS:
-        return JsonResponse({"success": False, "error": "Bu platform icin canli rakip reklam cekimi desteklenmiyor."}, status=400)
-    platform_account = _get_user_platform_account(request, platform, competitor.agency_client)
+    platform_account = (competitor.platform_account if platform.pk == competitor.platform_id else
+                        _get_user_platform_account(request, platform, competitor.agency_client))
 
-    platform_identifier = (payload.get("platform_identifier") or "").strip()
-    name = (payload.get("name") or "").strip() or platform_identifier
-    website = (payload.get("website") or "").strip()
-    category = payload.get("category") or "direct"
-    description = (payload.get("description") or "").strip()
-    is_active = bool(payload.get("is_active"))
+    name = str(payload.get("name", competitor.name) or "").strip() or platform_identifier
+    website = str(payload.get("website", competitor.website) or "").strip()
+    category = payload.get("category", competitor.category) or "direct"
+    description = str(payload.get("description", competitor.description) or "").strip()
+    is_active = payload.get("is_active", competitor.is_active)
+    if not isinstance(is_active, bool):
+        return JsonResponse({"success": False, "error": "Aktif takip değeri true/false olmalıdır."}, status=400)
 
     if not platform_identifier:
         return JsonResponse({"success": False, "error": "Hesap adı / ID boş olamaz."}, status=400)
 
+    identity_error = identity_change_error(competitor, platform, platform_identifier, page_id)
+    if identity_error:
+        return JsonResponse({"success": False, "error": identity_error}, status=400)
     duplicate = (
-        Competitor.objects
-        .filter(
-            user=request.user,
-            platform=platform,
-            platform_account=platform_account,
-            agency_client=competitor.agency_client,
-            platform_identifier__iexact=platform_identifier,
-        )
+        duplicate_competitors(competitor.user, platform, platform_identifier, competitor.agency_client, page_id)
         .exclude(id=competitor.id)
         .exists()
     )
     if duplicate:
         return JsonResponse({"success": False, "error": "Bu rakip zaten kayıtlı."}, status=400)
 
+    identity_changed = (competitor.platform_id != platform.pk or
+                        competitor.platform_identifier.strip().lstrip('@').casefold() != platform_identifier or
+                        (competitor.raw_data or {}).get('facebook_page_id', '') != page_id)
     competitor.platform = platform
     competitor.platform_account = platform_account
     competitor.platform_identifier = platform_identifier
@@ -274,10 +293,15 @@ def api_rakip_guncelle(request, competitor_id):
     competitor.description = description
     competitor.is_active = is_active
 
-    raw_data = competitor.raw_data or {}
+    raw_data = set_page_reference(competitor.raw_data, page_id, reset=identity_changed)
+    if identity_changed:
+        raw_data.pop('google_advertiser_candidates', None)
+        for identity_key in ('google_advertiser_id', 'tiktok_business_id'):
+            raw_data.pop(identity_key, None)
+    raw_data.pop("instagram_user_id", None)
+    raw_data.update(platform_identity_metadata(platform, platform_identifier))
     raw_data.update({
         "facebook_page_id": page_id,
-        "identity_status": "unverified",
         "platform_code": _platform_code(platform),
         "platform_name": platform.name if platform else "Diğer",
         "updated_at": timezone.now().isoformat(),
@@ -292,7 +316,6 @@ def api_rakip_guncelle(request, competitor_id):
     # Bağlı rakip reklamları da yeni rakip bilgisiyle eşitlenir.
     Ad.objects.filter(competitor=competitor, source_type="COMPETITOR").update(
         is_active=is_active,
-        last_seen_at=timezone.now(),
     )
 
     return JsonResponse({"success": True, "competitor": _competitor_payload(competitor)})

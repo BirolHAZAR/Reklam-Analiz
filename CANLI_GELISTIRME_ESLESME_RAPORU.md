@@ -1,56 +1,59 @@
 # Canlı ve geliştirme eşleşme raporu
 
-Kontrol tarihi: 2 Ekim 2026. Geliştirme dizini: `C:\Projeler\instagram`. Dal: `reklamanaliz-V1.16`.
+Son kontrol: 2 Ekim 2026, yaklaşık 16:46–16:48 Türkiye saati.
+Geliştirme: C:\Projeler\instagram, dal: reklamanaliz-V1.16.
 
-## Sonuç
+## Güncel sonuç
 
-Canlı ve geliştirme **tam olarak aynı değildir**. Uygulama bağlantı/worker kodları aynı sürümdedir. Kalan somut fark gizlilik politikasının kaynak dosyası ve veritabanındaki sürümüdür. Ayrıca canlı migration geçmişinde eski, artık dosyası bulunmayan tek kayıt vardır. Bu denetimde canlıya yeni kod dağıtılmadı veya veritabanı değiştirilmedi.
+Geliştirme kaynak kodu ile canlı web, worker ve beat kaynak kodları eşleşiyor. Üç canlı servis aynı commit ve aynı Docker imajıyla çalışıyor. Geliştirmedeki gizlilik kaydı da yedeklenerek canlıdaki 1.1 sürümüne eşitlendi.
 
-## Kod ve sürüm kanıtı
+Migration dosyaları ve uygulama şeması eşleşiyor. Canlının migration uygulama geçmişinde yerelde bulunmayan eski bir kayıt var; bu tarihsel fark korunmuştur. Ortamların kullanıcı verileri, bağlantı tokenları, sırları ve çalışma zamanı ayarlarının birebir aynı olması hedeflenmemiştir.
 
-- Yerel HEAD, GitHub dalı ve üç canlı container içindeki `/app` Git HEAD: `ae5317eb108cc4ce56e23c86bae7701a637d269f`.
-- Web, worker ve beat aynı imajda: `sha256:a1cc945324f81f34fbd371546d5cea03914a29fb769fa34a0643c041a04a261d`.
-- Her canlı serviste 735 Git izlemeli uygulama dosyası SHA-256 ile karşılaştırıldı. Windows/Linux satır sonları normalleştirildi. 734 aynı; 1 farklı: `core/legal_defaults.py`. Eksik dosya yok.
-- Kök dizindeki 11 dağıtım/başlatma/bağımlılık dosyası üç canlı serviste de aynı: `nixpacks.toml`, `requirements.txt`, `ops/sync_celery_release.py`, başlatma betikleri dahil. Toplam her serviste 746 dosyadan 745 aynı.
-- Canlı Git çalışma ağacında uygulama kaynak kodu değişikliği yok. İmaj üretimine ait `.nixpacks/` ve depoya alınmış Windows sanal ortamındaki bir NumPy dosyası değişikliği görünüyor; bunlar uygulama kaynak değişikliği değildir. Python paketleri ve işletim sistemi ortamının birebir eşitliği bu kaynak denetiminin kapsamında değildir.
+## Kod ve dağıtım kanıtları
 
-## Şimdiye kadar yapılan değişikliklerin yeri
+- Yerel HEAD ve üç canlı servis HEAD: a143029a33d7afaf025772f55e097e5378a432f0.
+- Üç canlı servis imajı: sha256:b356470d5faf4386e452ef8f658c0ce6a5f5c9678324269c1a61f4ee6315529f.
+- Her serviste 746 Git izlemeli uygulama/dağıtım dosyası SHA-256 ile karşılaştırıldı. Windows/Linux satır sonları normalleştirildi.
+- Sonuç: 746 aynı, 0 farklı, 0 eksik; web, worker ve beat için ayrı ayrı doğrulandı.
+- Üç Swarm servisinin güncellemesi completed; her serviste bir Running task var.
+- Canlı worker cevabı: celery@9bf83ad504bf → pong.
+- Denetim sırasında dağıtım otomasyonu worker/beat güncellemelerini yürütüyordu. Mevcut sync_celery_release.py çalıştırıldığında devam eden güncellemeyi tespit edip ikinci bir güncelleme başlatmadı. Son kontroller güncellemeler tamamlandıktan sonra yapıldı.
 
-1. YouTube/GA4 OAuth geliştirmesi `ae5317eb` commitinde: 16 dosya, 421 ekleme / 49 çıkarma. Ayrı okuma izinleri, callback ve hesap seçimi, token yenilemesi, GA4 rapor okuması ve worker planı geliştirmede yazıldı, GitHub'a gönderildi ve canlıya dağıtıldı. Bu kod üç canlı serviste yerelle aynıdır.
-2. Önceki Meta/Celery düzeltmeleri `230f5ca3` commitinde ve aynı canlı sürümün geçmişindedir.
-3. Son gizlilik eki canlı `LegalDocument` kaydına doğrudan uygulandı; önceki sürümün yedeği alındı. Aynı metin geliştirmedeki `core/legal_defaults.py` dosyasına da eklendi; **bu son kaynak değişikliği henüz commit/push/deploy yapılmadı**.
-4. Google Cloud üretim durumu, marka, kapsam gerekçeleri ve inceleme gönderimi Google tarafındaki yapılandırma işlemleridir; Git kodu değildir. Hesap yeniden yetkilendirmeleri ve şifreli tokenlar canlı veritabanındaki kayıtlardır. Gizli anahtarlar Git'e eklenmedi.
+## Gizlilik metni
 
-## Gizlilik ve veritabanı farkı
+| Ortam | Sürüm | Durum | Yürürlük tarihi | İçerik |
+|---|---|---|---|---|
+| Canlı veritabanı | 1.1 | published | 2026-10-02 | YouTube/GA4 ve Google Limited Use bölümleri mevcut |
+| Geliştirme veritabanı | 1.1 | published | 2026-10-02 | Aynı içerik |
+| Yerel ve canlı legal_defaults.py | Güncel | Kaynak varsayılanı | — | Aynı içerik |
 
-| Katman | Doğrulanan durum |
-|---|---|
-| Canlı sayfayı besleyen kayıt | Gizlilik 1.1, yayında, YouTube/GA4 ve Limited Use bölümleri var |
-| Canlı imajdaki `legal_defaults.py` | Yeni iki bölüm yok |
-| Yerel `legal_defaults.py` | Yeni iki bölüm var; commit edilmemiş |
-| Yerel geliştirme veritabanı | Gizlilik 1.0, yayında; yeni bölümler yok |
+İçeriğin ortak SHA-256 özeti:
+81f7d89a551cbf1c81c4a700c2d64c2db12bbd13830d3856dcd57c4747bcefba
 
-Yerel kaynak dosyasındaki güncel gizlilik içeriğinin SHA-256 özeti, canlı veritabanındaki yayımlanmış içeriğin özetiyle **birebir aynı**:
-`81f7d89a551cbf1c81c4a700c2d64c2db12bbd13830d3856dcd57c4747bcefba`.
+Son dağıtım kaynak dosyasını eşitledi; mevcut geliştirme veritabanını otomatik güncellemedi. Bu kontrolde geliştirmedeki eski içerik, sürüm ve yürürlük tarihi yedeklenip güncellendi. Geliştirme yedeği: gizlilik-gelistirme-1.0-yedek-20261002.json. Canlı veritabanına bu kontrolde yazılmadı.
 
-Bu yüzden canlıdan bütün projeyi yerelin üzerine kopyalamak doğru eşitleme değildir: uygulama kodu zaten aynı committe; güncel gizlilik metni canlı veritabanında ve yerel kaynakta vardır. Eksik olan, mevcut geliştirme veritabanını güncelleyen ve sonraki dağıtımda tekrarlanabilen bir veri migration'ı/yönetim komutudur. Sadece `legal_defaults.py` dağıtımı mevcut kayıtları güncellemez; bu dosya ilk seeding sırasında kullanılır.
+legal_defaults.py ilk kayıt oluşturma için kullanılır. Gelecekte mevcut hukuki metinlere yapılacak güncellemelerin yalnızca bu dosyayı dağıtmakla uygulanmayacağı dikkate alınmalıdır; mevcut kayıtlar için ayrıca kontrollü bir veri güncellemesi gerekir.
 
-Kullanıcı/hesap verileri, tokenlar, `.env` ve müşteri veritabanları ortamlar arasında topluca kopyalanmamalıdır. Ortamların kodu, migration yapısı ve gerekli ortak başlangıç verileri eşleşmeli; canlı bağlantı sırları ve gerçek operasyon verileri kendi ortamında kalmalıdır.
+## Şema ve migration kontrolleri
 
-## Migration ve çalışma durumu
+- Her iki ortamda bekleyen migration: 0.
+- Yerelde core migration uygulama kaydı: 78; canlıda: 79.
+- Canlıdaki tarihsel ek kayıt: 0077_live_integration_integrity. Bu ada ait migration dosyası mevcut kaynakta yok.
+- İki veritabanındaki 115 core tablosu Django/PostgreSQL introspection ile karşılaştırıldı: kolon adı/türü/null/default bilgileri ile introspection tarafından döndürülen constraint ve indeks bilgileri aynı; farklı tablo: 0.
+- Ek geçmiş kaydı mevcut uygulama şemasında fark oluşturmuyor. Geçmiş kayıt silinmedi; fake migration uygulanmadı.
+- Bu karşılaştırma tüm PostgreSQL özelliklerinin, tetikleyicilerin, verilerin veya ortam ayarlarının birebir eşitliği iddiası değildir.
 
-- Yerel: 78 core migration kaydı; son dosya `0078_local_display_names`; bekleyen migration 0.
-- Canlı: aynı güncel migration dosyaları ve son migration; bekleyen migration 0. Geçmişte ayrıca `0077_live_integration_integrity` uygulanmış görünüyor; dosyası mevcut projede veya canlı imajda yok. Yerelde bu geçmiş kaydı yok.
-- Bu tek eski kayıt, iki ortamın migration geçmişlerinin birebir eşit olmadığını gösterir. Bekleyen migration olmaması tek başına bütün PostgreSQL constraint/index yapılarının eşitliğini kanıtlamaz. Ayrı şema incelemesi olmadan bu eski kayıt silinmemeli veya rastgele fake migration uygulanmamalıdır.
-- Canlı worker ping başarılı. Web/worker/beat sürüm ayrışması görülmedi.
-- Yerel veritabanı salt okunur denetlendi; bağlantı hedefi yerel PostgreSQL olarak doğrulandı. Canlı tokenlar geliştirmeye taşınmadı.
+## Önceki işlemlerin yeri
 
-## Eşitleme için gereken somut adımlar
+1. Meta/Celery düzeltmeleri 230f5ca3, YouTube/GA4 bağlantı geliştirmeleri ae5317eb commitleri üzerinden geliştirmede yazılıp canlıya dağıtılmıştır.
+2. Gizlilik eki önce canlı LegalDocument kaydına kontrollü olarak uygulanmış; aynı içerik geliştirmedeki core/legal_defaults.py dosyasına eklenmiştir. Kullanıcının son a143029a dağıtımıyla kaynak dosyası da üç canlı serviste eşitlenmiştir.
+3. Google OAuth üretim durumu, marka yayını ve doğrulama başvurusu Google tarafındaki yapılandırmalardır; kaynak kod commitlerinden bağımsızdır.
+4. Bağlantı yeniden yetkilendirmeleri ve tokenlar canlı veritabanındaki operasyon kayıtlarıdır.
 
-1. Canlıda yayımlanan ve yerel kaynakta zaten bulunan gizlilik ekini esas alarak idempotent bir veri migration'ı veya yönetim komutu eklemek. Mevcut metni/şirket bilgilerini korumalı, aynı bölümleri tekrar eklememeli, yayındaki canlı 1.1 kaydını gereksiz değiştirmemeli.
-2. Önce geliştirmede uygulamak; yerel gizlilik 1.1 ve içerik eşleşmesini kontrol etmek. Komut/migration'ın tekrarlı çalışmasının güvenli olduğunu test etmek.
-3. Yalnız ilgili kaynakları commit/push yapmak ve normal Git/Dokploy dağıtımıyla canlıya almak. Çalışan container dosyalarını doğrudan değiştirmemek.
-4. `ops/sync_celery_release.py` akışını kullanarak web, worker ve beat'i aynı yeni imaja geçirmek; migration, anonim gizlilik sayfası, worker ve mevcut bağlantıları yeniden doğrulamak.
-5. Eski `0077_live_integration_integrity` kaydının getirdiği constraint/index değişikliklerini ayrı salt okunur şema karşılaştırmasıyla belirlemek; gerekirse yeni ve kayıtlı bir migration ile eşitlemek. Geçmiş kaydı silerek sorunu gizlememek.
+## Bu kontrolün yaptığı değişiklikler
 
-Bu rapor denetim sonucudur; yukarıdaki yeni veri migration'ı ve dağıtım henüz yapılmış değildir. Google doğrulama başvurusu incelemede ve mevcut canlı platform bağlantıları korunmuştur.
+- Uygulama kaynak koduna yeni değişiklik yapılmadı.
+- Canlı bağlantı ayarları ve tokenlara müdahale edilmedi.
+- Geliştirme veritabanındaki gizlilik belgesinin içerik, sürüm ve yürürlük tarihi canlıyla eşitlendi; eski kayıt yedeklendi.
+- Bu rapor güncellendi. Rapor ve yeni geliştirme yedeği yerel dosya değişiklikleridir; uygulama kodunun eşleşmesini etkilemez.
+- Yeni bir uygulama dağıtımı gerektiren kod farkı bulunmadı.

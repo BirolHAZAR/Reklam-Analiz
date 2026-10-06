@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
@@ -10,9 +10,12 @@ import re
 import unicodedata
 from urllib.parse import urlsplit, parse_qs, urlencode
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
+import logging
 
 from core.models import Ad, AdMetricHistory, Competitor, Creative
+from core.services.competitor_metrics import range_midpoint
 
 
 SUPPORTED_META_PLATFORMS = {"instagram", "facebook"}
@@ -20,6 +23,12 @@ SUPPORTED_META_PLATFORMS = {"instagram", "facebook"}
 
 class CompetitorSyncError(Exception):
     pass
+
+
+class CompetitorAdvertiserChoiceRequired(CompetitorSyncError):
+    def __init__(self, candidates):
+        super().__init__('Bu alan adı için birden fazla reklamveren bulundu. Takip etmek istediğiniz firmayı seçin.')
+        self.candidates = candidates
 
 
 def _first(value, default=""):
@@ -34,30 +43,10 @@ def _parse_dt(value):
     try:
         if len(value) == 10:
             return timezone.make_aware(datetime.fromisoformat(value))
-        return timezone.make_aware(datetime.fromisoformat(value.replace("Z", "+00:00")).replace(tzinfo=None))
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return timezone.make_aware(parsed) if timezone.is_naive(parsed) else parsed
     except Exception:
         return None
-
-
-def _range_average(value):
-    if isinstance(value, dict):
-        lower = Decimal(str(value.get("lower_bound") or value.get("min") or 0))
-        upper = Decimal(str(value.get("upper_bound") or value.get("max") or lower or 0))
-        return (lower + upper) / Decimal("2") if upper else lower
-    if isinstance(value, (int, float, Decimal, str)) and value != "":
-        try:
-            return Decimal(str(value))
-        except Exception:
-            return Decimal("0")
-    return Decimal("0")
-
-
-def _engagement_estimate(impressions):
-    return int(Decimal(impressions or 0) * Decimal("0.027"))
-
-
-def _q4(value):
-    return Decimal(value or 0).quantize(Decimal("0.0001"))
 
 
 def _q2(value):
@@ -65,24 +54,34 @@ def _q2(value):
 
 
 def _token_for_competitor(competitor):
+    from core.models import CompetitorSourceSetting
+    config = CompetitorSourceSetting.runtime(getattr(getattr(competitor, 'platform', None), 'code', 'facebook'))
+    if not config['enabled']:
+        return ''
     # Instagram Login tokens cannot authenticate the Facebook ads_archive API.
-    dedicated = getattr(settings, "META_AD_LIBRARY_ACCESS_TOKEN", "")
+    dedicated = config['credential'] if config['source'] == 'graph' else ''
     if dedicated:
         return dedicated
     account = competitor.platform_account
     connection = getattr(account, "connection", None) if account else None
     token = ""
+    account_meta = getattr(account, "extra_data", {}) or {}
+    connection_meta = getattr(connection, "extra_data", {}) or {}
+    if account_meta.get("auth_type") == "instagram_login" or connection_meta.get("auth_type") == "instagram_login":
+        return ""
     if connection and getattr(connection, "access_token", "") and connection.status == "active" and not connection.is_token_expired:
         token = connection.access_token
-    if not token and account and getattr(account, "access_token", ""):
+    if not token and not connection and account and getattr(account, "access_token", ""):
         token = account.access_token
-    if not token:
-        token = getattr(settings, "META_AD_LIBRARY_ACCESS_TOKEN", "") or getattr(settings, "INSTAGRAM_ACCESS_TOKEN", "")
+    if token and str(token).startswith("IG"):
+        return ""
     return token
 
 
-def _ad_reached_countries_param():
-    countries = getattr(settings, "META_AD_LIBRARY_COUNTRIES", ["TR"]) or ["TR"]
+def _ad_reached_countries_param(competitor=None):
+    from core.models import CompetitorSourceSetting
+    countries = (CompetitorSourceSetting.runtime(competitor.platform.code)['countries'] if competitor
+                 else getattr(settings, "META_AD_LIBRARY_COUNTRIES", ["TR"])) or ["TR"]
     countries = [str(country).strip().upper() for country in countries if str(country).strip()]
     return json.dumps(countries)
 
@@ -115,6 +114,9 @@ def parse_meta_page_reference(value):
 
 
 def competitor_library_url(competitor):
+    if competitor.platform.code not in SUPPORTED_META_PLATFORMS:
+        from core.services.competitor_public_sources import public_library_url
+        return public_library_url(competitor)
     ids = _page_ids_for_competitor(competitor)
     params = {"active_status": "all", "ad_type": "all", "country": "TR"}
     params.update({"view_all_page_id": ids[0], "search_type": "page"} if ids else
@@ -124,17 +126,25 @@ def competitor_library_url(competitor):
 
 def _page_ids_for_competitor(competitor):
     raw_data = competitor.raw_data or {}
+    # An explicit page reference overrides legacy aliases and numeric profile IDs.
+    explicit = _normalize_page_ids(raw_data.get("facebook_page_id"))
+    if explicit:
+        return explicit
     page_ids = []
     page_ids.extend(_normalize_page_ids(raw_data.get("facebook_page_ids")))
     page_ids.extend(_normalize_page_ids(raw_data.get("facebook_page_id")))
     page_ids.extend(_normalize_page_ids(raw_data.get("page_ids")))
     page_ids.extend(_normalize_page_ids(raw_data.get("page_id")))
-    page_ids.extend(_normalize_page_ids(competitor.platform_identifier))
+    # ads_archive accepts Facebook advertiser Page IDs, not Instagram User IDs.
+    if getattr(competitor.platform, "code", "") == "facebook":
+        page_ids.extend(_normalize_page_ids(competitor.platform_identifier))
     return list(dict.fromkeys(page_ids))
 
 
 def _search_term(competitor):
     raw = (competitor.platform_identifier or competitor.name or "").strip()
+    if raw.isdigit() and getattr(competitor.platform, "code", "") == "instagram":
+        return competitor.name or ""
     return raw.lstrip("@").replace("_", " ") or competitor.name
 
 
@@ -151,6 +161,8 @@ class MetaAdLibraryCompetitorSync:
         self.graph_url = getattr(settings, "FACEBOOK_GRAPH_URL", "https://graph.facebook.com/v25.0").rstrip("/")
 
     def sync(self, limit=None):
+        if not self.competitor.is_active:
+            raise CompetitorSyncError("Rakip aktif izlenmiyor. Reklam çekmek için önce takibi etkinleştirin.")
         if self.platform_code not in SUPPORTED_META_PLATFORMS:
             raise CompetitorSyncError(
                 f"{self.platform_code or 'unknown'} için canlı rakip reklam çekimi desteklenmiyor. "
@@ -159,6 +171,13 @@ class MetaAdLibraryCompetitorSync:
         if not self.token or self.token.startswith("demo") or self.token.startswith("placeholder"):
             raise CompetitorSyncError(
                 "Meta Ad Library token bulunamadı. .env içine META_AD_LIBRARY_ACCESS_TOKEN veya geçerli Meta bağlantı tokenı eklenmeli."
+            )
+
+        if (self.platform_code == "instagram" and self.competitor.platform_identifier.isdigit()
+                and not _page_ids_for_competitor(self.competitor)):
+            raise CompetitorSyncError(
+                "Instagram hesap ID'si Facebook reklamveren sayfa ID'si değildir. "
+                "Bu Instagram hesabına ait reklamverenin Facebook sayfa ID'si veya Reklam Kütüphanesi bağlantısı eşleştirilmelidir."
             )
 
         payload = self._fetch(limit=limit)
@@ -172,10 +191,11 @@ class MetaAdLibraryCompetitorSync:
                             if row.get("page_id") and _normalized_name(row.get("page_name")) in names}
             if len(matching_ids) != 1:
                 raise CompetitorSyncError(
-                    "Reklamveren doğrulanamadı. Rakibi düzenleyerek Meta Reklam Kütüphanesi bağlantısını "
-                    "veya Facebook sayfa ID'sini girin; anahtar kelime sonuçları başka firmalara ait olabilir."
+                    "Hesap reklamverenle otomatik eşleştirilemedi. Reklam kaynağını sistem yöneticisi kontrol etmeli; "
+                    "anahtar kelime sonuçları başka firmalara ait olabilir."
                 )
             rows = [row for row in rows if str(row.get("page_id")) in matching_ids]
+            self.competitor.raw_data = {**(self.competitor.raw_data or {}), "facebook_page_id": next(iter(matching_ids))}
         created = 0
         updated = 0
         ads = []
@@ -192,12 +212,14 @@ class MetaAdLibraryCompetitorSync:
             source_type="COMPETITOR",
             competitor=self.competitor,
         ).count()
-        self.competitor.last_seen_at = timezone.now()
+        if rows:
+            self.competitor.last_seen_at = timezone.now()
         raw_data = self.competitor.raw_data or {}
         identity = {"status": "matched" if rows else "unverified", "message": ""}
         if not rows and page_ids:
             identity = self._check_page_identity(page_ids[0])
         raw_data.update({
+            "last_live_sync_result": "ads_fetched" if rows else "no_data",
             "identity_status": identity["status"],
             "identity_check_message": identity["message"],
             "last_live_sync_warning": "" if rows else (
@@ -222,6 +244,8 @@ class MetaAdLibraryCompetitorSync:
             "total": self.competitor.total_ads_seen,
             "fetched": len(rows),
             "warning": raw_data.get("last_live_sync_warning", ""),
+            "result_status": raw_data["last_live_sync_result"],
+            "library_url": competitor_library_url(self.competitor),
             "ads": [ad.id for ad in ads],
         }
 
@@ -242,7 +266,7 @@ class MetaAdLibraryCompetitorSync:
         page_ids = _page_ids_for_competitor(self.competitor)
         params = {
             "access_token": self.token,
-            "ad_reached_countries": _ad_reached_countries_param(),
+            "ad_reached_countries": _ad_reached_countries_param(self.competitor),
             "search_type": getattr(settings, "META_AD_LIBRARY_SEARCH_TYPE", "KEYWORD_UNORDERED"),
             "ad_active_status": getattr(settings, "META_AD_LIBRARY_ACTIVE_STATUS", "ALL"),
             "ad_type": getattr(settings, "META_AD_LIBRARY_AD_TYPE", "ALL"),
@@ -298,6 +322,8 @@ class MetaAdLibraryCompetitorSync:
             data = response.json()
         except ValueError:
             data = {"error": {"message": response.text[:300]}}
+        if not isinstance(data, dict) or ("data" in data and not isinstance(data["data"], list)):
+            raise CompetitorSyncError("Meta Ad Library geçersiz veri döndürdü.")
         if response.status_code >= 400 or data.get("error"):
             error = data.get("error", {})
             message = error.get("message") if isinstance(error, dict) else error
@@ -307,12 +333,15 @@ class MetaAdLibraryCompetitorSync:
                     "Meta uygulamasinda Ad Library API/ads_archive erisimi yok. "
                     "Meta App Review uzerinden Ad Library API erisimi onaylanmadan rakip reklamlari canli cekilemez."
                 )
-            raise CompetitorSyncError(f"Meta Ad Library hata verdi: {message or response.status_code}")
+            message = str(message or response.status_code).replace(self.token, "[REDACTED]")
+            raise CompetitorSyncError(f"Meta Ad Library hata verdi: {message}")
         return data
 
     def _upsert_ad(self, row: dict[str, Any]):
         now = timezone.now()
         platform_ad_id = str(row.get("id") or "")
+        if not platform_ad_id:
+            raise CompetitorSyncError("Meta reklam kaydında reklam ID'si eksik; veri kaydedilmedi.")
         title = _first(row.get("ad_creative_link_titles"), self.competitor.name or "Rakip Reklam")
         body = _first(row.get("ad_creative_bodies"), "")
         description = _first(row.get("ad_creative_link_descriptions"), "")
@@ -323,8 +352,6 @@ class MetaAdLibraryCompetitorSync:
         is_active = stop_time is None or stop_time >= now
         creative_type = "UNKNOWN"
         platforms = row.get("publisher_platforms") or []
-        if isinstance(platforms, list) and any(str(p).lower() == "instagram" for p in platforms):
-            creative_type = "IMAGE"
 
         creative, _ = Creative.objects.update_or_create(
             user=self.competitor.user,
@@ -337,7 +364,7 @@ class MetaAdLibraryCompetitorSync:
                 "title": title,
                 "body_text": body,
                 "description": description,
-                "landing_url": snapshot_url,
+                "landing_url": "",
                 "raw_data": row,
                 "first_seen_at": start_time or now,
                 "last_seen_at": now,
@@ -361,7 +388,7 @@ class MetaAdLibraryCompetitorSync:
                 "headline": title,
                 "primary_text": body,
                 "description": description or caption,
-                "landing_url": snapshot_url,
+                "landing_url": "",
                 "preview_image_url": "",
                 "first_seen_at": start_time,
                 "last_seen_at": now,
@@ -374,40 +401,39 @@ class MetaAdLibraryCompetitorSync:
                     "raw": row,
                 },
                 "last_synced_at": now,
-                "is_active": True,
+                "is_active": self.competitor.is_active,
             },
         )
         self._upsert_metric(ad, row)
         return ad, created
 
     def _upsert_metric(self, ad, row):
-        metric_date = timezone.now().date()
-        impressions = int(_range_average(row.get("impressions") or 0))
-        spend = _range_average(row.get("spend") or 0)
-        engagement = _engagement_estimate(impressions)
-        reach_min = int(Decimal(impressions) * Decimal("0.65")) if impressions else 0
-        reach_max = int(Decimal(impressions) * Decimal("0.90")) if impressions else 0
+        metric_date = timezone.localdate()
+        impressions = int(range_midpoint(row.get("impressions")) or 0)
+        spend = range_midpoint(row.get("spend")) or Decimal("0")
         AdMetricHistory.objects.update_or_create(
             ad=ad,
             date=metric_date,
             defaults={
                 "impressions": impressions,
-                "reach": reach_max,
-                "frequency": Decimal("1.0000"),
+                "reach": 0,
+                "frequency": Decimal("0"),
                 "clicks": 0,
                 "spend": _q2(spend),
                 "currency": row.get("currency") or "TRY",
                 "ctr": Decimal("0"),
                 "cpc": Decimal("0"),
-                "cpm": _q4(spend / Decimal(impressions) * Decimal("1000")) if impressions else Decimal("0"),
-                "engagement": engagement,
-                "engagement_rate": _q4(Decimal(engagement) / Decimal(impressions) * Decimal("100")) if impressions else Decimal("0"),
-                "estimated_engagement": engagement,
-                "estimated_reach_min": reach_min,
-                "estimated_reach_max": reach_max,
+                "cpm": Decimal("0"),
+                "engagement": 0,
+                "engagement_rate": Decimal("0"),
+                "estimated_engagement": 0,
+                "estimated_reach_min": 0,
+                "estimated_reach_max": 0,
                 "is_competitor_snapshot": True,
                 "raw_metrics": {
                     "provider": "meta_ad_library",
+                    "measurement_type": "cumulative_range_snapshot",
+                    "available_metrics": [key for key in ("impressions", "spend") if row.get(key) is not None],
                     "impressions_range": row.get("impressions"),
                     "spend_range": row.get("spend"),
                     "demographic_distribution": row.get("demographic_distribution"),
@@ -419,15 +445,28 @@ class MetaAdLibraryCompetitorSync:
 
 def sync_competitor_live(competitor: Competitor, limit=None):
     try:
-        result = MetaAdLibraryCompetitorSync(competitor).sync(limit=limit)
-    except CompetitorSyncError as exc:
+        with transaction.atomic():
+            # Prevent identity edits during fetch and roll back partial imports.
+            locked = Competitor.objects.select_for_update().get(pk=competitor.pk)
+            from core.services.competitor_public_sources import competitor_source
+            result = competitor_source(locked).sync(limit=limit)
+            locked.raw_data = {**(locked.raw_data or {}),
+                "last_live_sync_status": "success", "last_live_sync_error": "",
+                "last_live_sync_attempt_at": timezone.now().isoformat()}
+            locked.save(update_fields=["raw_data", "updated_at"])
+        competitor.refresh_from_db()
+    except Exception as exc:
+        competitor.refresh_from_db()
+        error = str(exc) if isinstance(exc, CompetitorSyncError) else "Rakip reklam çekimi tamamlanamadı. Yeniden deneyin; sorun sürerse destekle iletişime geçin."
+        if not isinstance(exc, CompetitorSyncError):
+            logging.getLogger(__name__).error("Competitor sync failed id=%s error_type=%s", competitor.pk, type(exc).__name__)
         competitor.raw_data = {**(competitor.raw_data or {}),
-            "last_live_sync_status": "error", "last_live_sync_error": str(exc),
+            "last_live_sync_status": "error", "last_live_sync_error": error,
             "last_live_sync_attempt_at": timezone.now().isoformat()}
+        if isinstance(exc, CompetitorAdvertiserChoiceRequired):
+            competitor.raw_data['google_advertiser_candidates'] = exc.candidates
         competitor.save(update_fields=["raw_data", "updated_at"])
-        raise
-    competitor.raw_data = {**(competitor.raw_data or {}),
-        "last_live_sync_status": "success", "last_live_sync_error": "",
-        "last_live_sync_attempt_at": timezone.now().isoformat()}
-    competitor.save(update_fields=["raw_data", "updated_at"])
+        if isinstance(exc, CompetitorSyncError):
+            raise
+        raise CompetitorSyncError(error) from exc
     return result

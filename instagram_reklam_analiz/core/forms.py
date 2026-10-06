@@ -355,14 +355,14 @@ class AgencyCompetitorForm(forms.ModelForm):
 
     def __init__(self, *args, organization=None, **kwargs):
         super().__init__(*args, **kwargs)
-        from core.services.competitor_live_sync import SUPPORTED_META_PLATFORMS
+        from core.services.competitor_public_sources import SUPPORTED_COMPETITOR_PLATFORMS
         from core.models import Platform
-        self.fields["platform"].queryset = Platform.objects.filter(is_active=True, code__in=SUPPORTED_META_PLATFORMS)
+        self.fields["platform"].queryset = Platform.objects.filter(is_active=True, code__in=SUPPORTED_COMPETITOR_PLATFORMS)
         self.fields["platform"].required = True
         if organization is not None:
             clients = organization.clients.filter(is_active=True).order_by("name")
             self.fields["agency_client"].queryset = clients
-            self.fields["platform_account"].queryset = PlatformAccount.objects.filter(agency_client__organization=organization, platform__code__in=SUPPORTED_META_PLATFORMS).select_related("platform", "agency_client")
+            self.fields["platform_account"].queryset = PlatformAccount.objects.filter(agency_client__organization=organization, platform__code__in=SUPPORTED_COMPETITOR_PLATFORMS).select_related("platform", "agency_client")
 
     def clean_facebook_page_id(self):
         from core.services.competitor_live_sync import parse_meta_page_reference
@@ -371,11 +371,27 @@ class AgencyCompetitorForm(forms.ModelForm):
         except ValueError as exc:
             raise forms.ValidationError(str(exc)) from exc
 
+    def clean_platform_identifier(self):
+        from core.services.competitor_identity import normalize_competitor_identifier
+        try:
+            platform = self.cleaned_data.get('platform')
+            return normalize_competitor_identifier(self.cleaned_data.get("platform_identifier"), getattr(platform, 'code', None))
+        except ValueError as exc:
+            raise forms.ValidationError(str(exc)) from exc
+
     def clean(self):
         cleaned = super().clean()
         account = cleaned.get("platform_account")
         if account and (account.platform != cleaned.get("platform") or account.agency_client != cleaned.get("agency_client")):
             raise forms.ValidationError("Bağlı hesap, seçilen platform ve ajans müşterisiyle eşleşmelidir.")
+        platform, client, identifier = cleaned.get("platform"), cleaned.get("agency_client"), cleaned.get("platform_identifier")
+        if platform and client and identifier:
+            from core.services.competitor_identity import duplicate_competitors
+            page_id = cleaned.get("facebook_page_id", "")
+            if platform.code == "facebook" and identifier.isdigit() and page_id and identifier != page_id:
+                raise forms.ValidationError("Hesap ID'si ile Facebook sayfa ID'si eşleşmiyor.")
+            if duplicate_competitors(None, platform, identifier, client, page_id).exclude(pk=self.instance.pk).exists():
+                raise forms.ValidationError("Bu rakip müşterinin listesinde zaten kayıtlı.")
         return cleaned
 
 

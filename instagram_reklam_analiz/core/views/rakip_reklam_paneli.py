@@ -1,12 +1,18 @@
+from core.services.competitor_metrics import LIBRARY_PROVIDERS
+from core.services.competitor_public_sources import competitor_user_error, public_ad_facts, source_status
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
+from django.db import transaction
 
 from core.models import Ad, AdMetricHistory, Competitor
 from core.services.cache_service import CacheService
-from core.services.competitor_live_sync import CompetitorSyncError, sync_competitor_live
+from core.services.competitor_live_sync import CompetitorSyncError, CompetitorAdvertiserChoiceRequired, sync_competitor_live
 from core.services.agency_scope import get_agency_scope, scope_client_queryset
+from core.services.sync_policy import manual_sync_allowed, policy_for_user
+from core.services.demo_policy import is_demo_object
+from core.services.competitor_metrics import metric_values, is_library_metric, LIBRARY_UNAVAILABLE
 
 
 COMPETITOR_CACHE_TIMEOUT = 300
@@ -41,7 +47,7 @@ def _media_type(ad):
         return "reels"
     if "carousel" in ad_format:
         return "carousel"
-    return "image"
+    return "unknown" if ad_format in {"unknown", ""} else "image"
 
 
 def _ad_payload(ad):
@@ -84,17 +90,21 @@ def _ad_payload(ad):
         conv_score = min(100, conversion_rate * 10)
         performance_score = round((ctr_score + eng_score + conv_score) / 3)
 
-    return {
+    payload = {
+        **public_ad_facts(ad),
         "id": ad.id,
         "name": ad.name or "Rakip Reklam",
         "title": ad.headline or ad.name or "Rakip Reklam",
         "description": ad.description or ad.primary_text or raw.get("description", ""),
         "primary_text": ad.primary_text or "",
         "call_to_action": ad.call_to_action or "",
-        "landing_url": ad.landing_url or raw.get("snapshot_url", ""),
+        "landing_url": "" if raw.get("provider") == "meta_ad_library" else ad.landing_url,
+        "snapshot_url": raw.get("snapshot_url", ""),
+        "currency": raw.get("currency") or (metric.currency if metric else "TRY"),
         "platform_name": ad.competitor.platform.name if ad.competitor and ad.competitor.platform else "",
         "status": (ad.status or "ACTIVE").lower(),
         "media_type": media_type,
+        "ad_format": ad.ad_format,
         "media_url": ad.preview_video_url if media_type in ["video", "reels"] else (ad.preview_image_url or raw.get("media_url", "")),
         "thumbnail_url": ad.preview_image_url or raw.get("thumbnail_url", ""),
         "created_time": ad.created_at.isoformat() if ad.created_at else None,
@@ -130,6 +140,16 @@ def _ad_payload(ad):
         "city_distribution": raw.get("city_distribution", {}),
         "device_split": raw.get("device_split", {}),
     }
+    if raw.get("provider") in LIBRARY_PROVIDERS or is_library_metric(metric):
+        values = metric_values(metric)
+        payload.update({key: None for key in LIBRARY_UNAVAILABLE})
+        payload.update(impressions=int(values["impressions"]) if values["impressions"] is not None else None,
+                       spend=float(values["spend"]) if values["spend"] is not None else None,
+                       has_live_metrics=values["impressions"] is not None or values["spend"] is not None,
+                       metric_source_label="Reklam kütüphanesi anlık görüntüsü",
+                       metrics_notice="Kaynaktaki gösterim ve harcama varsa aralık verisidir. Tıklama, erişim, etkileşim ve dönüşüm kaynaktan sağlanmıyor.")
+        payload["media_type"] = "unknown" if ad.ad_format == "UNKNOWN" and not (ad.preview_image_url or ad.preview_video_url) else media_type
+    return payload
 
 
 @login_required
@@ -137,7 +157,7 @@ def api_rakip_reklamlar(request, competitor_id):
     agency_scope = get_agency_scope(request)
     competitor = get_object_or_404(scope_client_queryset(request, Competitor.objects.all()), id=competitor_id)
     version = CacheService.get_version("competitor_ads", request.user.id, competitor.id)
-    cache_key_parts = ("user", request.user.id, "scope", agency_scope.cache_key, "competitor", competitor.id)
+    cache_key_parts = ("user", request.user.id, "scope", agency_scope.cache_key, "competitor", competitor.id, "media", 2)
     cached = CacheService.get("competitor_ads", *cache_key_parts, version=version)
     if cached is not None:
         return JsonResponse(cached)
@@ -149,7 +169,11 @@ def api_rakip_reklamlar(request, competitor_id):
         .order_by("-last_seen_at", "-created_at")
     )
     payload = [_ad_payload(ad) for ad in ads]
-    response_payload = {"success": True, "ads": payload, "count": len(payload)}
+    response_payload = {"success": True, "ads": payload, "count": len(payload),
+                        "sync_error": competitor_user_error((competitor.raw_data or {}).get('last_live_sync_error', '')),
+                        "sync_warning": (competitor.raw_data or {}).get('last_live_sync_warning', ''),
+                        "source_notice": source_status(competitor)['message'],
+                        "advertiser_candidates": (competitor.raw_data or {}).get('google_advertiser_candidates', [])}
     CacheService.set(
         "competitor_ads",
         *cache_key_parts,
@@ -164,17 +188,41 @@ def api_rakip_reklamlar(request, competitor_id):
 @require_http_methods(["POST"])
 def api_rakip_reklam_sync(request, competitor_id):
     competitor = get_object_or_404(scope_client_queryset(request, Competitor.objects.all()), id=competitor_id)
+    if not competitor.is_active:
+        return JsonResponse({"success": False, "message": "Önce rakibin aktif takibini etkinleştirin."}, status=400)
+    if is_demo_object(competitor):
+        return JsonResponse({"success": False, "message": "Demo rakiplerde canlı reklam çekimi yapılmaz."}, status=400)
+    if not manual_sync_allowed(request.user, "competitor"):
+        return JsonResponse({"success": False, "message": "Planınız manuel rakip yenilemeye izin vermiyor."}, status=403)
+    policy = policy_for_user(request.user)
+    if not policy and not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({"success": False, "message": "Aktif abonelik gerekiyor."}, status=403)
+    chosen_advertiser = request.POST.get('advertiser_id')
+    if chosen_advertiser:
+        with transaction.atomic():
+            competitor = Competitor.objects.select_for_update().get(pk=competitor.pk)
+            candidates = (competitor.raw_data or {}).get('google_advertiser_candidates', [])
+            if competitor.platform.code != 'google_ads' or chosen_advertiser not in {c.get('id') for c in candidates} or competitor.ads.exists():
+                return JsonResponse({'success': False, 'message': 'Firma seçimi geçersiz. Rakibi yeniden sorgulayın.'}, status=400)
+            competitor.raw_data = {**(competitor.raw_data or {}), 'google_advertiser_id': chosen_advertiser}
+            competitor.save(update_fields=['raw_data', 'updated_at'])
     try:
-        result = sync_competitor_live(competitor)
+        result = sync_competitor_live(competitor, limit=policy.max_records if policy else 50)
+    except CompetitorAdvertiserChoiceRequired as exc:
+        CacheService.bump_version('competitors', request.user.id)
+        CacheService.bump_version('competitor_ads', request.user.id, competitor.id)
+        return JsonResponse({'success': False, 'result_status': 'advertiser_choice_required',
+                             'message': str(exc), 'advertiser_candidates': exc.candidates}, status=409)
     except CompetitorSyncError as exc:
         CacheService.bump_version("competitors", request.user.id)
+        CacheService.bump_version("competitor_ads", request.user.id, competitor.id)
         total = Ad.objects.filter(source_type="COMPETITOR", competitor=competitor).count()
         return JsonResponse({
             "success": False,
             "created": 0,
             "updated": 0,
             "total": total,
-            "message": str(exc),
+            "message": competitor_user_error(exc),
         }, status=400)
 
     CacheService.bump_version("competitors", request.user.id)
@@ -188,5 +236,7 @@ def api_rakip_reklam_sync(request, competitor_id):
         "total": result["total"],
         "fetched": result["fetched"],
         "provider": result["provider"],
+        "result_status": result.get("result_status", "ads_fetched"),
+        "library_url": result.get("library_url", ""),
         "message": result.get("warning") or f"{result['fetched']} kayit cekildi, {result['created']} yeni reklam yazildi, {result['updated']} reklam guncellendi.",
     })

@@ -804,6 +804,9 @@
 {% if has_permission %}
 <div class="admin-user-tools">
     <span class="admin-user-name">{{ request.user.get_username }}</span>
+    {% if request.user.is_superuser %}
+    <a class="admin-user-link" href="{% url 'admin:core_competitorsourcesetting_changelist' %}">Rakip Reklam Ayarları</a>
+    {% endif %}
     <a class="admin-user-link" href="{% url 'admin:auth_user_change' request.user.pk %}">Profil</a>
     <a class="admin-user-link" href="{% url 'admin:password_change' %}">Şifre değiştir</a>
     <form class="admin-logout-form" method="post" action="{% url 'admin:logout' %}">
@@ -837,6 +840,7 @@
             <a href="/admin/core/platformsyncjob/" class="nav-link {% if '/admin/core/platformsyncjob/' in request.path %}active{% endif %}">Senkronlar</a>
             <a href="/admin/core/systemerrorlog/" class="nav-link {% if '/admin/core/systemerrorlog/' in request.path %}active{% endif %}">Sistem</a>
             {% if request.user.is_superuser %}
+            <a href="{% url 'admin:core_competitorsourcesetting_changelist' %}" class="nav-link {% if '/admin/core/competitorsourcesetting/' in request.path %}active{% endif %}">Rakip Reklam Kaynakları</a>
             <a href="{% url 'admin:core_integrationapplication_changelist' %}" class="nav-link {% if '/admin/core/integrationapplication/' in request.path %}active{% endif %}">Hesap Ayarları</a>
             {% endif %}
         </nav>

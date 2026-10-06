@@ -4,7 +4,7 @@
 {% block title %}Rakip Reklam Paneli | ReklamAnaliz{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/ads_ai_popup.css' %}?v=20260727-1">
+<link rel="stylesheet" href="{% static 'css/ads_ai_popup.css' %}?v=20261006-2">
 <style>
     :root{
         --bg-primary:var(--theme-page-surface, #050816);
@@ -304,7 +304,8 @@
     }
     .ad-card:hover{transform:translateY(-6px);box-shadow:0 26px 60px rgba(0,0,0,.28)!important;}
     .ad-media{position:relative;background:#F2F5FA;min-height:178px;display:flex;align-items:center;justify-content:center;}
-    .ad-media img,.ad-media video,.video-container{width:100%;height:180px!important;object-fit:cover;}
+    .ad-media img,.ad-media video,.video-container{width:100%;height:240px!important;object-fit:contain;}
+    .ad-ai-media img,.ad-ai-media video{object-fit:contain!important;}
     .ad-type-badge{
         position:absolute;
         top:10px;
@@ -719,13 +720,22 @@
         try {
             const resp = await fetch(`/api/rakip-reklamlar/${competitorId}/`);
             const data = await resp.json();
+            if (data.advertiser_candidates && data.advertiser_candidates.length) {
+                showAdvertiserChoices(data.advertiser_candidates);
+                document.getElementById('adCount').innerText = 'Firma seçimi bekleniyor';
+                return;
+            }
             if (!data.success || !data.ads.length) {
-                container.innerHTML = '<div class="text-center py-5"><i class="fas fa-ad fa-2x mb-2 opacity-50"></i><br>Bu rakibe ait reklam bulunamadı.</div>';
+                const reason = data.sync_error || data.sync_warning || data.source_notice || 'Bu rakibe ait kayıtlı reklam yok. Reklamları Yenile düğmesiyle sorgulayabilirsiniz.';
+                container.innerHTML = `<div class="text-center py-5"><i class="fas fa-ad fa-2x mb-2 opacity-50"></i><br>${escapeHtml(reason)}${data.source_notice && reason !== data.source_notice ? `<p class="small mt-3">${escapeHtml(data.source_notice)}</p>` : ''}</div>`;
                 document.getElementById('adCount').innerText = '0 reklam';
                 return;
             }
             document.getElementById('adCount').innerText = `${data.ads.length} reklam`;
-            let html = '<div class="ads-grid">';
+            const formats = {};
+            data.ads.forEach(ad => { const label = formatLabel(ad.ad_format); formats[label] = (formats[label] || 0) + 1; });
+            const withRanges = data.ads.filter(ad => (ad.regions || []).some(region => region.impressions_range)).length;
+            let html = `<div class="p-3 mb-3 border rounded"><strong>Kayıtlı reklamların özeti</strong><div class="mt-2">${Object.entries(formats).map(([label, count]) => `${count} ${escapeHtml(label)}`).join(' · ')} · ${withRanges} reklamda bölgesel gösterim aralığı</div><small class="d-block mt-2">Bu sayılar veritabanındaki reklamları kapsar. Yayın günleri, reklam türleri ve mesajları karşılaştırılabilir; harcama, tıklama ve dönüşüm kaynaktan sağlanmıyorsa performans kıyaslaması yapılamaz.</small></div><div class="ads-grid">`;
             data.ads.forEach(ad => {
                 html += createLiveAdCard(ad);
             });
@@ -736,13 +746,17 @@
         }
     }
 
+    function formatLabel(value) { return ({TEXT:'Metin',IMAGE:'Görsel',VIDEO:'Video',CAROUSEL:'Karusel'})[String(value || '').toUpperCase()] || 'Format bilinmiyor'; }
+
     function createLiveAdCard(ad) {
         const mediaUrl = ad.media_url || ad.thumbnail_url || '';
         const title = escapeHtml(ad.name || ad.title || 'Rakip reklamı');
         const description = escapeHtml(ad.primary_text || ad.description || '');
         const statusActive = String(ad.status || '').toLowerCase() === 'active';
-        const statusText = statusActive ? 'Aktif' : 'Yayını sona erdi';
-        const media = ad.media_type === 'video' && mediaUrl
+        const statusText = statusActive ? 'Aktif' : String(ad.status || '').toLowerCase() === 'ended' ? 'Yayını sona erdi' : 'Durum bilinmiyor';
+        const media = ad.media_assets?.length && window.renderCompetitorMedia
+            ? window.renderCompetitorMedia(ad, true)
+            : ad.media_type === 'video' && mediaUrl
             ? `<video src="${escapeHtml(mediaUrl)}" poster="${escapeHtml(ad.thumbnail_url || '')}" controls playsinline preload="metadata"></video>`
             : mediaUrl
                 ? `<img src="${escapeHtml(mediaUrl)}" alt="${title}" loading="lazy">`
@@ -750,8 +764,8 @@
         const metricBlock = ad.has_live_metrics
             ? `<details class="collapsible-section"><summary><i class="fas fa-chart-column me-1"></i> Kaynağın sağladığı aralık verileri</summary>
                  <div class="row g-1 mt-2">
-                   ${Number(ad.impressions || 0) ? `<div class="col-6"><div class="metric-mini"><div class="label">Gösterim tahmini</div><div class="value">${formatNumber(ad.impressions)}</div></div></div>` : ''}
-                   ${Number(ad.spend || 0) ? `<div class="col-6"><div class="metric-mini"><div class="label">Harcama tahmini</div><div class="value">${formatNumber(ad.spend)} TL</div></div></div>` : ''}
+                   ${ad.impressions != null ? `<div class="col-6"><div class="metric-mini"><div class="label">Gösterim tahmini</div><div class="value">${formatNumber(ad.impressions)}</div></div></div>` : ''}
+                   ${ad.spend != null ? `<div class="col-6"><div class="metric-mini"><div class="label">Harcama tahmini</div><div class="value">${formatNumber(ad.spend)} ${escapeHtml(ad.currency || 'TRY')}</div></div></div>` : ''}
                  </div><small class="text-muted d-block mt-2">Meta Reklam Kütüphanesi aralığının orta noktasıdır; kesin performans metriği değildir.</small>
                </details>`
             : '';
@@ -759,11 +773,20 @@
           <article class="ad-card" data-ad-id="${ad.id}" role="button" tabindex="0"
             onclick="if(!event.target.closest('a,button,video,details')) openAIPopup('${ad.id}')"
             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAIPopup('${ad.id}')}">
-            <div class="ad-media">${media}<span class="ad-type-badge">${escapeHtml(ad.media_type || 'görsel')}</span></div>
+            <div class="ad-media">${media}<span class="ad-type-badge">${escapeHtml(formatLabel(ad.ad_format))}</span></div>
             <div class="ad-content">
               <div class="ad-title fw-bold">${title}</div>
               ${description ? `<p class="small text-muted mt-2 mb-2" style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${description}</p>` : ''}
               ${metricBlock}
+              <div class="small mt-2">${ad.advertiser_name ? `<div><b>Reklamveren:</b> ${escapeHtml(ad.advertiser_name)}</div>` : ''}
+                ${ad.target_domain ? `<div><b>Hedef alan adı:</b> ${escapeHtml(ad.target_domain)}</div>` : ''}
+                ${ad.total_days_shown != null ? `<div><b>Kaynakta yayın görülen gün:</b> ${escapeHtml(String(ad.total_days_shown))}</div>` : ''}
+                ${ad.last_seen_at ? `<div><b>Kaynakta son yayın:</b> ${new Date(ad.last_seen_at).toLocaleDateString('tr-TR')}</div>` : ''}
+                ${ad.dimensions ? `<div><b>Görsel boyutu:</b> ${escapeHtml(ad.dimensions)}</div>` : ''}
+                ${(ad.regions || []).filter(region => region.impressions_range).map(region => `<div><b>${escapeHtml(region.name)} toplam gösterim aralığı:</b> ${escapeHtml(region.impressions_range)}</div>`).join('')}
+                ${ad.creative_variants && ad.creative_variants.length ? `<div>${ad.creative_variants.length} kreatif varyantı kaydedildi</div>` : ''}
+                ${ad.detail_error ? `<div class="text-warning">${escapeHtml(ad.detail_error)}</div>` : ''}
+              </div>
               <div class="d-flex justify-content-between align-items-center mt-3">
                 <span class="ad-status ${statusActive ? 'status-active' : 'status-completed'}">${statusText}</span>
                 <small class="text-muted"><i class="fas fa-calendar me-1"></i>${ad.first_seen_at ? new Date(ad.first_seen_at).toLocaleDateString('tr-TR') : 'Tarih yok'}</small>
@@ -974,15 +997,36 @@
 
     function toggleVideo(element) { }
     
-    document.getElementById('refreshBtn').onclick = async () => {
+    function showAdvertiserChoices(candidates) {
+        const container = document.getElementById('adsContainer');
+        container.innerHTML = '<div class="p-3"><h5>Hangi firmayı takip etmek istiyorsunuz?</h5><p>Bu aramada birden fazla reklamveren bulundu. Firma adını seçin; reklamlarını burada göstereceğiz.</p><div id="advertiserChoices" class="d-grid gap-2"></div></div>';
+        const choices = document.getElementById('advertiserChoices');
+        candidates.forEach(candidate => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn btn-outline-primary text-start';
+            button.textContent = candidate.name + (candidate.domain ? ' — ' + candidate.domain : '');
+            button.onclick = () => refreshCompetitor(candidate.id);
+            choices.appendChild(button);
+        });
+    }
+
+    async function refreshCompetitor(advertiserId) {
         if (!currentCompetitorId) return;
         const overlay = document.getElementById('syncOverlay');
         overlay.classList.add('active');
         const button = document.getElementById('refreshBtn');
         button.disabled = true;
         try {
-            const response = await fetch(`/api/rakip-reklam-sync/${currentCompetitorId}/`, { method: 'POST', headers: {'X-CSRFToken': csrftoken} });
+            const response = await fetch(`/api/rakip-reklam-sync/${currentCompetitorId}/`, {
+                method: 'POST', headers: {'X-CSRFToken': csrftoken, 'Content-Type': 'application/x-www-form-urlencoded'},
+                body: advertiserId ? new URLSearchParams({advertiser_id: advertiserId}) : ''
+            });
             const result = await response.json();
+            if (result.result_status === 'advertiser_choice_required') {
+                showAdvertiserChoices(result.advertiser_candidates || []);
+                return;
+            }
             if (!response.ok || !result.success) throw new Error(result.message || 'Reklamlar alınamadı.');
             await loadAds(currentCompetitorId);
             alert(result.message);
@@ -992,7 +1036,8 @@
             overlay.classList.remove('active');
             button.disabled = false;
         }
-    };
+    }
+    document.getElementById('refreshBtn').onclick = () => refreshCompetitor();
     
     function formatNumber(n) { return window.raFormatNumber(n); }
     function getPlatformIcon(code) {
@@ -1011,5 +1056,5 @@ window.adsPopupConfig = {
 };
 window.adsPanelAgencyClientScope = '{{ agency_scope.selected_client.id|default:"" }}';
 </script>
-<script src="{% static 'js/ads_ai_popup.js' %}?v=20260727-1"></script>
+<script src="{% static 'js/ads_ai_popup.js' %}?v=20261006-2"></script>
 {% endblock %}

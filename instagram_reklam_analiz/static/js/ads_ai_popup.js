@@ -8,6 +8,43 @@
   let activeAdId = null;
   let activeDetail = null;
 
+  function mediaAsset(asset, name) {
+    if (asset.kind === 'embed' && asset.embed_url) {
+      return `<iframe ${asset.active ? `src="${esc(asset.embed_url)}"` : ''} data-media-src="${esc(asset.embed_url)}" title="${esc(name || 'Reklam videosu')}" loading="lazy" allow="encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" style="width:100%;height:100%;min-height:240px;border:0"></iframe>`;
+    }
+    if (asset.kind === 'video' && asset.video_url) {
+      return `<video src="${esc(asset.video_url)}" poster="${esc(asset.thumbnail_url || '')}" controls playsinline preload="metadata" style="width:100%;max-height:420px;object-fit:contain"></video>`;
+    }
+    if (asset.image_url) return `<img src="${esc(asset.image_url)}" alt="${esc(asset.title || name || 'Reklam görseli')}" loading="lazy" style="width:100%;max-height:420px;object-fit:contain">`;
+    return '<div class="ad-ai-empty">Kaynak bu içerik için oynatılabilir medya sağlamadı.</div>';
+  }
+
+  window.renderCompetitorMedia = function (detail, compact = false) {
+    const assets = detail.media_assets || [];
+    if (!assets.length) return '<div class="ad-ai-empty">Kaynak medya sağlamadı.</div>';
+    const slides = (compact ? assets.slice(0, 1) : assets).map((asset, index) => `<div data-media-slide ${index ? 'hidden' : ''}>
+      <div style="width:100%;height:${compact ? '240' : '420'}px">${mediaAsset({...asset, active:index === 0}, detail.name)}</div>
+      ${compact ? '' : `<div class="ad-ai-creative-copy"><strong>${esc(asset.title)}</strong><p>${esc(asset.body)}</p>${asset.call_to_action ? `<span class="ad-ai-chip">${esc(asset.call_to_action)}</span>` : ''}${asset.video_url ? `<p><a href="${esc(asset.video_url)}" target="_blank" rel="noopener noreferrer">Videoyu kaynakta aç</a></p>` : ''}${asset.landing_url ? `<p><a href="${esc(asset.landing_url)}" target="_blank" rel="noopener noreferrer">Bu kartın hedef sayfası</a></p>` : ''}</div>`}
+    </div>`).join('');
+    return `<div class="competitor-media-gallery" data-media-index="0">${slides}${!compact && assets.length > 1 ? `<div style="display:flex;gap:16px;align-items:center;padding:12px"><button type="button" data-gallery-step="-1" aria-label="Önceki kart">← Önceki</button><span data-gallery-count>1 / ${assets.length}</span><button type="button" data-gallery-step="1" aria-label="Sonraki kart">Sonraki →</button></div>` : ''}${compact && assets.length > 1 ? `<small>${assets.length} içerik · Tümünü görmek için reklamı açın</small>` : ''}</div>`;
+  };
+
+  document.addEventListener('click', event => {
+    const button = event.target.closest('[data-gallery-step]');
+    if (!button) return;
+    event.preventDefault(); event.stopPropagation();
+    const gallery = button.closest('.competitor-media-gallery');
+    const slides = [...gallery.querySelectorAll('[data-media-slide]')];
+    const current = Number(gallery.dataset.mediaIndex || 0);
+    slides[current].querySelectorAll('video').forEach(video => video.pause());
+    slides[current].querySelectorAll('iframe').forEach(frame => frame.removeAttribute('src'));
+    const next = (current + Number(button.dataset.galleryStep) + slides.length) % slides.length;
+    slides.forEach((slide, index) => slide.hidden = index !== next);
+    slides[next].querySelectorAll('iframe[data-media-src]').forEach(frame => frame.src = frame.dataset.mediaSrc);
+    gallery.dataset.mediaIndex = next;
+    gallery.querySelector('[data-gallery-count]').textContent = `${next + 1} / ${slides.length}`;
+  });
+
   function scopedUrl(path) {
     const url = new URL(path, window.location.origin);
     const scope = window.adsPanelAgencyClientScope || '';
@@ -77,7 +114,7 @@
     const m = detail.metrics || {};
     const image = detail.preview_image_url || '';
     const video = detail.preview_video_url || '';
-    const media = video
+    const media = detail.media_assets?.length ? window.renderCompetitorMedia(detail) : video
       ? `<video src="${esc(video)}" poster="${esc(image)}" controls playsinline></video>`
       : image ? `<img src="${esc(image)}" alt="${esc(detail.name)}">`
       : '<div class="ad-ai-empty"><i class="fas fa-photo-film fa-3x"></i><p>Canlı kaynak bu reklam için indirilebilir bir görsel sağlamadı.</p></div>';
@@ -88,21 +125,23 @@
       ['Eylem çağrısı', detail.call_to_action],
     ].filter(item => item[1]).map(item => `<div class="ad-ai-rule"><span class="ad-ai-rule-severity info"><i class="fas fa-circle"></i></span><div><strong>${esc(item[0])}</strong><p>${esc(item[1])}</p></div></div>`).join('');
     const sourceMetrics = detail.has_live_metrics ? [
-      Number(m.impressions || 0) ? metric('Gösterim tahmini', trInt(m.impressions)) : '',
-      Number(m.spend || 0) ? metric('Harcama tahmini', trMoney(m.spend)) : '',
+      m.impressions != null ? metric('Gösterim tahmini', trInt(m.impressions)) : '',
+      m.spend != null ? metric('Harcama tahmini', esc(m.spend_label || trMoney(m.spend))) : '',
     ].join('') : '';
     document.getElementById('adAiTitle').textContent = detail.name;
     document.getElementById('adAiSubtitle').textContent = 'Canlı rakip reklam kaynağından doğrulanan bilgiler';
     document.getElementById('adAiBody').innerHTML = `
       <div class="ad-ai-overview">
-        <article class="ad-ai-creative"><div class="ad-ai-media">${media}</div><div class="ad-ai-creative-copy"><div class="ad-ai-chip">${esc(detail.ad_format || 'Reklam')}</div></div></article>
+        <article class="ad-ai-creative"><div class="ad-ai-media ${detail.media_assets?.length ? 'has-gallery' : ''}">${media}</div><div class="ad-ai-creative-copy"><div class="ad-ai-chip">${esc(detail.ad_format === 'UNKNOWN' ? 'Format bilinmiyor' : (detail.ad_format || 'Reklam'))}</div></div></article>
         <article class="ad-ai-panel">
-          <div class="ad-ai-identity">${identity('Rakip',detail.competitor_name)}${identity('Platform',detail.platform_name)}${identity('Durum',String(detail.status || '').toUpperCase() === 'ACTIVE' ? 'Aktif' : 'Yayını sona erdi')}${identity('İlk görülme',detail.first_seen_at)}${identity('Son görülme',detail.last_seen_at)}</div>
-          ${sourceMetrics ? `<div class="ad-ai-metrics">${sourceMetrics}</div><small class="ad-ai-empty">Bu değerler ${esc(detail.metric_source_label || 'kaynak aralığı')} orta noktasıdır; kesin sonuç değildir.</small>` : '<div class="ad-ai-empty">Canlı kaynak bu reklam için performans metriği yayınlamıyor.</div>'}
+          <div class="ad-ai-identity">${identity('Rakip',detail.competitor_name)}${identity('Platform',detail.platform_name)}${identity('Durum',String(detail.status || '').toUpperCase() === 'ACTIVE' ? 'Aktif' : String(detail.status || '').toUpperCase() === 'ENDED' ? 'Yayını sona erdi' : 'Durum bilinmiyor')}${identity('İlk görülme',detail.first_seen_at)}${identity('Son görülme',detail.last_seen_at)}${identity('Reklamveren',detail.advertiser_name)}${identity('Yayın görülen gün',detail.total_days_shown)}${identity('Görsel boyutu',detail.dimensions)}</div>
+          ${(detail.regions || []).length ? `<div class="ad-ai-metrics">${detail.regions.map(region => metric(region.name + ' toplam gösterim aralığı', esc(region.impressions_range || 'Kaynak sağlamadı')) + metric('Bölgedeki yayın dönemi', esc([region.first_shown, region.last_shown].filter(Boolean).join(' – ')))).join('')}</div>` : ''}
+          ${sourceMetrics ? `<div class="ad-ai-metrics">${sourceMetrics}</div><small class="ad-ai-empty">Bu değerler ${esc(detail.metric_source_label || 'kaynak aralığı')} orta noktasıdır; kesin sonuç değildir.</small>` : `<div class="ad-ai-empty">${esc(detail.source_notice || 'Canlı kaynak bu reklam için performans metriği yayınlamıyor.')}</div>`}
         </article>
       </div>
       <section class="ad-ai-section"><div class="ad-ai-section-head"><h3>Canlı reklam içeriği</h3></div><div class="ad-ai-rules">${copyItems || '<div class="ad-ai-empty">Kaynakta ek reklam metni bulunmuyor.</div>'}</div></section>
-      ${detail.landing_url ? `<section class="ad-ai-section"><a class="ad-ai-run analysis" href="${esc(detail.landing_url)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-up-right-from-square"></i> Reklamı canlı kaynakta aç</a></section>` : ''}`;
+      ${detail.snapshot_url ? `<section class="ad-ai-section"><a class="ad-ai-run analysis" href="${esc(detail.snapshot_url)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-up-right-from-square"></i> Reklam Kütüphanesi kaydını aç</a></section>` : ''}
+      ${detail.landing_url ? `<section class="ad-ai-section"><a href="${esc(detail.landing_url)}" target="_blank" rel="noopener noreferrer">Hedef siteyi aç</a></section>` : ''}`;
   }
 
   async function runAdAiReport(type, button) {
@@ -170,6 +209,12 @@
       }
     } catch (error) { document.getElementById('adAiBody').innerHTML = `<div class="ad-ai-error">${esc(error.message)}</div>`; }
   };
-  window.closeAdAiPopup = function () { document.getElementById('adAiBackdrop')?.classList.remove('show'); document.body.style.overflow = ''; };
+  window.closeAdAiPopup = function () {
+    const backdrop = document.getElementById('adAiBackdrop');
+    backdrop?.querySelectorAll('video').forEach(video => video.pause());
+    backdrop?.querySelectorAll('iframe').forEach(frame => frame.removeAttribute('src'));
+    backdrop?.classList.remove('show');
+    document.body.style.overflow = '';
+  };
   document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeAdAiPopup(); });
 })();

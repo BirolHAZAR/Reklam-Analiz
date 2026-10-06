@@ -305,10 +305,10 @@
             <div>
                 <span class="intel-kicker"><i class="fas fa-binoculars"></i> Rekabet İstihbarat Merkezi</span>
                 <h1 class="intel-title">Rakibin ne yaptığını değil, neden hızlandığını gör.</h1>
-                <p class="intel-subtitle">Bu ekran rakip profillerini reklam temposu, etkileşim hacmi, görünürlük ve kreatif sinyallerle okur. Amaç tek tek reklam bakmak değil; pazardaki baskıyı, fırsatı ve karşı hamle ihtiyacını anlamaktır.</p>
+                <p class="intel-subtitle">Kayıtlı rakip reklamlarını, yayın tarihlerini, kreatiflerini ve kaynağın sağladığı gösterim aralıklarını karşılaştırın. Harcama ve tıklama bulunmayan reklamlarda performans sonucu çıkarılamaz.</p>
             </div>
             <div class="intel-brief">
-                <div class="brief-item"><i class="fas fa-wave-square"></i><span>Reklam sayısı, rakibin pazara ne kadar baskı yaptığını gösterir.</span></div>
+                <div class="brief-item"><i class="fas fa-wave-square"></i><span>Reklam sayısı kayıt hacmidir; başarı veya pazar payı ölçüsü değildir.</span></div>
                 <div class="brief-item"><i class="fas fa-fire"></i><span>Etkileşim ve gösterim, hangi mesajların ilgi topladığını öne çıkarır.</span></div>
                 <div class="brief-item"><i class="fas fa-bullseye"></i><span>Öne çıkan reklamlar, kreatif ve teklif tarafında karşı hamle fikri verir.</span></div>
             </div>
@@ -327,9 +327,9 @@
 
     <div class="metric-grid">
         <div class="metric-card is-{{ pressure_class }}">
-            <span>Rekabet Baskısı</span>
-            <strong>{{ pressure_score|default:0 }}</strong>
-            <small>{{ pressure_label }}</small>
+            <span>Bölgesel Gösterim Verisi</span>
+            <strong>{{ regional_range_count|default:0 }}</strong>
+            <small>Gösterim aralığı sağlanan reklam</small>
         </div>
         <div class="metric-card">
             <span>Aktif Rakip</span>
@@ -343,12 +343,12 @@
         </div>
         <div class="metric-card">
             <span>Tahmini Gösterim</span>
-            <strong>{{ total_impressions|tr_int }}</strong>
+            <strong>{% if total_impressions is None %}Veri yok{% else %}{{ total_impressions|tr_int }}{% endif %}</strong>
             <small>Rakip reklam metriklerinden</small>
         </div>
         <div class="metric-card">
             <span>Ortalama CTR</span>
-            <strong>{{ avg_ctr|tr_decimal }}%</strong>
+            <strong>{% if avg_ctr is None %}Veri yok{% else %}{{ avg_ctr|tr_decimal }}%{% endif %}</strong>
             <small>Rakip reklam ortalaması</small>
         </div>
     </div>
@@ -369,7 +369,7 @@
                 <div class="platform-card">
                     <strong>{{ platform.platform_name }}</strong>
                     <span>{{ platform.competitors|tr_int }} rakip · {{ platform.ads|tr_int }} reklam</span>
-                    <span>{{ platform.engagement|tr_int }} etkileşim</span>
+                    <span>{% if platform.engagement is None %}Etkileşim verisi yok{% else %}{{ platform.engagement|tr_int }} etkileşim{% endif %}</span>
                     <div class="bar"><i style="width:{% widthratio platform.ads total_ads 100 %}%"></i></div>
                 </div>
                 {% endfor %}
@@ -398,8 +398,8 @@
                         </div>
                         <div class="competitor-metrics">
                             <div class="mini"><b>{{ row.ads_count|tr_int }}</b><em>Reklam</em></div>
-                            <div class="mini"><b>{{ row.estimated_engagement|tr_int }}</b><em>Etkileşim</em></div>
-                            <div class="mini"><b>{{ row.avg_ctr|tr_decimal }}%</b><em>CTR</em></div>
+                            <div class="mini"><b>{% if row.estimated_engagement is None %}Veri yok{% else %}{{ row.estimated_engagement|tr_int }}{% endif %}</b><em>Etkileşim</em></div>
+                            <div class="mini"><b>{% if row.avg_ctr is None %}Veri yok{% else %}{{ row.avg_ctr|tr_decimal }}%{% endif %}</b><em>CTR</em></div>
                         </div>
                     </article>
                     <div class="competitor-expand" id="competitorAds{{ row.id }}">
@@ -433,8 +433,8 @@
                     <div class="decision-item">
                         <i class="fas fa-gauge-high"></i>
                         <div>
-                            <strong>{{ pressure_label }}</strong>
-                            <span>Rakip baskı skoru {{ pressure_score|default:0 }}. Reklam hacmi ve aktif rakip sayısı birlikte okunur.</span>
+                            <strong>Kaynak kapsamı</strong>
+                            <span>{{ total_ads }} kayıtlı reklamın {{ regional_range_count }} tanesinde bölgesel gösterim aralığı var. Reklam detayında ülke ve yayın dönemini inceleyin.</span>
                         </div>
                     </div>
                     <div class="decision-item">
@@ -478,7 +478,7 @@
                                 <span>{{ ad.date }}</span>
                                 <div class="ad-metrics">
                                     <b>{{ ad.impressions|tr_int }} gösterim</b>
-                                    <b>{{ ad.engagement|tr_int }} etkileşim</b>
+                                    <b>{% if ad.engagement is None %}Etkileşim verisi yok{% else %}{{ ad.engagement|tr_int }} etkileşim{% endif %}</b>
                                     <b>{{ ad.ctr|tr_decimal }}% CTR</b>
                                 </div>
                             </div>
@@ -641,6 +641,8 @@ function renderAdModal(ad){
             <div class="modal-copy">
                 <p><b>Başlık:</b> ${escapeHtml(ad.headline || ad.name)}</p>
                 <p>${escapeHtml(ad.primary_text || ad.description || "Reklam metni bulunmuyor.")}</p>
+                <p class="small">${escapeHtml(ad.metric_source_label || '')}</p>
+                ${ad.snapshot_url ? `<p><a href="${escapeHtml(ad.snapshot_url)}" target="_blank" rel="noopener">Reklam Kütüphanesi kaydını aç</a></p>` : ''}
                 <p><b>CTA:</b> ${escapeHtml(ad.call_to_action || "-")} ${ad.landing_url ? ` · <a href="${escapeHtml(ad.landing_url)}" target="_blank" rel="noopener" style="color:#7dd3fc;">Landing</a>` : ""}</p>
                 <div class="modal-metrics">
                     <div class="modal-metric"><b>${ad.metrics.impressions_label}</b><small>Gösterim</small></div>

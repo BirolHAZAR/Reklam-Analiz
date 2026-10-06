@@ -260,4 +260,4 @@ __all__ = [
 ]
 
 from .payment_gateway import PaymentGatewaySettings, HostedPaymentSession
-from .integration_application import IntegrationApplication
+from .integration_application import IntegrationApplication, CompetitorSourceSetting
