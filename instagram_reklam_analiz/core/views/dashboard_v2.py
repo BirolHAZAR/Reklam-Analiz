@@ -223,6 +223,12 @@ def executive_dashboard(request):
             "url": f"{_safe_url('campaign_center', '/campaign-center/')}?campaign_id={campaign.id}",
         })
 
+    opportunities = (
+        OpportunityWindow.objects.none()
+        if agency_scope.selected_client
+        else OpportunityWindow.objects.filter(user=user, is_taken=False).order_by("-confidence_score", "-detected_at")[:4]
+    )
+
     ai_actions = []
     if critical_alerts:
         ai_actions.append({

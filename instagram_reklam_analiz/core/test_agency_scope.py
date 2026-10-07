@@ -57,6 +57,30 @@ class AgencyScopeTests(TestCase):
         request.session.save()
         return request
 
+    def test_executive_dashboard_renders_own_opportunities_on_cold_cache(self):
+        from django.core.cache import cache
+        from core.models import OpportunityWindow
+        from core.views.dashboard_v2 import executive_dashboard
+        cache.clear()
+        OpportunityWindow.objects.create(user=self.owner, opportunity_type='budget_gap', title='Own budget opportunity', description='Own campaign budget', suggested_action='Review budget', confidence_score=85)
+        from django.shortcuts import render
+        with patch('core.views.dashboard_v2.render', wraps=render) as rendered:
+            response = executive_dashboard(self.request(self.owner))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([row.title for row in rendered.call_args.args[2]['opportunities']], ['Own budget opportunity'])
+
+    def test_executive_dashboard_selected_client_hides_unscoped_opportunities(self):
+        from django.core.cache import cache
+        from core.models import OpportunityWindow
+        from core.views.dashboard_v2 import executive_dashboard
+        cache.clear()
+        OpportunityWindow.objects.create(user=self.owner, opportunity_type='budget_gap', title='Unscoped budget opportunity', description='Own campaign budget', suggested_action='Review budget', confidence_score=85)
+        from django.shortcuts import render
+        with patch('core.views.dashboard_v2.render', wraps=render) as rendered:
+            response = executive_dashboard(self.request(self.owner, {'agency_client': str(self.client_a.id)}))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(rendered.call_args.args[2]['opportunities'], [])
+
     def test_owner_can_select_client_and_scope_accounts(self):
         request = self.request(self.owner, {"agency_client": str(self.client_a.id)})
         scope = get_agency_scope(request)
