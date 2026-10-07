@@ -17,7 +17,7 @@ from openai import OpenAI
 
 from core.services.agency_branding import get_report_branding
 from core.services.agency_scope import get_agency_scope, platform_accounts_for_request, scope_queryset
-from core.services.ai_agent_ecosystem import build_campaign_agent_ecosystem, run_sixteen_agent_orchestration
+from core.services.ai_agent_ecosystem import build_campaign_agent_ecosystem, run_agent_orchestration
 from core.services.performance_metrics import aggregate_metric_queryset
 from core.services.campaign_panel_service import build_campaign_rule_events
 from core.services.usage_metering import consume_usage
@@ -1504,7 +1504,6 @@ def octo_campaign_analysis_safe(request, campaign_id):
                         "risk_label": _octo_risk_label(getattr(latest_analysis, "risk_score", 0) or 0),
                         "trend_7d": getattr(latest_analysis, "trend_7d", "") or "",
                         "trend_30d": getattr(latest_analysis, "trend_30d", "") or "",
-                        "competitor_position": getattr(latest_analysis, "competitor_position", "") or "",
                         "difficulty_level": getattr(latest_recommendation, "difficulty_level", "") if latest_recommendation else "",
                         "estimated_roas_gain": float(getattr(latest_recommendation, "estimated_roas_gain", 0) or 0) if latest_recommendation else 0,
                         "estimated_ctr_gain": float(getattr(latest_recommendation, "estimated_ctr_gain", 0) or 0) if latest_recommendation else 0,
@@ -1632,7 +1631,6 @@ def octo_campaign_analysis_safe(request, campaign_id):
                 "best_metric": best_metric, "worst_metric": worst_metric,
                 "risk_score": float(risk_score), "risk_label": risk_label,
                 "trend_7d": trend_7d, "trend_30d": trend_30d,
-                "competitor_position": "Rakip karşılaştırması bekleniyor",
                 "estimated_roas_gain": effects["estimated_roas_gain"],
                 "estimated_ctr_gain": effects["estimated_ctr_gain"],
                 "difficulty_level": effects["difficulty_level"],
@@ -1653,7 +1651,7 @@ def octo_campaign_analysis_safe(request, campaign_id):
             "health": {"score": health_score, "risk_score": float(risk_score), "risk_label": risk_label, "success_label": success_label},
             "matched_5000_rules": rule_findings,
         }
-        ai_result = run_sixteen_agent_orchestration(
+        ai_result = run_agent_orchestration(
             client=OpenAI(api_key=settings.OPENAI_API_KEY),
             model=settings.OPENAI_MODEL,
             task=(
@@ -1722,7 +1720,6 @@ def octo_campaign_analysis_safe(request, campaign_id):
             "risk_score": risk_score,
             "trend_7d": trend_7d,
             "trend_30d": trend_30d,
-            "competitor_position": "Rakip karşılaştırması bekleniyor",
             "main_strength": f"En güçlü sinyal: {best_metric}",
             "main_weakness": f"İzlenecek sinyal: {worst_metric}",
             "risk_reason": f"Risk skoru {risk_score}/100 ({risk_label}) olarak hesaplandı.",
@@ -1808,7 +1805,6 @@ def octo_campaign_analysis_safe(request, campaign_id):
             "risk_label": risk_label,
             "trend_7d": trend_7d,
             "trend_30d": trend_30d,
-            "competitor_position": "Rakip karşılaştırması bekleniyor",
             "difficulty_level": effects["difficulty_level"],
             "estimated_roas_gain": float(effects["estimated_roas_gain"]),
             "estimated_ctr_gain": float(effects["estimated_ctr_gain"]),

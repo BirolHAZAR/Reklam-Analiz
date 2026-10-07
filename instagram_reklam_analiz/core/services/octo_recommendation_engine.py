@@ -143,7 +143,7 @@ def _task_report_sections(task, message, root_cause, action, impact):
             "key": "why",
             "title": "Neden Önemli",
             "icon": "fa-circle-info",
-            "items": _split_to_bullets(root_cause, "Performans, bütçe, kreatif veya rakip baskısı nedeniyle sonuçları etkileyebilir.", 4),
+            "items": _split_to_bullets(root_cause, "Performans, bütçe veya kreatif değişiklikleri nedeniyle sonuçları etkileyebilir.", 4),
         },
         {
             "key": "action",
@@ -195,7 +195,6 @@ def _module_label(module):
         "performance": "Performans",
         "creative": "Kreatif",
         "budget": "Bütçe",
-        "competitor": "Rakip",
         "conversion": "Dönüşüm",
     }.get(module or "", "Genel")
 
@@ -234,11 +233,6 @@ def _task_target_url(task):
     campaign = getattr(task, "campaign", None)
 
     if ad is not None and getattr(ad, "id", None):
-        if getattr(ad, "source_type", None) == "COMPETITOR" or getattr(task, "module", None) == "competitor":
-            base = _safe_reverse("competitor_intelligence", "/competitor-intelligence/")
-            competitor = getattr(ad, "competitor", None)
-            competitor_name = getattr(competitor, "name", None) or getattr(ad, "competitor_name", None) or "Rakip"
-            return f"{base}?{urlencode({'open_competitor_ad': ad.id, 'competitor': competitor_name})}"
         base = _safe_reverse("ads_center", "/ads-center/")
         return f"{base}?{urlencode({'open_ad': ad.id})}"
 
@@ -289,7 +283,7 @@ def _task_strategy_detail(task):
     root_cause = _format_numbers_in_text(
         _short(
             getattr(rule, "root_cause", "") if rule is not None else "",
-            "Muhtemel neden performans, kreatif, bütçe veya rakip baskısı kaynaklı olabilir.",
+            "Muhtemel neden performans, kreatif veya bütçe değişiklikleri kaynaklı olabilir.",
             240,
         )
     )
@@ -356,7 +350,6 @@ def _base_task_queryset(user):
             "campaign",
             "ad_group",
             "ad",
-            "ad__competitor",
             "creative",
             "platform_account",
             "platform_account__platform",

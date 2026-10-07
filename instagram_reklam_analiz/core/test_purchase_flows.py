@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -32,6 +33,7 @@ from core.services.bank_transfer_approval import approve_bank_transfer_payment
 )
 class PurchaseFlowTests(TestCase):
     def setUp(self):
+        cache.clear()
         from core.models import LegalDocument, LegalSiteSettings, PaymentGatewaySettings
         LegalDocument.objects.all().update(status="published")
         company = LegalSiteSettings.load()

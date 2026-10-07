@@ -1378,7 +1378,6 @@ async function openAIPopup(adId, adTitle) {
         { name: 'Duygu Analizi', icon: '😊', key: 'sentiment' },
         { name: 'İçerik Kalitesi', icon: '📝', key: 'content_quality' },
         { name: 'Hashtag Stratejisi', icon: '#️⃣', key: 'hashtag' },
-        { name: 'Rakip Karşılaştırma', icon: '⚔️', key: 'competitor' },
         { name: 'Performans Tahmini', icon: '📈', key: 'performance_prediction' },
         { name: 'Bütçe Optimizasyonu', icon: '💰', key: 'budget' },
         { name: 'Lead Potansiyeli', icon: '🎯', key: 'leads' },
@@ -1581,8 +1580,6 @@ function emailPopupRapor() {
             ad_name: lastReportData?.adTitle || 'Reklam',
             overall_score: lastReportData?.overallScore || 0,
             generated_at: lastReportData?.generatedAt || '',
-            competitor_username: '',
-            competitor_full_name: ''
         })
     })
     .then(r => r.json())
@@ -1687,7 +1684,7 @@ async function saveAIAnalysisToDatabase(adId, adTitle, results) {
 
         // Her skoru agent listesinden bul
         var sentimentScore = 0, contentScore = 0, hashtagScore = 0;
-        var competitorScore = 0, performanceScore = 0, budgetScore = 0;
+        var performanceScore = 0, budgetScore = 0;
         var leadScore = 0, marketScore = 0;
 
         for (var i = 0; i < agents.length; i++) {
@@ -1698,7 +1695,6 @@ async function saveAIAnalysisToDatabase(adId, adTitle, results) {
             if (name.includes('duygu')) sentimentScore = score;
             else if (name.includes('içerik') || name.includes('icerik')) contentScore = score;
             else if (name.includes('hashtag')) hashtagScore = score;
-            else if (name.includes('rakip')) competitorScore = score;
             else if (name.includes('performans')) performanceScore = score;
             else if (name.includes('bütçe') || name.includes('butce')) budgetScore = score;
             else if (name.includes('lead')) leadScore = score;
@@ -1719,7 +1715,6 @@ async function saveAIAnalysisToDatabase(adId, adTitle, results) {
                 sentiment_score: sentimentScore,
                 content_quality_score: contentScore,
                 hashtag_score: hashtagScore,
-                competitor_score: competitorScore,
                 performance_score: performanceScore,
                 budget_score: budgetScore,
                 lead_score: leadScore,

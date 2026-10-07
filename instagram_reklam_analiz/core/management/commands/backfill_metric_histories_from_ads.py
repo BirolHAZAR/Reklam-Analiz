@@ -64,19 +64,6 @@ def _empty_bucket():
     }
 
 
-def _is_competitor_metric(metric):
-    """
-    Rakip reklamları kampanya/reklam grubu hiyerarşisine dahil edilmez.
-    Bu kayıtlar competitor analizlerinde ayrı değerlendirilir.
-    """
-    ad = metric.ad
-    return (
-        getattr(metric, "is_competitor_snapshot", False)
-        or getattr(ad, "source_type", None) == "COMPETITOR"
-        or getattr(ad, "competitor_id", None) is not None
-    )
-
-
 def _add_metric(bucket, metric):
     for field in METRIC_SUM_FIELDS:
         current = bucket[field]
@@ -96,7 +83,6 @@ def _calculated_values(bucket):
         "raw_metrics": {
             "source": "backfill_metric_histories_from_ads",
             "aggregation": "summed_from_own_ad_metric_history",
-            "competitor_ads": "excluded",
         },
     })
     return payload
@@ -106,7 +92,6 @@ class Command(BaseCommand):
     help = (
         "Kendi reklamlarına ait AdMetricHistory verilerinden "
         "CampaignMetricHistory, AdGroupMetricHistory ve CreativeMetricHistory üretir/günceller. "
-        "Rakip reklam metriklerini bilinçli olarak atlar."
     )
 
     def add_arguments(self, parser):
@@ -126,13 +111,13 @@ class Command(BaseCommand):
         campaign_id = options.get("campaign_id")
         dry_run = options.get("dry_run")
 
-        ad_qs = Ad.objects.select_related("campaign", "ad_group", "creative", "competitor")
+        ad_qs = Ad.objects.filter(source_type="OWN").select_related("campaign", "ad_group", "creative")
         if campaign_id:
             ad_qs = ad_qs.filter(campaign_id=campaign_id)
 
         metrics_qs = (
             AdMetricHistory.objects
-            .select_related("ad", "ad__campaign", "ad__ad_group", "ad__creative", "ad__competitor")
+            .select_related("ad", "ad__campaign", "ad__ad_group", "ad__creative")
             .filter(ad__in=ad_qs)
             .order_by("id")
         )
@@ -143,23 +128,15 @@ class Command(BaseCommand):
 
         processed = 0
         own_processed = 0
-        skipped_competitor = 0
         skipped_own_no_campaign = 0
         skipped_own_no_adgroup = 0
         skipped_own_no_creative = 0
 
-        sample_competitor_ads = []
         sample_broken_own_ads = []
 
         for metric in metrics_qs.iterator(chunk_size=1000):
             ad = metric.ad
             processed += 1
-
-            if _is_competitor_metric(metric):
-                skipped_competitor += 1
-                if len(sample_competitor_ads) < 5:
-                    sample_competitor_ads.append(f"#{ad.id} - {ad.name or ad.headline or 'Adsız rakip reklam'}")
-                continue
 
             own_processed += 1
 
@@ -182,15 +159,9 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.NOTICE(f"İşlenen toplam AdMetricHistory: {processed}"))
         self.stdout.write(self.style.NOTICE(f"Kendi reklam metriği: {own_processed}"))
-        self.stdout.write(self.style.NOTICE(f"Rakip reklam metriği bilinçli atlandı: {skipped_competitor}"))
         self.stdout.write(self.style.NOTICE(f"Campaign bucket: {len(campaign_buckets)}"))
         self.stdout.write(self.style.NOTICE(f"AdGroup bucket: {len(adgroup_buckets)}"))
         self.stdout.write(self.style.NOTICE(f"Creative bucket: {len(creative_buckets)}"))
-
-        if sample_competitor_ads:
-            self.stdout.write(self.style.WARNING("Örnek atlanan rakip reklamlar:"))
-            for item in sample_competitor_ads:
-                self.stdout.write(self.style.WARNING(f"  - {item}"))
 
         if skipped_own_no_campaign or skipped_own_no_adgroup or skipped_own_no_creative:
             self.stdout.write(

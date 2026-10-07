@@ -18,7 +18,6 @@ MODULE_MAP = {
     "AdGroup": "performance",
     "Ad": "performance",
     "Creative": "creative",
-    "Competitor": "competitor",
     "Budget": "budget",
     "Conversion": "conversion",
     "Audience": "performance",
@@ -97,7 +96,10 @@ class Command(BaseCommand):
             raw_module = self.get_value(row, headers, "Modül")
 
             severity = SEVERITY_MAP.get(raw_severity, "info")
-            module = MODULE_MAP.get(raw_module, "performance")
+            module = MODULE_MAP.get(raw_module)
+            if module is None:
+                skipped_count += 1
+                continue
 
             title_tr = self.get_value(row, headers, "Görev Kartı Başlığı")
             message_tr = self.get_value(row, headers, "Görev Kartı Açıklaması")

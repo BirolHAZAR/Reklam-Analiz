@@ -252,16 +252,6 @@
                 </li>
 
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#"><i class="fas fa-crosshairs"></i><span>{{ labels.competition_center }}</span><i class="fas fa-chevron-down ms-1"></i></a>
-                    <div class="dropdown-menu-nav">
-                        {% can_agency_menu user 'rakip_ekle' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'rakip_ekle' %}"><i class="fas fa-plus-circle"></i> {{ labels.add_competitor }}</a>{% endif %}
-                        {% can_agency_menu user 'competitor_intelligence' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'competitor_intelligence' %}"><i class="fas fa-brain"></i> {{ labels.competitor_intelligence }}</a>{% endif %}
-                        {% can_agency_menu user 'rakip_reklam_paneli' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'rakip_reklam_paneli' %}"><i class="fas fa-rectangle-ad"></i> {{ labels.competitor_ads }}</a>{% endif %}
-                        {% can_agency_menu user 'rakip_reklam_hareketleri' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'rakip_reklam_hareketleri' %}"><i class="fas fa-wave-square"></i> {{ labels.competitor_movements }}</a>{% endif %}
-                    </div>
-                </li>
-
-                <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#"><i class="fas fa-robot"></i><span>Octo AI</span><i class="fas fa-chevron-down ms-1"></i></a>
                     <div class="dropdown-menu-nav">
                         {% can_agency_menu user 'ai_dashboard' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'ai_dashboard' %}"><i class="fas fa-robot"></i> AI Paneli</a>{% endif %}
@@ -357,8 +347,6 @@
                 <div class="col-lg-2 col-md-6">
                     <h5>{{ labels.intelligence }}</h5>
                     <ul class="list-unstyled">
-                        <li><a href="{% url 'competitor_intelligence' %}">{{ labels.competitor_intelligence }}</a></li>
-                        <li><a href="{% url 'rakip_ekle' %}">{{ labels.add_competitor }}</a></li>
                         <li><a href="{% url 'performance_center' %}">{{ labels.performance_center }}</a></li>
                         <li><a href="{% url 'ai_dashboard' %}">Octo AI</a></li>
                     </ul>

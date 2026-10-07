@@ -3,4 +3,4 @@
 .ad-ai-metric{display:flex;min-height:72px;flex-direction:column;align-items:center;justify-content:center;text-align:center}.ad-ai-metric b{width:100%;font-variant-numeric:tabular-nums lining-nums}
 .ad-ai-point-list{display:grid;gap:10px;margin:0;padding:0;list-style:none}.ad-ai-point-list li{position:relative;margin:0;padding:0 0 0 18px;color:#cbd3e9;font-size:.74rem;line-height:1.58}.ad-ai-point-list li:before{content:"";position:absolute;left:2px;top:.62em;width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,#8b84ff,#22c55e);box-shadow:0 0 10px rgba(139,132,255,.55)}
 .ad-ai-rule-scope{display:block;margin-top:3px;color:#7f8bad;font-size:.62rem;font-weight:800}
-.ad-ai-media.has-gallery{height:auto;display:block}.competitor-media-gallery{width:100%;min-width:0}.competitor-media-gallery [data-media-slide][hidden]{display:none!important}.competitor-media-gallery button{padding:8px 12px;border:1px solid #8b84ff;border-radius:8px;background:#312e81;color:#fff;cursor:pointer}.competitor-media-gallery iframe{max-width:100%}
+.ad-ai-media.has-gallery{height:auto;display:block}

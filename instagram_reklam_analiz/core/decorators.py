@@ -89,35 +89,6 @@ def check_instagram_account_limit(view_func):
     return wrapper
 
 
-def check_competitor_limit(view_func):
-    """Rakip hesabı artık Rakip tablosu değil, Ad(source_type='COMPETITOR') üzerinden sayılır."""
-    @wraps(view_func)
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return redirect("login")
-        subscription = get_user_active_subscription(request.user)
-        if not subscription:
-            messages.warning(request, "Rakip analizi için önce bir üyelik paketi satın almalısınız!")
-            return redirect("pricing")
-        plan = subscription.plan
-        if plan:
-            max_competitors = plan.max_competitors
-            if max_competitors == 0:
-                messages.error(request, f"{plan.display_name} paketiniz rakip analizi içermiyor.")
-                return redirect("pricing")
-            if max_competitors >= 9999:
-                return view_func(request, *args, **kwargs)
-            current_count = (
-                Ad.objects.filter(user=request.user, source_type="COMPETITOR", is_active=True)
-                .values("platform_account_id")
-                .distinct()
-                .count()
-            )
-            if current_count >= max_competitors:
-                messages.error(request, f"{plan.display_name} paketiniz en fazla {max_competitors} rakip hesabı izlemenize izin veriyor.")
-                return redirect("pricing")
-        return view_func(request, *args, **kwargs)
-    return wrapper
 
 
 def ai_credit_required(amount=1, feature_key=None, reason="AI kullanimi", weekly_limit_field=None, weekly_reference_prefix=None, operation=None, tariff_key=""):

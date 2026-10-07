@@ -9,7 +9,6 @@ from core.ai_agents.budget_optimizer import BudgetOptimizer
 from .budget_optimizer import BudgetOptimizer
 from .hashtag_recommender import HashtagRecommender
 from .sentiment_analyzer import SentimentAnalyzer
-from .competitor_analyzer import CompetitorAnalyzer
 from .lead_scorer import LeadScorer
 from .auto_responder import AutoResponder
 from .influencer_connector import InfluencerConnector
@@ -27,7 +26,6 @@ __all__ = [
     'BudgetOptimizer',
     'HashtagRecommender',
     'SentimentAnalyzer',
-    'CompetitorAnalyzer',
     'LeadScorer',
     'AutoResponder',
     'InfluencerConnector',

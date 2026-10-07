@@ -18,18 +18,16 @@
       <div class="agency-actions">
         <a class="agency-btn" href="{% url 'agency_dashboard_org' organization.id %}"><i class="fas fa-arrow-left"></i> Ajansa Dön</a>
         {% if can_manage_accounts %}<a class="agency-btn" href="{% url 'agency_client_platform_account_create' organization.id client.id %}"><i class="fas fa-link"></i> Hesap Bağla</a>{% endif %}
-        {% if can_manage_competitors %}<a class="agency-btn primary" href="{% url 'agency_competitor_create' organization.id %}"><i class="fas fa-crosshairs"></i> Rakip Ekle</a>{% endif %}
       </div>
     </div>
 
     <div class="agency-grid">
       <div class="agency-stat"><span>Platform Hesabı</span><strong>{{ platform_accounts|length }}</strong></div>
-      <div class="agency-stat"><span>Rakip Profili</span><strong>{{ competitors|length }}</strong></div>
       <div class="agency-stat"><span>Web Sitesi</span><strong style="font-size:1rem;">{{ client.website|default:"-" }}</strong></div>
       <div class="agency-stat"><span>Yetkili</span><strong style="font-size:1rem;">{{ client.contact_name|default:"-" }}</strong></div>
     </div>
 
-    <div class="agency-layout">
+    <div class="agency-layout" style="grid-template-columns:1fr">
       <section class="agency-panel">
         <h2>Müşteri platform hesapları</h2>
         {% if platform_accounts %}
@@ -61,25 +59,6 @@
         {% endif %}
       </section>
 
-      <aside class="agency-panel">
-        <h2>Müşteri rakipleri</h2>
-        {% if competitors %}
-        <table class="agency-table">
-          <thead><tr><th>Rakip</th><th>Platform</th><th>Reklam</th></tr></thead>
-          <tbody>
-          {% for competitor in competitors %}
-            <tr>
-              <td>{{ competitor.name }}</td>
-              <td>{{ competitor.platform.name|default:"-" }}</td>
-              <td>{{ competitor.total_ads_seen }}</td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <div class="agency-empty">Bu müşteriye henüz rakip eklenmedi.</div>
-        {% endif %}
-      </aside>
     </div>
   </div>
 </div>

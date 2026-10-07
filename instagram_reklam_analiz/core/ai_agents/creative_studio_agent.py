@@ -11,7 +11,7 @@ from django.conf import settings
 from openai import OpenAI
 
 from core.services.openai_usage import record_openai_token_usage
-from core.services.ai_agent_ecosystem import SIXTEEN_AGENT_NAMES, run_sixteen_agent_orchestration
+from core.services.ai_agent_ecosystem import AGENT_NAMES, run_agent_orchestration
 from core.services.cache_service import CacheService
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ class GeneratedVariant:
     ai_score: float
     predicted_engagement: float
     predicted_ctr: float
-    competitive_advantage: str
+    value_proposition: str
     target_emotion: str
 
 
@@ -72,9 +72,9 @@ class CreativeStudioAgent:
             ContentTone.EDUCATIONAL: "Bilgilendirici ve deger katan bir dil kullan.",
         }
 
-    def generate_from_competitor_ad(
+    def generate_from_own_ad(
         self,
-        competitor_ad,
+        reference_ad,
         num_variants: int = 3,
         tone: ContentTone = ContentTone.PROFESSIONAL,
         target_audience: Optional[str] = None,
@@ -82,16 +82,16 @@ class CreativeStudioAgent:
         keywords: Optional[List[str]] = None,
         language: str = "tr",
     ) -> List[GeneratedVariant]:
-        competitor_insights = self._analyze_competitor_ad(competitor_ad)
+        reference_insights = self._analyze_own_ad(reference_ad)
         ecosystem = self._run_creative_ecosystem(
-            competitor_ad=competitor_ad, competitor_insights=competitor_insights,
+            reference_ad=reference_ad, reference_insights=reference_insights,
             target_audience=target_audience, product_description=product_description,
             keywords=keywords, tone=tone, language=language,
         )
         return [
             self._generate_single_variant(
-                competitor_ad=competitor_ad,
-                competitor_insights=competitor_insights,
+                reference_ad=reference_ad,
+                reference_insights=reference_insights,
                 variant_number=i,
                 tone=tone,
                 target_audience=target_audience,
@@ -119,8 +119,8 @@ class CreativeStudioAgent:
         )
         return [
             self._generate_single_variant(
-                competitor_ad=None,
-                competitor_insights=None,
+                reference_ad=None,
+                reference_insights=None,
                 variant_number=i,
                 tone=tone,
                 target_audience=target_audience,
@@ -134,15 +134,15 @@ class CreativeStudioAgent:
         ]
 
     def _run_creative_ecosystem(
-        self, competitor_ad=None, competitor_insights=None, target_audience=None,
+        self, reference_ad=None, reference_insights=None, target_audience=None,
         product_description=None, keywords=None, tone=ContentTone.PROFESSIONAL,
         language="tr",
     ) -> Dict:
         self.last_ecosystem_cache_hit = False
         source = {
-            "competitor_title": getattr(competitor_ad, "title", "") if competitor_ad else "",
-            "competitor_description": getattr(competitor_ad, "description", "") if competitor_ad else "",
-            "competitor_insights": competitor_insights or {},
+            "reference_title": getattr(reference_ad, "title", "") if reference_ad else "",
+            "reference_description": getattr(reference_ad, "description", "") if reference_ad else "",
+            "reference_insights": reference_insights or {},
             "product_description": product_description or "",
             "master_prompt_rule": (
                 "product_description AI görsel analizinden gelen ana prompttur ve bağlayıcıdır. Ürün kategorisini, görünen özellikleri, "
@@ -161,12 +161,12 @@ class CreativeStudioAgent:
         demo_cache_disabled = getattr(self.user, "username", "") == "demo"
         if not demo_cache_disabled:
             cached = CacheService.get("creative_studio_ecosystem", cache_owner, cache_digest)
-            if isinstance(cached, dict) and len(cached.get("agents") or []) == len(SIXTEEN_AGENT_NAMES):
+            if isinstance(cached, dict) and len(cached.get("agents") or []) == len(AGENT_NAMES):
                 self.last_ecosystem = cached
                 self.last_ecosystem_cache_hit = True
                 return cached
 
-        data = run_sixteen_agent_orchestration(
+        data = run_agent_orchestration(
             client=self.client,
             model=self.model,
             task="Reklam için özgün metin ve görsel alternatif stratejisi oluştur.",
@@ -179,8 +179,8 @@ class CreativeStudioAgent:
             max_tokens_per_agent=320,
         )
         agents = data.get("agents") or []
-        if len(agents) != len(SIXTEEN_AGENT_NAMES):
-            raise RuntimeError(f"16 ajan analizi eksik döndü: {len(agents)}/16")
+        if len(agents) != len(AGENT_NAMES):
+            raise RuntimeError(f"Ajan analizi eksik döndü: {len(agents)}/{len(AGENT_NAMES)}")
         self.last_ecosystem = data
         if not demo_cache_disabled:
             CacheService.set(
@@ -552,11 +552,11 @@ class CreativeStudioAgent:
         except json.JSONDecodeError as exc:
             raise RuntimeError("AI çıktısı tamamlanmadan kesildi veya geçerli JSON üretilemedi.") from exc
 
-    def _analyze_competitor_ad(self, ad) -> Dict:
+    def _analyze_own_ad(self, ad) -> Dict:
         title = getattr(ad, "title", None) or getattr(ad, "headline", None) or getattr(ad, "name", "")
         description = getattr(ad, "description", None) or getattr(ad, "primary_text", None) or ""
         prompt = {
-            "task": "Rakip reklamini analiz et, kopyalama yapma.",
+            "task": "Kullanıcının kendi reklamını analiz et; mesajı, hedef kitleyi ve iyileştirme fırsatlarını değerlendir.",
             "title": title,
             "description": description,
             "schema": {
@@ -573,7 +573,7 @@ class CreativeStudioAgent:
         response = create_chat_completion(
             client=self.client, tariff_key="creative-studio-content",
             user=self.user, organization=self.organization,
-            reference="creative_studio.competitor_analysis",
+            reference="creative_studio.own_ad_analysis",
             model=self.model,
             messages=[
                 {"role": "system", "content": "Sen kidemli reklam kreatif analiz uzmanisin. Sadece JSON dondur."},
@@ -586,8 +586,8 @@ class CreativeStudioAgent:
 
     def _generate_single_variant(
         self,
-        competitor_ad=None,
-        competitor_insights: Optional[Dict] = None,
+        reference_ad=None,
+        reference_insights: Optional[Dict] = None,
         variant_number: int = 1,
         tone: ContentTone = ContentTone.PROFESSIONAL,
         target_audience: Optional[str] = None,
@@ -597,9 +597,9 @@ class CreativeStudioAgent:
         language: str = "tr",
         ecosystem_context: Optional[Dict] = None,
     ) -> GeneratedVariant:
-        competitor_title = ""
-        if competitor_ad:
-            competitor_title = getattr(competitor_ad, "title", None) or getattr(competitor_ad, "headline", None) or getattr(competitor_ad, "name", "")
+        reference_title = ""
+        if reference_ad:
+            reference_title = getattr(reference_ad, "title", None) or getattr(reference_ad, "headline", None) or getattr(reference_ad, "name", "")
         payload = {
             "language": "Turkce" if language == "tr" else "English",
             "tone": self.tone_directives.get(tone, self.tone_directives[ContentTone.PROFESSIONAL]),
@@ -613,12 +613,12 @@ class CreativeStudioAgent:
                 "sahne, kompozisyon, ışık ve iletişim yaklaşımı farklılaşmalı. Ana prompt insan, manken veya mekân istemiyorsa bunları ekleme."
             ),
             "keywords": keywords or [],
-            "competitor_context": {
-                "ad": competitor_title,
-                "insights": competitor_insights or {},
-                "instruction": "Rakip reklamdan fikir al ama kopyalama. Daha ozgun ve daha ikna edici aci uret.",
+            "reference_context": {
+                "ad": reference_title,
+                "insights": reference_insights or {},
+                "instruction": "Kullanıcının kendi reklamını referans al. Markayı ve ürün bilgilerini koruyarak yeni, özgün varyasyonlar üret.",
             },
-            "sixteen_agent_ecosystem": (
+            "agent_ecosystem": (
                 (ecosystem_context or {}).get("strategy", {})
                 if isinstance(ecosystem_context, dict)
                 else {}
@@ -643,7 +643,7 @@ class CreativeStudioAgent:
                 "ai_score": 0,
                 "predicted_engagement": 0,
                 "predicted_ctr": 0,
-                "competitive_advantage": "string",
+                "value_proposition": "string",
                 "target_emotion": "string",
             },
         }
@@ -710,6 +710,6 @@ class CreativeStudioAgent:
             ai_score=float(data.get("ai_score", 0) or 0),
             predicted_engagement=float(data.get("predicted_engagement", 0) or 0),
             predicted_ctr=float(data.get("predicted_ctr", 0) or 0),
-            competitive_advantage=data.get("competitive_advantage", ""),
+            value_proposition=data.get("value_proposition", ""),
             target_emotion=data.get("target_emotion", ""),
         )

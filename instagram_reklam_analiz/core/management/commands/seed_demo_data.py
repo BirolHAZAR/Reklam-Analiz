@@ -134,7 +134,6 @@ def handle(self, *args, **options):
                 "role": OrganizationMember.ROLE_OWNER,
                 "can_manage_clients": True,
                 "can_manage_accounts": True,
-                "can_manage_competitors": True,
                 "can_view_reports": True,
                 "can_manage_members": True,
                 "can_manage_billing": True,
@@ -384,7 +383,6 @@ def handle(self, *args, **options):
 
     self.stdout.write(
         "Ek moduller: "
-        f"rakip={supplemental_summary['competitors']}, "
         f"organik={supplemental_summary['social_posts']}, "
         f"influencer={supplemental_summary['influencers']}, "
         f"octo={supplemental_summary['octo_tasks']}, "

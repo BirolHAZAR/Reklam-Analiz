@@ -219,6 +219,8 @@ def generate_content_api(request):
             }, status=400)
         keywords = json.loads(data.get("keywords", "[]")) if isinstance(data.get("keywords", []), str) else data.get("keywords", [])
         source_type = data.get("source_type", "scratch")
+        if source_type not in {"scratch", "my_ad", "own_ad", "trend"}:
+            return JsonResponse({"success": False, "message": "Geçersiz içerik kaynağı."}, status=400)
         tone = _tone(data.get("tone"))
         target_audience = str(data.get("target_audience") or "").strip() or (
             "Ürün/hizmet açıklaması ve referans görsellerinden en uygun hedef kitleyi otomatik belirle; "
@@ -261,13 +263,7 @@ def generate_content_api(request):
             ), status=402)
 
         source_ad = None
-        if source_type in ["competitor", "competitor_ad"]:
-            competitor_ad_id = data.get("competitor_ad_id") or data.get("source_ad_id")
-            if not competitor_ad_id:
-                return JsonResponse({"success": False, "message": "Rakip reklam ID'si gerekli."}, status=400)
-            source_ad = get_object_or_404(Ad, id=competitor_ad_id, user=request.user, source_type="COMPETITOR")
-            source_type = "competitor_ad"
-        elif source_type in ["my_ad", "own_ad"]:
+        if source_type in ["my_ad", "own_ad"]:
             source_ad_id = data.get("source_ad_id")
             if source_ad_id:
                 source_ad = get_object_or_404(Ad, id=source_ad_id, user=request.user, source_type="OWN")
@@ -287,8 +283,8 @@ def generate_content_api(request):
 
         agent = CreativeStudioAgent(user=request.user, organization=organization)
         if source_ad:
-            variants = agent.generate_from_competitor_ad(
-                competitor_ad=source_ad,
+            variants = agent.generate_from_own_ad(
+                reference_ad=source_ad,
                 num_variants=num_variants,
                 tone=tone,
                 target_audience=target_audience,
@@ -340,7 +336,7 @@ def generate_content_api(request):
                 "ai_score": variant.ai_score,
                 "predicted_engagement": variant.predicted_engagement,
                 "predicted_ctr": variant.predicted_ctr,
-                "competitive_advantage": variant.competitive_advantage,
+                "value_proposition": variant.value_proposition,
                 "target_emotion": variant.target_emotion,
                 "quality_review_score": (agent.last_quality_review or {}).get("score", 0),
                 "quality_review_summary": (agent.last_quality_review or {}).get("summary", ""),
@@ -443,7 +439,7 @@ def generate_content_api(request):
             "ecosystem": agent.last_ecosystem,
             "ecosystem_cached": bool(getattr(agent, "last_ecosystem_cache_hit", False)),
             "agent_count": len((agent.last_ecosystem or {}).get("agents") or []),
-            "generation_mode": "16-agent-orchestration",
+            "generation_mode": "agent-orchestration",
             "partial_success": media_partial,
             "media_notice": "Metin ve strateji hazır. Bazı medya dosyaları daha sonra yeniden üretilebilir." if media_partial else "",
         })
@@ -690,77 +686,3 @@ def update_variant_text_api(request, project_id, variant_number):
     project.generated_variants = variants
     project.save(update_fields=["generated_variants", "updated_at"])
     return JsonResponse({"success": True, "variant": variant, "message": "Değişiklikler kaydedildi."})
-
-
-@login_required
-@capture_errors
-def get_competitors_api(request, platform_code=None):
-    """Rakip listesi artık Ad(source_type=COMPETITOR) üzerinden gruplanır."""
-    ads = Ad.objects.filter(user=request.user, source_type="COMPETITOR", is_active=True).select_related(
-        "competitor", "competitor__platform", "platform_account", "platform_account__platform", "creative"
-    )
-    if platform_code:
-        ads = ads.filter(platform_account__platform__code=platform_code)
-    grouped = {}
-    for ad in ads:
-        if ad.competitor_id:
-            key = f"competitor-{ad.competitor_id}"
-            competitor_name = ad.competitor.name
-            identifier = ad.competitor.platform_identifier or ""
-        else:
-            key = f"account-{ad.platform_account_id}" if ad.platform_account_id else f"ad-{ad.id}"
-            competitor_name = ad.platform_account.account_name if ad.platform_account else (ad.name or "Rakip")
-            identifier = ad.platform_account.account_name if ad.platform_account else ""
-        item = grouped.setdefault(key, {
-            "id": key,
-            "name": competitor_name,
-            "instagram_username": identifier,
-            "full_name": competitor_name,
-            "profile_picture": "https://ui-avatars.com/api/?name=Rakip&background=6366f1&color=fff&size=48",
-            "is_verified": False,
-            "ad_count": 0,
-        })
-        item["ad_count"] += 1
-    return JsonResponse({"success": True, "competitors": list(grouped.values()), "count": len(grouped)})
-
-
-@login_required
-@capture_errors
-def get_competitor_ads_api(request, competitor_id):
-    ads = Ad.objects.filter(user=request.user, source_type="COMPETITOR", is_active=True).select_related("creative", "platform_account")
-    competitor_key = str(competitor_id)
-    if competitor_key.startswith("competitor-") and competitor_key.removeprefix("competitor-").isdigit():
-        ads = ads.filter(competitor_id=int(competitor_key.removeprefix("competitor-")))
-    elif competitor_key.startswith("account-") and competitor_key.removeprefix("account-").isdigit():
-        ads = ads.filter(platform_account_id=int(competitor_key.removeprefix("account-")))
-    elif competitor_key.startswith("ad-") and competitor_key.removeprefix("ad-").isdigit():
-        ads = ads.filter(id=int(competitor_key.removeprefix("ad-")))
-    elif competitor_key.isdigit():
-        ads = ads.filter(Q(platform_account_id=competitor_id) | Q(id=competitor_id))
-    else:
-        ads = ads.none()
-    ads_data = []
-    for ad in ads.order_by("-created_at")[:100]:
-        last_metric = ad.metric_history.order_by("-date").first()
-        ads_data.append({
-            "id": ad.id,
-            "db_id": ad.id,
-            "instagram_ad_id": ad.platform_ad_id or ad.ad_library_id or "",
-            "name": ad.name or ad.headline or f"Reklam #{ad.id}",
-            "title": ad.headline or ad.name or "",
-            "description": ad.description or ad.primary_text or "",
-            "media_type": ad.ad_format or (ad.creative.creative_type if ad.creative else "UNKNOWN"),
-            "media_url": ad.preview_video_url or ad.preview_image_url or "",
-            "thumbnail_url": ad.preview_image_url or "",
-            "status": ad.status,
-            "impressions": last_metric.impressions if last_metric else 0,
-            "clicks": last_metric.clicks if last_metric else 0,
-            "ctr": float(last_metric.ctr) if last_metric else 0,
-            "reach": last_metric.reach if last_metric else 0,
-            "frequency": float(last_metric.frequency) if last_metric else 0,
-            "spend": float(last_metric.spend) if last_metric else 0,
-            "engagement": last_metric.engagement if last_metric else 0,
-            "conversions": float(last_metric.conversions) if last_metric else 0,
-            "created_at": ad.created_at.strftime("%d.%m.%Y %H:%M") if ad.created_at else "",
-        })
-    return JsonResponse({"success": True, "ads": ads_data, "count": len(ads_data)})

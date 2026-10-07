@@ -7,11 +7,11 @@ from core.services.ai_gateway import AIOperationBudget, create_chat_completion
 from core.services.openai_usage import record_openai_token_usage
 
 
-SIXTEEN_AGENT_NAMES = [
+AGENT_NAMES = [
     "Performans Ajanı", "Bütçe Ajanı", "Kreatif Ajanı", "Reklam Metni Ajanı",
     "Görsel/Video Ajanı", "Hedef Kitle Ajanı", "Dönüşüm Ajanı", "Funnel Ajanı",
     "Maliyet Ajanı", "ROAS Ajanı", "Anomali Ajanı", "Risk Ajanı",
-    "Tahmin Ajanı", "Platform Ajanı", "Rekabet Ajanı", "Görev Ajanı",
+    "Tahmin Ajanı", "Platform Ajanı", "Görev Ajanı",
 ]
 
 AGENT_FOCUS = {
@@ -29,17 +29,16 @@ AGENT_FOCUS = {
     "Risk Ajanı": "butce, marka, veri ve karar riskleri",
     "Tahmin Ajanı": "kisa vadeli olasi etki ve olcum plani",
     "Platform Ajanı": "platforma ozel format, teslimat ve optimizasyon sinyalleri",
-    "Rekabet Ajanı": "rakip baskisi, farklilasma ve pazar boslugu",
     "Görev Ajanı": "bulgulari oncelikli, olculebilir aksiyonlara donusturme",
 }
 
 
-def run_sixteen_agent_orchestration(
+def run_agent_orchestration(
     *, client, model, task, context, modalities=None, reference="ai_ecosystem",
     user=None, organization=None, max_workers=4, max_tokens_per_agent=350,
     tariff_key, usage_kind="customer_usage",
 ):
-    """Run four independent calls, each returning four specialist agent results."""
+    """Run independent groups of up to four specialist agents."""
     if usage_kind == "customer_usage" and user is None:
         usage_kind = "system_job"
     elif usage_kind == "customer_usage" and (
@@ -54,7 +53,7 @@ def run_sixteen_agent_orchestration(
     )
 
     budget = AIOperationBudget.from_tariff(tariff_key)
-    groups = [SIXTEEN_AGENT_NAMES[index:index + 4] for index in range(0, 16, 4)]
+    groups = [AGENT_NAMES[index:index + 4] for index in range(0, len(AGENT_NAMES), 4)]
 
     def call_group(group_index, names):
         prompt = {
@@ -88,7 +87,7 @@ def run_sixteen_agent_orchestration(
             record_usage=False,
             model=model,
             messages=[
-                {"role": "system", "content": "Dort bagimsiz uzman ajani yonet. Her ajanin sonucunu ayri uret ve sadece gecerli JSON dondur."},
+                {"role": "system", "content": "Verilen bagimsiz uzman ajanlari yonet. Her ajanin sonucunu ayri uret ve sadece gecerli JSON dondur."},
                 {"role": "user", "content": content},
             ],
             temperature=0.2,
@@ -116,7 +115,7 @@ def run_sixteen_agent_orchestration(
                 row = by_name.get(name) or (rows[offset] if offset < len(rows) else {})
                 finding = str(row.get("finding") or row.get("reason") or row.get("status") or "").strip()
                 recommendation = str(row.get("recommendation") or row.get("action") or "").strip()
-                # Model bazen 16 uzmani eksiksiz dondurup iki metin alanindan
+                # Model bazen uzmanlari eksiksiz dondurup iki metin alanindan
                 # yalnizca birini dolduruyor. Ayni islem icinde dolu metni yedek
                 # kullanmak ek retry/OpenAI cagrisi ve token maliyeti olusturmaz.
                 if not finding and recommendation:
@@ -133,16 +132,16 @@ def run_sixteen_agent_orchestration(
 
     completed.sort(key=lambda row: row[0])
     agents = [row[1] for row in completed]
-    # Bir uzmanın kanıtlı ek bulgu üretememesi tüm 16 ajanlık çalışmayı ve
+    # Bir uzmanın kanıtlı ek bulgu üretememesi tüm ajan çalışmasını ve
     # kullanıcının ödediği çağrıyı geçersiz kılmamalı; UI boş maddeleri göstermez.
-    if len(agents) != 16:
-        raise RuntimeError(f"Gercek AI ekosistemi eksik ajan sonucu dondurdu: {len(agents)}/16")
+    if len(agents) != len(AGENT_NAMES):
+        raise RuntimeError(f"Gercek AI ekosistemi eksik ajan sonucu dondurdu: {len(agents)}/{len(AGENT_NAMES)}")
     recommendations = [row["recommendation"] for row in agents]
     risks = [row["risk"] for row in agents if row["risk"]]
     return {
         "agents": agents,
         "strategy": {
-            "positioning": agents[14]["recommendation"],
+            "positioning": next(row["recommendation"] for row in agents if row["name"] == "Platform Ajanı"),
             "audience_insight": agents[5]["finding"],
             "message_pillars": recommendations[2:5],
             "visual_direction": agents[4]["recommendation"],
@@ -172,7 +171,7 @@ def _agent(name, status, reason, confidence=0.7, category="analysis"):
 
 
 def build_campaign_agent_ecosystem(metrics, detail=None, rule_events=None, recommendations=None):
-    """Return a compact 16-agent signal set for campaign AI reports.
+    """Return a compact agent signal set for campaign AI reports.
 
     This is a deterministic orchestration layer. Professional LLM prompts can be
     wired behind the same agent names after user approval, without changing the
@@ -213,6 +212,5 @@ def build_campaign_agent_ecosystem(metrics, detail=None, rule_events=None, recom
         _agent("Risk Ajanı", "Yüksek risk" if spend > 0 and conversions == 0 else "Kontrollü", f"Harcama/dönüşüm dengesi kontrol edildi.", 0.77),
         _agent("Tahmin Ajanı", "Ölçüm bekle" if conversions == 0 else "Etki ölçülebilir", "Sonraki 3-7 gün için metrik takibi gerekli.", 0.64),
         _agent("Platform Ajanı", "Platform benchmark", f"Platform: {detail.get('platform') or '-'}, hesap: {detail.get('account_name') or '-'}", 0.66),
-        _agent("Rekabet Ajanı", "Benchmark bekliyor", "Rakip sinyali varsa öneri önceliğine eklenir.", 0.58),
         _agent("Görev Ajanı", "Aksiyon hazır" if rec_count else "Analiz hazır", f"{rec_count} öneri/görev maddesi üretildi.", 0.75, "recommendation"),
     ]

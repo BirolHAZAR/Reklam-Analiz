@@ -6,8 +6,7 @@ from core.services.cache_service import CacheService
 
 USER_NAMESPACES = (
     "dashboard", "control_tower", "reports_center", "health_center",
-    "ads_panel_accounts", "campaign_panel_accounts", "competitors",
-    "competitor_movements", "competitor_movements_page", "competitor_intelligence",
+    "ads_panel_accounts", "campaign_panel_accounts",
     "performance_center", "ai_dashboard", "organic_content", "daily_budget_report", "report_history",
     "ad_comparison",
 )

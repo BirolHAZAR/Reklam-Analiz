@@ -6,7 +6,7 @@ from django.utils import timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from core.models import Ad, AdGroup, AdMetricHistory, AgencyClient, Campaign, Competitor, Creative, FeatureUsageLedger, OctoTaskInstance, OctoTaskRule, Organization, OrganizationMember, Platform, PlatformAccount, ReklamAIAnaliz
+from core.models import Ad, AdGroup, AdMetricHistory, AgencyClient, Campaign, Creative, FeatureUsageLedger, OctoTaskInstance, OctoTaskRule, Organization, OrganizationMember, Platform, PlatformAccount, ReklamAIAnaliz
 from core.services.agency_branding import get_report_branding
 from core.services.agency_scope import get_agency_scope, platform_accounts_for_request, scope_queryset
 
@@ -335,58 +335,6 @@ class AgencyScopeTests(TestCase):
         personal_response = self.client.get(reverse("reports_center"))
         self.assertEqual(personal_response.status_code, 200)
         self.assertNotContains(personal_response, 'class="agency-report-filter"')
-
-    def test_competitor_api_and_detail_endpoints_are_client_isolated(self):
-        competitor_a = Competitor.objects.create(
-            user=self.owner,
-            platform=self.platform,
-            platform_account=self.account_a,
-            agency_client=self.client_a,
-            platform_identifier="firma-a-rakip",
-            name="Firma A Rakibi",
-        )
-        competitor_b = Competitor.objects.create(
-            user=self.owner,
-            platform=self.platform,
-            platform_account=self.account_b,
-            agency_client=self.client_b,
-            platform_identifier="firma-b-rakip",
-            name="Firma B Rakibi",
-        )
-        competitor_ad_b = Ad.objects.create(
-            user=self.owner,
-            source_type="COMPETITOR",
-            platform_account=self.account_b,
-            competitor=competitor_b,
-            platform_ad_id="competitor-b-ad",
-            name="Firma B Rakip Reklamı",
-        )
-        own_ad_b = Ad.objects.create(
-            user=self.owner,
-            source_type="OWN",
-            platform_account=self.account_b,
-            platform_ad_id="own-b-ad",
-            name="Firma B Reklamı",
-        )
-
-        self.client.force_login(self.owner)
-        list_response = self.client.get(
-            reverse("api_rakipler"),
-            {"agency_client": str(self.client_a.id)},
-        )
-
-        self.assertEqual(list_response.status_code, 200)
-        self.assertEqual([row["id"] for row in list_response.json()["rakipler"]], [competitor_a.id])
-        self.assertEqual(
-            self.client.get(reverse("api_reklam_detay", args=[own_ad_b.id])).status_code,
-            404,
-        )
-        self.assertEqual(
-            self.client.get(
-                reverse("competitor_intelligence_ad_detail_api", args=[competitor_ad_b.id])
-            ).status_code,
-            404,
-        )
 
     def test_selected_client_campaigns_never_include_sibling_client(self):
         campaign_a = Campaign.objects.create(

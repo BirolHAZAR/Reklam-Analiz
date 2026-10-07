@@ -32,13 +32,11 @@ urlpatterns = [
     # Eski sayfa URL isimleri korunuyor.
     # Bu sayfaların içindeki veritabanı bağlantıları yeni Ad / AdMetricHistory mimarisine çevrilecek.
     path('', include('core.urls_ads')),
-    path('', include('core.urls_competitors')),
     path('', include('core.urls_reports')),
     path('', include('core.urls_ai')),
     path('', include('core.urls_creative')),
     path('', include('core.urls_budget')),
     path('', include('core.urls_anomaly')),
-    path('', include('core.urls_competitor_intelligence')),
     path('', include('core.urls_social_content')),
     path('', include('core.urls_marketplace')),
     path('', include('core.urls_influencers')),

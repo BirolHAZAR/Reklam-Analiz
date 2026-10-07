@@ -432,10 +432,6 @@ body.ra-octo-lock{
           <small>30 Gün Trend</small>
           <strong id="octoTrend30d">-</strong>
         </div>
-        <div class="ra-octo-v2-card ra-has-tip" data-tip="Rakip reklam verisi bağlandığında kampanyanın rakiplere göre konumunu gösterir. Rakip verisi yoksa bekleme durumunda kalır.">
-          <small>Rakip Konumu</small>
-          <strong id="octoCompetitorPosition">-</strong>
-        </div>
       </div>
 
       <div class="ra-octo-v2-grid effects" id="octoV2EffectGrid">
@@ -654,7 +650,6 @@ async function runOctoRequest(url, force=false){
     setOctoText('octoRiskScore', (data.risk_score !== undefined && data.risk_score !== null) ? formatOctoValue(data.risk_score, ' / 100') + (data.risk_label ? ' · ' + data.risk_label : '') : '-');
     setOctoText('octoTrend7d', data.trend_7d || '-');
     setOctoText('octoTrend30d', data.trend_30d || '-');
-    setOctoText('octoCompetitorPosition', data.competitor_position || '-');
 
     setOctoText('octoRoasGain', data.estimated_roas_gain ? '+' + formatOctoValue(data.estimated_roas_gain, '%') : '-');
     setOctoText('octoCtrGain', data.estimated_ctr_gain ? '+' + formatOctoValue(data.estimated_ctr_gain, '%') : '-');
@@ -685,7 +680,6 @@ document.addEventListener('click', function(e){
   setOctoText('octoRiskScore','-');
   setOctoText('octoTrend7d','-');
   setOctoText('octoTrend30d','-');
-  setOctoText('octoCompetitorPosition','-');
   setOctoText('octoRoasGain','-');
   setOctoText('octoCtrGain','-');
   setOctoText('octoDifficulty','-');

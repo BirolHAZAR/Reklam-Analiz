@@ -536,7 +536,7 @@ def pricing_view(request):
     referral_code = (request.GET.get("ref") or "").strip().upper()
     if referral_code:
         request.session["checkout_referral_code"] = referral_code
-    version = f"{CacheService.get_version('pricing_public')}:pricing-layout-v10-pos-terms"
+    version = f"{CacheService.get_version('pricing_public')}:pricing-layout-v11-own-performance"
     cached_context = CacheService.get("pricing_public", "plans", version=version)
     if cached_context is not None:
         return render(request, 'pricing/pricing.html', cached_context)

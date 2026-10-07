@@ -213,13 +213,13 @@
             🔍 Anomali & Fırsat Dedektörü
         </h1>
         <p class="lead mb-0 position-relative opacity-90">
-            Rakiplerinizdeki ani değişimleri tespit edin, fırsat pencerelerini kaçırmayın!
+            Reklamlarınızdaki ani değişimleri tespit edin, fırsat pencerelerini kaçırmayın!
         </p>
     </div>
 
     <!-- İstatistikler -->
     <div class="row g-4 mb-4">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="stat-card text-center">
                 <div class="stat-icon bg-danger bg-opacity-10 text-danger mx-auto">
                     🚨
@@ -228,7 +228,7 @@
                 <div class="stat-label">Toplam Uyarı</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="stat-card text-center">
                 <div class="stat-icon bg-warning bg-opacity-10 text-warning mx-auto">
                     ⚡
@@ -237,22 +237,13 @@
                 <div class="stat-label">Okunmamış Uyarı</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="stat-card text-center">
                 <div class="stat-icon bg-success bg-opacity-10 text-success mx-auto">
                     🌟
                 </div>
                 <div class="stat-value text-success">{{ total_opportunities }}</div>
                 <div class="stat-label">Aktif Fırsat</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card text-center">
-                <div class="stat-icon bg-info bg-opacity-10 text-info mx-auto">
-                    📊
-                </div>
-                <div class="stat-value text-info">{{ competitors_count }}</div>
-                <div class="stat-label">Taranan Rakip</div>
             </div>
         </div>
     </div>
@@ -276,7 +267,7 @@
     <!-- Loading -->
     <div id="scanLoading" class="text-center py-5" style="display:none;">
         <div class="spinner-border text-primary scanning" style="width: 4rem; height: 4rem;" role="status"></div>
-        <p class="mt-3 fw-semibold text-muted">🔍 Rakipler taranıyor, anomaliler tespit ediliyor...</p>
+        <p class="mt-3 fw-semibold text-muted">🔍 Reklamlar taranıyor, anomaliler tespit ediliyor...</p>
         <small class="text-muted">Bu işlem 5-15 saniye sürebilir</small>
     </div>
 
@@ -330,11 +321,6 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <small class="text-muted">
                                     <i class="far fa-clock"></i> {{ alert.detected_at|timesince }} önce
-                                    {% if alert.competitor %}
-                                    · <a href="{% url 'rakip_analiz' %}" class="text-decoration-none">
-                                        @{{ alert.competitor.instagram_username }}
-                                    </a>
-                                    {% endif %}
                                 </small>
                                 <button class="btn btn-sm btn-outline-danger rounded-pill" 
                                         onclick="dismissAlert({{ alert.id }})">
@@ -349,7 +335,7 @@
                 <div class="empty-state">
                     <div class="empty-icon">🎉</div>
                     <h5 class="fw-bold text-muted">Harika! Anomali bulunamadı</h5>
-                    <p class="text-muted">Rakipleriniz stabil görünüyor. Her şey yolunda!</p>
+                    <p class="text-muted">Reklamlarınız stabil görünüyor. Her şey yolunda!</p>
                 </div>
             {% endif %}
         </div>

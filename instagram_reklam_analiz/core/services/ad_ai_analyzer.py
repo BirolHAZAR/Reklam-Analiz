@@ -43,8 +43,6 @@ class AdAIAnalyzerService:
             # 3. Hashtag Recommender
             self._run_hashtag_recommender()
             
-            # 4. Competitor Analyzer
-            self._run_competitor_analyzer()
             
             # 5. Performance Analyzer
             self._run_performance_analyzer()
@@ -175,24 +173,6 @@ class AdAIAnalyzerService:
             logger.error(f"Hashtag Recommender hatası: {e}")
             self.results['hashtag'] = {'error': str(e)}
     
-    def _run_competitor_analyzer(self):
-        """4. Rakip Analizi"""
-        try:
-            self._update_progress('Rakip Analizi')
-            
-            from core.ai_agents.competitor_analyzer import CompetitorAnalyzer
-            analyzer = CompetitorAnalyzer()
-            result = analyzer.analyze_ad_vs_competitors(self.ad)
-            
-            self.analysis.competitor_score = result.get('score', 0)
-            self.analysis.competitive_advantage = result.get('advantage', '')
-            self.analysis.competitor_insights = result.get('insights', [])
-            
-            self.results['competitor'] = result
-            
-        except Exception as e:
-            logger.error(f"Competitor Analyzer hatası: {e}")
-            self.results['competitor'] = {'error': str(e)}
     
     def _run_performance_analyzer(self):
         """5. Performans Analizi"""
@@ -356,7 +336,6 @@ class AdAIAnalyzerService:
             self.analysis.sentiment_score * 100,  # -1..1 -> 0..100
             self.analysis.content_quality_score,
             self.analysis.hashtag_effectiveness_score,
-            self.analysis.competitor_score,
             self.analysis.performance_score,
             self.analysis.budget_efficiency_score,
             self.analysis.lead_potential_score,

@@ -427,7 +427,7 @@ def build_campaign_market_context(campaign, top_ads):
     if not query:
         return {"enabled": False, "items": [], "note": "Arama icin kampanya veya reklam metni bulunamadi."}
     try:
-        items = search_market(f"{query} rakip reklam fiyat pazar trendi", max_results=6)
+        items = search_market(f"{query} fiyat pazar trendi", max_results=6)
     except MarketResearchProviderError as exc:
         return {"enabled": False, "items": [], "note": str(exc)}
     return {

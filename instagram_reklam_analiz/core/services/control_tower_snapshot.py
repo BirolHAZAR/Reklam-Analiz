@@ -71,8 +71,6 @@ def build_decision_center_from_context(context):
     campaign_health = context.get("campaign_health", []) or []
     critical_alerts = context.get("critical_alerts", []) or []
     ai_task_stats = context.get("ai_task_stats", {}) or {}
-    competitor_rows = context.get("competitor_rows", []) or []
-    competitor_intelligence = context.get("competitor_intelligence", {}) or {}
 
     total_spend = _num(summary.get("total_spend"))
     total_revenue = _num(summary.get("total_revenue"))
@@ -84,7 +82,6 @@ def build_decision_center_from_context(context):
 
     potential_loss = sum(_num(r.get("spend")) for r in risky_campaigns[:5]) * 0.18
     revenue_opportunity = sum(_num(r.get("revenue")) for r in scalable_campaigns[:5]) * 0.12
-    competitor_pressure = _num(competitor_intelligence.get("pressure_score")) or sum(int(_num(r.get("new_ads"))) for r in competitor_rows[:5])
 
     items = []
     if risky_campaigns:
@@ -145,7 +142,7 @@ def build_decision_center_from_context(context):
     return {
         "title_tr": "OCTO KARAR MERKEZİ",
         "title_en": "OCTO DECISION CENTER",
-        "tooltip_tr": "Veritabanına kaydedilen kampanya, kreatif, rakip, uyarı ve Octo görev sinyallerinden günlük karar özeti üretir.",
+        "tooltip_tr": "Veritabanına kaydedilen kampanya, kreatif, uyarı ve Octo görev sinyallerinden günlük karar özeti üretir.",
         "updated_at": timezone.localtime().strftime("%d.%m.%Y %H:%M"),
         "metrics": [
             {
@@ -188,21 +185,9 @@ def build_decision_center_from_context(context):
                 "direction": _direction(len(risky_campaigns), False),
                 "tooltip_tr": "Acil izlenmesi gereken kampanya sayısı.",
             },
-            {
-                "key": "competitor_pressure",
-                "label_tr": "Rakip Baskısı",
-                "label_en": "Competitor Pressure",
-                "value": int(_num(competitor_pressure)),
-                "prefix": "",
-                "suffix": "/100",
-                "direction": _direction(-_num(competitor_pressure), True),
-                "tooltip_tr": "Rakip reklam yoğunluğu, momentum ve paylaşım sesi üzerinden üretilen baskı skoru.",
-            },
         ],
         "items": items[:5],
         "health_state": "good" if octo_score >= 75 else "neutral" if octo_score >= 55 else "bad",
-        "competitor_pressure": competitor_pressure,
-        "competitor_intelligence": _json_safe(competitor_intelligence),
     }
 
 
@@ -320,7 +305,6 @@ def _create_strategic_analysis(snapshot, *, card_key, title_tr, title_en, severi
         ControlTowerCardSnapshot.CARD_KPI: "octo_score",
         ControlTowerCardSnapshot.CARD_CAMPAIGN_HEALTH: "campaign_health",
         ControlTowerCardSnapshot.CARD_CREATIVE: "creative_wall",
-        ControlTowerCardSnapshot.CARD_COMPETITOR: "competitor_intelligence",
         ControlTowerCardSnapshot.CARD_PLATFORM: "platform_status",
         ControlTowerCardSnapshot.CARD_ALERT: "critical_alerts",
         ControlTowerCardSnapshot.CARD_DECISION: "decision_center",
@@ -373,7 +357,6 @@ def save_snapshot_from_context(user, period, date_from, date_to, context, agency
         (ControlTowerCardSnapshot.CARD_DECISION, "Octo Karar Merkezi", "Octo Decision Center", decision_center),
         (ControlTowerCardSnapshot.CARD_CAMPAIGN_HEALTH, "Kampanya Sağlık Merkezi", "Campaign Health Center", {"rows": context.get("campaign_health", [])}),
         (ControlTowerCardSnapshot.CARD_CREATIVE, "Creative Performans Duvarı", "Creative Performance Wall", {"rows": context.get("creative_wall", [])}),
-        (ControlTowerCardSnapshot.CARD_COMPETITOR, "Rakip İstihbarat Merkezi", "Competitor Intelligence Center", {"rows": context.get("competitor_rows", []), "intelligence": context.get("competitor_intelligence", {})}),
         (ControlTowerCardSnapshot.CARD_PLATFORM, "Platform Durum Merkezi", "Platform Status Center", {"rows": context.get("platform_status_cards", [])}),
         (ControlTowerCardSnapshot.CARD_TASK, "Octo Görev Merkezi", "Octo Task Center", {"stats": context.get("ai_task_stats", {}), "rows": context.get("ai_recommendations", [])}),
         (ControlTowerCardSnapshot.CARD_ALERT, "Kritik Uyarılar", "Critical Alerts", {"rows": context.get("critical_alerts", [])}),
@@ -408,8 +391,6 @@ def save_snapshot_from_context(user, period, date_from, date_to, context, agency
     creative_rows = context.get("creative_wall", []) or []
     platform_rows = context.get("platform_status_cards", []) or []
     alerts = context.get("critical_alerts", []) or []
-    competitor_intel = context.get("competitor_intelligence", {}) or {}
-    competitor_rows = context.get("competitor_rows", []) or []
 
     roas = _num(summary.get("avg_roas"))
     ctr = _num(summary.get("avg_ctr"))
@@ -446,7 +427,7 @@ def save_snapshot_from_context(user, period, date_from, date_to, context, agency
             f"ROAS değişimi {_pct_text(roas_delta)}, CTR değişimi {_pct_text(ctr_delta)}, CPC değişimi {_pct_text(cpc_delta)}."
         ),
         why=(
-            "Genel skorun ana belirleyicisi yalnızca tek bir KPI değil; harcama verimliliği, dönüşüm kalitesi, kreatif performans, rakip baskısı ve kritik uyarı yoğunluğu birlikte skoru şekillendiriyor. "
+            "Genel skorun ana belirleyicisi yalnızca tek bir KPI değil; harcama verimliliği, dönüşüm kalitesi, kreatif performans ve kritik uyarı yoğunluğu birlikte skoru şekillendiriyor. "
             "ROAS düşerken CPC yükseliyorsa problem çoğu zaman bütçe ölçeği değil, trafik kalitesi ve hedefleme dağılımıdır."
         ),
         forecast=(
@@ -518,48 +499,13 @@ def save_snapshot_from_context(user, period, date_from, date_to, context, agency
         ),
         action=(
             "Kazandıran kreatifleri koruyun, yorgun kreatiflere yeni varyasyon hazırlayın. "
-            "Rakip baskısı artıyorsa video ve UGC ağırlıklı hızlı test planı oluşturun."
+            "Performans düşüyorsa video ve UGC ağırlıklı hızlı test planı oluşturun."
         ),
         impact=f"Beklenen etki: kreatif yenileme ile {_money_text(creative_gain)} potansiyel gelir iyileşmesi.",
         expected_gain=creative_gain,
         expected_loss=0,
         action_type="Kreatif Yenile",
         extra={"fatigue_count": fatigue_count},
-    )
-
-    pressure = int(_num(competitor_intel.get("pressure_score"))) if competitor_intel else 0
-    top_threat = competitor_intel.get("top_threat") or _top_name(competitor_rows, "ana rakip")
-    competitor_gain = max(0, revenue * 0.05) if pressure >= 40 else max(0, revenue * 0.02)
-    competitor_loss = max(0, spend * (0.12 if pressure >= 70 else 0.06 if pressure >= 40 else 0.02))
-    _create_strategic_analysis(
-        snapshot,
-        card_key=ControlTowerCardSnapshot.CARD_COMPETITOR,
-        title_tr="Rakip İstihbarat ve Pazar Baskısı Stratejik Analizi",
-        title_en="Competitor Intelligence and Market Pressure Strategic Analysis",
-        severity="critical" if pressure >= 72 else "warning" if pressure >= 45 else "info",
-        confidence=90 if pressure >= 45 else 80,
-        what=(
-            f"Rakip baskı skoru {pressure}/100 seviyesinde. "
-            f"Öne çıkan rakip: {top_threat}. "
-            f"Octo, yeni reklam yoğunluğu, share of voice ve momentum sinyallerini birlikte değerlendirdi."
-        ),
-        why=(
-            "Rakip baskısı arttığında maliyet artışı çoğu zaman hemen ROAS'a yansımaz; önce CPM/CPC tarafında baskı başlar, sonra CTR ve dönüşüm kalitesine etki eder. "
-            "Bu nedenle rakip sinyali sadece gözlem değil, bütçe ve kreatif planlama girdisi olmalıdır."
-        ),
-        forecast=(
-            competitor_intel.get("forecast_tr") or
-            f"Bu trend devam ederse önümüzdeki 7-14 günde medya maliyetlerinde baskı oluşabilir. Tahmini korunması gereken risk {_money_text(competitor_loss)}."
-        ),
-        action=(
-            competitor_intel.get("recommendation_tr") or
-            "Rakiplerin yoğunlaştığı formatları takip edin, video/UGC testlerini hızlandırın ve remarketing bütçesini koruma altına alın."
-        ),
-        impact=f"Beklenen etki: {_money_text(competitor_gain)} fırsat, {_money_text(competitor_loss)} rekabet riski azaltımı.",
-        expected_gain=competitor_gain,
-        expected_loss=competitor_loss,
-        action_type="Rakip Hamlesi",
-        extra={"pressure_score": pressure, "top_threat": top_threat},
     )
 
     unhealthy_platforms = len([p for p in platform_rows if str(p.get("status", "")).lower() not in {"ok", "active", "connected", "good", "healthy"}])
@@ -647,7 +593,6 @@ def build_lightweight_snapshot_for_user(user, period="monthly", days=30, agency_
         "campaign_health": [],
         "critical_alerts": [],
         "ai_task_stats": {},
-        "competitor_rows": [],
         "creative_wall": [],
         "platform_status_cards": [],
         "ai_recommendations": [],

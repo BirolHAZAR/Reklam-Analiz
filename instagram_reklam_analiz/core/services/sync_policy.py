@@ -11,7 +11,6 @@ from core.services.agency_permission_matrix import get_user_entitlement_plan
 @dataclass(frozen=True)
 class SyncPolicy:
     ad_interval_minutes: int
-    competitor_interval_minutes: int
     organic_interval_minutes: int
     marketplace_interval_minutes: int
     history_days: int
@@ -26,7 +25,6 @@ class SyncPolicy:
     def interval_minutes_for(self, kind):
         return {
             "ad": self.ad_interval_minutes,
-            "competitor": self.competitor_interval_minutes,
             "organic": self.organic_interval_minutes,
             "marketplace": self.marketplace_interval_minutes,
         }.get(kind, self.ad_interval_minutes)
@@ -38,7 +36,6 @@ def policy_for_user(user):
         return None
     return SyncPolicy(
         max(1, int(plan.ad_sync_interval_minutes or 1)),
-        max(1, int(plan.competitor_sync_interval_minutes or 1)),
         max(1, int(plan.organic_sync_interval_minutes or 1)),
         max(1, int(plan.marketplace_sync_interval_minutes or 1)),
         max(1, int(plan.content_fetch_period_days or 30)),
@@ -76,7 +73,6 @@ def manual_sync_allowed(user, kind):
         return False
     field = {
         "ad": "allow_manual_ad_sync",
-        "competitor": "allow_manual_competitor_sync",
         "organic": "allow_manual_organic_sync",
         "marketplace": "allow_manual_marketplace_sync",
     }.get(kind)

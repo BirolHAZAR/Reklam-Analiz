@@ -16,7 +16,6 @@ def _metric_defaults(data):
     """
     Ortak metrik alanlarını tek yerden hazırlar.
     OWN reklamlar için performans verilerini,
-    COMPETITOR reklamlar için platformların izin verdiği gözlem verilerini destekler.
     """
     return normalize_metric_payload(data)
 
@@ -55,7 +54,6 @@ def save_ad_metrics(ad, data):
             if data.get("estimated_reach_max") not in [None, ""]
             else None
         ),
-        "is_competitor_snapshot": bool(data.get("is_competitor_snapshot", False)),
     })
 
     return AdMetricHistory.objects.update_or_create(

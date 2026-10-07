@@ -15,7 +15,7 @@ from core.models import (
     AnomalyAlert,
     Campaign,
     CampaignMetricHistory,
-    Competitor,
+
     Creative,
     Notification,
     OctoTaskInstance,
@@ -99,7 +99,7 @@ def executive_dashboard(request):
     Executive Command Center
     ------------------------
     Bu sayfa kullanıcının gerçek veritabanı kayıtlarından
-    kampanya, reklam, reklam grubu, kreatif, rakip, anomali, bildirim ve platform durumunu okur.
+    kampanya, reklam, reklam grubu, kreatif, anomali, bildirim ve platform durumunu okur.
     Kayıt yoksa metrikler 0 değerleriyle gösterilir.
     """
     user = request.user
@@ -114,11 +114,9 @@ def executive_dashboard(request):
     prev_end = today - timedelta(days=30)
 
     own_ads = scope_queryset(request, Ad.objects.filter(source_type="OWN"))
-    competitor_ads = scope_queryset(request, Ad.objects.filter(source_type="COMPETITOR"))
     campaigns = scope_queryset(request, Campaign.objects.all())
     adgroups = scope_queryset(request, AdGroup.objects.all(), account_lookup="campaign__platform_account")
     creatives = scope_queryset(request, Creative.objects.all())
-    competitors = scope_client_queryset(request, Competitor.objects.all())
 
     current_qs = AdMetricHistory.objects.filter(ad__in=own_ads, date__gte=start_30, date__lte=today)
     previous_qs = AdMetricHistory.objects.filter(ad__in=own_ads, date__gte=prev_start, date__lte=prev_end)
@@ -152,7 +150,7 @@ def executive_dashboard(request):
 
     if agency_scope.selected_client:
         critical_alerts = critical_alerts.filter(
-            rakip__platform_account__agency_client=agency_scope.selected_client
+            ad__platform_account__agency_client=agency_scope.selected_client
         )
 
     # Notification ve OpportunityWindow modellerinde musteri baglantisi yok. Ajans
@@ -225,100 +223,6 @@ def executive_dashboard(request):
             "url": f"{_safe_url('campaign_center', '/campaign-center/')}?campaign_id={campaign.id}",
         })
 
-    competitor_activity = competitor_ads.filter(created_at__date__gte=start_30).count()
-    active_competitors = competitors.filter(is_active=True).count()
-    competitor_pulse = []
-    active_competitor_rows = list(
-        competitors.filter(is_active=True)
-        .select_related("platform")
-        .order_by("name", "id")
-    )
-    unlinked_competitor_ads = competitor_ads.filter(competitor__isnull=True)
-    for index, competitor in enumerate(active_competitor_rows):
-        competitor_filters = Q(competitor=competitor)
-        if competitor.platform_identifier:
-            competitor_filters |= Q(raw_data__competitor_username=competitor.platform_identifier)
-            competitor_filters |= Q(raw_data__platform_identifier=competitor.platform_identifier)
-        competitor_filters |= Q(raw_data__legacy_competitor_id=competitor.id)
-
-        ads_qs = competitor_ads.filter(competitor_filters)
-        if not ads_qs.exists() and index == 0 and unlinked_competitor_ads.exists():
-            ads_qs = unlinked_competitor_ads
-
-        ads_qs = ads_qs.select_related(
-            "campaign",
-            "platform_account",
-            "platform_account__platform",
-        ).order_by("-updated_at", "-created_at")
-        totals = _metric_summary_for_ads(ads_qs, start_30, today)
-        spend_total = totals.get("spend") or Decimal("0")
-        revenue_total = totals.get("conversion_value") or Decimal("0")
-        roas_total = float(totals.get("roas") or 0)
-        ctr_total = float(totals.get("ctr") or 0)
-        conversions_total = totals.get("conversions") or Decimal("0")
-        clicks_total = totals.get("clicks") or 0
-        impressions_total = totals.get("impressions") or 0
-        ads_count = ads_qs.count()
-        active_ads_count = ads_qs.filter(status="ACTIVE").count()
-        efficiency_score = min(
-            100,
-            int(
-                min(roas_total * 18, 42)
-                + min(ctr_total * 9, 28)
-                + (18 if conversions_total else 0)
-                + (12 if active_ads_count else 0)
-            ),
-        )
-        campaign_rows = []
-        for ad in ads_qs[:12]:
-            ad_totals = _metric_summary_for_ad(ad, start_30, today)
-            ad_spend = ad_totals.get("spend") or Decimal("0")
-            ad_revenue = ad_totals.get("conversion_value") or Decimal("0")
-            raw = ad.raw_data or {}
-            campaign_name = (
-                getattr(getattr(ad, "campaign", None), "name", None)
-                or raw.get("campaign_name")
-                or raw.get("campaign")
-                or ad.name
-                or f"Rakip reklam #{ad.id}"
-            )
-            campaign_rows.append({
-                "name": campaign_name,
-                "ad_name": ad.name or campaign_name,
-                "status": ad.get_status_display() if hasattr(ad, "get_status_display") else ad.status,
-                "spend": _money(ad_spend),
-                "roas": round(float(ad_totals.get("roas") or 0), 2),
-                "ctr": round(float(ad_totals.get("ctr") or 0), 2),
-                "conversions": _num(ad_totals.get("conversions") or 0),
-                "impressions": _num(ad_totals.get("impressions") or 0),
-                "revenue": _money(ad_revenue),
-            })
-        competitor_pulse.append({
-            "id": competitor.id,
-            "name": competitor.name,
-            "platform": getattr(getattr(competitor, "platform", None), "name", "Platform"),
-            "identifier": competitor.platform_identifier,
-            "is_active_tab": index == 0,
-            "ads_count": ads_count,
-            "active_ads_count": active_ads_count,
-            "new_ads_count": ads_qs.filter(created_at__date__gte=start_30).count(),
-            "spend": _money(spend_total),
-            "revenue": _money(revenue_total),
-            "roas": round(roas_total, 2),
-            "ctr": round(ctr_total, 2),
-            "conversions": _num(conversions_total),
-            "clicks": _num(clicks_total),
-            "impressions": _num(impressions_total),
-            "efficiency_score": efficiency_score,
-            "campaign_rows": campaign_rows,
-        })
-
-    opportunities = (
-        OpportunityWindow.objects.none()
-        if agency_scope.selected_client
-        else OpportunityWindow.objects.filter(user=user, is_taken=False).order_by("-confidence_score", "-detected_at")[:4]
-    )
-
     ai_actions = []
     if critical_alerts:
         ai_actions.append({
@@ -346,32 +250,6 @@ def executive_dashboard(request):
             "url": _safe_url("budget_optimization", "/budget-optimization/"),
             "button": "Bütçeyi İncele",
         })
-    if competitor_activity:
-        ai_actions.append({
-            "group": "competitor",
-            "level": "info",
-            "icon_class": "fa-user-secret",
-            "title": "Rakip hareketleri izlenmeli",
-            "text": "Yeni rakip reklamlarını kampanya ve kreatif verimliliğiyle karşılaştır.",
-            "priority": "Orta",
-            "impact": "Rekabet",
-            "reason": f"Son 30 günde {competitor_activity} yeni rakip hareketi algılandı.",
-            "url": _safe_url("competitor_intelligence", "/competitor-intelligence/"),
-            "button": "Rakipleri İncele",
-        })
-    if active_competitors == 0:
-        ai_actions.append({
-            "group": "competitor",
-            "level": "info",
-            "icon_class": "fa-user-secret",
-            "title": "Rakip takip kapsamı boş",
-            "text": "Rekabet istihbaratı için ilk rakip hesabını ekleyin.",
-            "priority": "Orta",
-            "impact": "Kapsam",
-            "reason": "Rakip verisi olmayınca benchmark ve kreatif kıyaslama eksik kalır.",
-            "url": _safe_url("rakip_ekle", "/rakip-ekle/"),
-            "button": "Rakip Ekle",
-        })
     if not ai_actions:
         ai_actions.append({
             "group": "own",
@@ -393,22 +271,13 @@ def executive_dashboard(request):
             "subtitle": "Bütçe, ROAS, uyarı ve performans aksiyonları",
             "actions": [action for action in ai_actions if action.get("group") == "own"],
         },
-        {
-            "kind": "competitor",
-            "icon_class": "fa-user-secret",
-            "title": "Rakip Hareketleri",
-            "subtitle": "Rakip kampanya, kreatif ve benchmark aksiyonları",
-            "actions": [action for action in ai_actions if action.get("group") == "competitor"],
-        },
     ]
     ai_action_groups = [group for group in ai_action_groups if group["actions"]]
 
     has_data = (
         campaigns.exists()
         or own_ads.exists()
-        or competitor_ads.exists()
         or bool(platform_rows)
-        or active_competitors > 0
         or current_qs.exists()
     )
 
@@ -441,7 +310,6 @@ def executive_dashboard(request):
             conversion_rate=conversion_rate,
             spend_delta=spend_delta,
             creative_score=creative_score,
-            competitor_ad_count=competitor_ads.count(),
             critical_alert_count=critical_signal_count,
             pending_ai_tasks=active_task_qs.filter(status="open").count(),
             high_ai_tasks=high_task_count,
@@ -472,9 +340,6 @@ def executive_dashboard(request):
             "own_ads": own_ads.count(),
             "active_ads": own_ads.filter(status="ACTIVE").count(),
             "creatives": creatives.count(),
-            "competitors": active_competitors,
-            "competitor_ads": competitor_ads.count(),
-            "competitor_activity": competitor_activity,
             "unread_notifications": unread_notifications,
             "critical_alerts": critical_alerts.count(),
             "impressions": _num(impressions),
@@ -488,7 +353,6 @@ def executive_dashboard(request):
         },
         "platform_rows": platform_rows,
         "top_campaigns": top_campaigns,
-        "competitor_pulse": competitor_pulse,
         "critical_alerts": [
             {
                 "title": alert.title,
@@ -507,8 +371,6 @@ def executive_dashboard(request):
             "campaign_center": _safe_url("campaign_center", "/campaign-center/"),
             "adgroup_center": _safe_url("adgroup_center", "/adgroup-center/"),
             "ads_center": _safe_url("ads_center", "/reklam-paneli/"),
-            "competitor_intelligence": _safe_url("competitor_intelligence", "/competitor-intelligence/"),
-            "rakip_ekle": _safe_url("rakip_ekle", "/rakip-ekle/"),
             "budget": _safe_url("budget_optimization", "/budget-optimization/"),
             "notifications": _safe_url("notification_center", "/notifications/"),
             "sync": _safe_url("sync_center", "/sync-center/"),
@@ -528,7 +390,7 @@ def check_alerts_api(request):
     alerts = AnomalyAlert.objects.filter(user=request.user, is_read=False, is_dismissed=False)
     agency_scope = get_agency_scope(request)
     if agency_scope.selected_client:
-        alerts = alerts.filter(rakip__platform_account__agency_client=agency_scope.selected_client)
+        alerts = alerts.filter(ad__platform_account__agency_client=agency_scope.selected_client)
     count = alerts.count()
     return JsonResponse({"success": True, "count": count})
 
@@ -538,6 +400,6 @@ def mark_alerts_read(request):
     alerts = AnomalyAlert.objects.filter(user=request.user, is_dismissed=False)
     agency_scope = get_agency_scope(request)
     if agency_scope.selected_client:
-        alerts = alerts.filter(rakip__platform_account__agency_client=agency_scope.selected_client)
+        alerts = alerts.filter(ad__platform_account__agency_client=agency_scope.selected_client)
     alerts.update(is_read=True)
     return JsonResponse({"success": True})

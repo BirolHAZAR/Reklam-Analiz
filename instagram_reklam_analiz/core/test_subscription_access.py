@@ -94,8 +94,6 @@ class OrganizationSubscriptionAccessTests(TestCase):
         page_context = {
             "campaign_health": [{"id": i} for i in range(35)],
             "creative_wall": [{"id": i} for i in range(84)],
-            "competitor_rows": [{"id": i} for i in range(12)],
-            "competitor_ad_groups": [{"id": i} for i in range(8)],
             "critical_alerts": [{"id": i} for i in range(27)],
             "octo_task_center_tasks": [{"id": i} for i in range(31)],
             "platform_strip_cards": [{"id": i} for i in range(6)],

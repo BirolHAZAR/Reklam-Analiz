@@ -25,8 +25,6 @@ def category_from_title(title, level="info"):
     title_lower = (title or "").lower()
     if level == "critical":
         return "critical"
-    if "rakip" in title_lower or "competitor" in title_lower:
-        return "competitor"
     if "ai" in title_lower or "octo" in title_lower:
         return "ai"
     if "kampanya" in title_lower or "campaign" in title_lower:
@@ -46,7 +44,6 @@ def is_in_app_allowed(user, title, level="info"):
     category = category_from_title(title, level)
     checks = {
         "critical": prefs.critical_notifications,
-        "competitor": prefs.competitor_notifications,
         "ai": prefs.ai_notifications,
         "campaign": prefs.campaign_notifications,
         "optimization": prefs.optimization_notifications,

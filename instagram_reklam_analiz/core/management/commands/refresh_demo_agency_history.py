@@ -329,7 +329,6 @@ class Command(BaseCommand):
                         estimated_engagement=metrics["engagement"],
                         estimated_reach_min=metrics["reach"],
                         estimated_reach_max=metrics["impressions"],
-                        is_competitor_snapshot=False,
                         **metrics,
                     )
                 )
@@ -343,7 +342,7 @@ class Command(BaseCommand):
         self._upsert(
             AdMetricHistory,
             ad_rows,
-            [*METRIC_UPDATE_FIELDS, "estimated_engagement", "estimated_reach_min", "estimated_reach_max", "is_competitor_snapshot"],
+            [*METRIC_UPDATE_FIELDS, "estimated_engagement", "estimated_reach_min", "estimated_reach_max"],
             ["ad", "date"],
         )
 

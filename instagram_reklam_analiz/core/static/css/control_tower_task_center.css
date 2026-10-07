@@ -658,12 +658,3 @@ body.octo-task-modal-lock {
   color:var(--theme-page-text, #f8fafc);
   font-style:normal;
 }
-
-.octo-task-source-group.competitor .octo-task-source-head span,
-.octo-task-campaign-card.is-competitor-task .octo-task-campaign-kicker{
-  color:#fbbf24;
-}
-
-.octo-task-campaign-card.is-competitor-task{
-  border-color:rgba(251,191,36,.24);
-}

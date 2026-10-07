@@ -111,37 +111,6 @@ def campaign_metrics(campaign, start_date, end_date):
     return aggregate_metrics(ad_qs), "ad"
 
 
-def ad_seen_date_filter(prefix, start_date, end_date):
-    """Rakip reklamında gerçek görülme tarihini öncelikli kullanır.
-
-    first_seen_at/created_at varsa dönem içinde yakalar. Böylece görev sadece
-    gerçek rakip reklam sinyali oluştuğunda üretilir.
-    """
-    return (
-        Q(**{f"{prefix}first_seen_at__date__gte": start_date, f"{prefix}first_seen_at__date__lte": end_date}) |
-        Q(**{f"{prefix}created_at__date__gte": start_date, f"{prefix}created_at__date__lte": end_date})
-    )
-
-
-def competitor_name(ad):
-    competitor = getattr(ad, "competitor", None)
-    if competitor and getattr(competitor, "name", None):
-        return competitor.name
-    account = getattr(ad, "platform_account", None)
-    if account:
-        return getattr(account, "account_name", None) or getattr(account, "name", None) or "Rakip firma"
-    return "Rakip firma"
-
-
-def ad_title(ad):
-    return (
-        getattr(ad, "headline", None)
-        or getattr(ad, "name", None)
-        or getattr(ad, "primary_text", None)
-        or f"Rakip reklam #{ad.id}"
-    )
-
-
 class Command(BaseCommand):
     help = "Gerçek metrik koşullarına göre Octo görevleri üretir."
 
@@ -188,8 +157,6 @@ class Command(BaseCommand):
         skipped_count = 0
         matched_signal_count = 0
         campaign_count = 0
-        competitor_ad_count = 0
-        competitor_task_count = 0
 
         for user in users:
             accounts = (
@@ -311,225 +278,20 @@ class Command(BaseCommand):
                         created_count += 1
 
 
-                competitor_result = self.generate_competitor_tasks_for_account(
-                    user=user,
-                    account=account,
-                    start_date=start_date,
-                    today=today,
-                    prev_start=prev_start,
-                    prev_end=prev_end,
-                    dry_run=dry_run,
-                )
-                competitor_ad_count += competitor_result["ads"]
-                competitor_task_count += competitor_result["created"]
-                created_count += competitor_result["created"]
-                skipped_count += competitor_result["skipped"]
-                matched_signal_count += competitor_result["signals"]
-
         if dry_run:
             self.stdout.write(self.style.WARNING("DRY-RUN: Veritabanına yazılmadı."))
 
         self.stdout.write(self.style.SUCCESS("Gerçek koşullu Octo görev üretimi tamamlandı."))
         self.stdout.write(f"İşlenen aktif kampanya: {campaign_count}")
-        self.stdout.write(f"İşlenen rakip reklam: {competitor_ad_count}")
-        self.stdout.write(f"Oluşturulan rakip görevi: {competitor_task_count}")
         self.stdout.write(f"Yakalanan sinyal: {matched_signal_count}")
         self.stdout.write(f"Oluşturulan: {created_count}")
         self.stdout.write(f"Atlanan: {skipped_count}")
         self.stdout.write("OCTO_SUMMARY_JSON=" + json.dumps({
             "campaigns_evaluated": campaign_count,
-            "competitor_ads_evaluated": competitor_ad_count,
-            "competitor_tasks_created": competitor_task_count,
             "signals_matched": matched_signal_count,
             "tasks_created": created_count,
             "tasks_skipped": skipped_count,
         }, ensure_ascii=False))
-
-    def generate_competitor_tasks_for_account(self, user, account, start_date, today, prev_start, prev_end, dry_run=False):
-        """Rakip reklamlarını gerçek koşullara göre OctoTaskInstance'a dönüştürür.
-
-        Gösterim amaçlı satır üretmez. Sadece dönem içinde yeni görülen veya
-        rakip baskısı artan COMPETITOR reklamlarından gerçek instance açar.
-        """
-        result = {"ads": 0, "signals": 0, "created": 0, "skipped": 0}
-
-        current_ads = (
-            Ad.objects
-            .filter(user=user, source_type="COMPETITOR", platform_account=account)
-            .filter(ad_seen_date_filter("", start_date, today))
-            .select_related("competitor", "platform_account", "platform_account__connection")
-            .order_by("-first_seen_at", "-created_at", "-id")
-        )
-
-        result["ads"] = current_ads.count()
-        if not current_ads.exists():
-            return result
-
-        previous_count = (
-            Ad.objects
-            .filter(user=user, source_type="COMPETITOR", platform_account=account)
-            .filter(ad_seen_date_filter("", prev_start, prev_end))
-            .count()
-        )
-        current_count = result["ads"]
-        competitor_burst = current_count >= 5 or pct_change(current_count, previous_count) >= Decimal("50")
-
-        for ad in current_ads:
-            signals = self.detect_competitor_signals(ad, competitor_burst, current_count, previous_count)
-            for signal in signals:
-                result["signals"] += 1
-                rule = self.find_competitor_rule(signal)
-                if not rule:
-                    result["skipped"] += 1
-                    continue
-
-                unique_key = (
-                    f"user:{user.id}|"
-                    f"account:{account.id}|"
-                    f"competitor_ad:{ad.id}|"
-                    f"signal:{signal['key']}|"
-                    f"rule:{rule.code}|"
-                    f"period:{start_date}_{today}"
-                )
-
-                exists = OctoTaskInstance.objects.filter(
-                    unique_key=unique_key,
-                    status__in=["open", "viewed", "snoozed"],
-                ).exists()
-
-                if exists:
-                    result["skipped"] += 1
-                    continue
-
-                if dry_run:
-                    result["created"] += 1
-                    self.stdout.write(
-                        f"[DRY][RAKİP] {competitor_name(ad)} -> {signal['label']} -> {rule.code} / {rule.title_tr}"
-                    )
-                    continue
-
-                OctoTaskInstance.objects.create(
-                    rule=rule,
-                    user=user,
-                    platform_connection=getattr(account, "connection", None),
-                    platform_account=account,
-                    ad=ad,
-                    module="competitor",
-                    severity=signal.get("severity") or rule.severity,
-                    title_tr=rule.title_tr,
-                    message_tr=self.build_competitor_message(rule, ad, signal),
-                    action_text_tr=rule.action_text_tr or rule.cta_text or "Rakip reklamını incele",
-                    title_en=rule.title_en,
-                    message_en=rule.message_en,
-                    action_text_en=rule.action_text_en,
-                    priority_score=max(rule.priority_score, signal.get("priority_score", 70)),
-                    detected_value=signal.get("detected_value"),
-                    previous_value=signal.get("previous_value"),
-                    change_percent=signal.get("change_percent"),
-                    source_period_start=start_date,
-                    source_period_end=today,
-                    unique_key=unique_key,
-                    first_detected_at=timezone.now(),
-                    last_detected_at=timezone.now(),
-                )
-                result["created"] += 1
-
-        return result
-
-    def detect_competitor_signals(self, ad, competitor_burst, current_count, previous_count):
-        signals = []
-        base = {
-            "key": "competitor_new_ad",
-            "label": "Rakip yeni reklam yayına aldı",
-            "severity": "warning",
-            "priority_score": 82,
-            "keywords": ["Rakip", "yeni reklam", "reklam", "istihbarat"],
-            "detected_value": Decimal("1"),
-            "previous_value": Decimal("0"),
-            "change_percent": Decimal("100"),
-        }
-        signals.append(base)
-
-        if competitor_burst:
-            signals.append({
-                "key": "competitor_ad_burst",
-                "label": "Rakip reklam baskısı arttı",
-                "severity": "critical",
-                "priority_score": 91,
-                "keywords": ["Rakip", "baskı", "rekabet", "yeni reklam"],
-                "detected_value": Decimal(str(current_count)),
-                "previous_value": Decimal(str(previous_count)),
-                "change_percent": pct_change(current_count, previous_count),
-            })
-
-        if getattr(ad, "landing_url", None):
-            signals.append({
-                "key": "competitor_landing_page_signal",
-                "label": "Rakip landing page sinyali yakalandı",
-                "severity": "opportunity",
-                "priority_score": 78,
-                "keywords": ["Rakip", "landing", "sayfa", "fırsat"],
-                "detected_value": Decimal("1"),
-                "previous_value": Decimal("0"),
-                "change_percent": Decimal("100"),
-            })
-
-        return signals
-
-    def find_competitor_rule(self, signal):
-        signal_key = signal.get("key")
-        title_map = {
-            "competitor_new_ad": ["Rakip", "Yeni Reklam", "Rakip Reklam"],
-            "competitor_ad_burst": ["Rakip Baskısı", "Rakip", "Rekabet"],
-            "competitor_landing_page_signal": ["Rakip", "Landing", "Sayfa", "Fırsat"],
-        }
-
-        base_qs = OctoTaskRule.objects.filter(
-            is_active=True,
-            module="competitor",
-            severity=signal.get("severity", "warning"),
-        )
-
-        for title in title_map.get(signal_key, []):
-            rule = base_qs.filter(title_tr__icontains=title).order_by("-priority_score", "code").first()
-            if rule:
-                return rule
-
-        keywords = signal.get("keywords") or []
-        query = Q()
-        for keyword in keywords:
-            query |= Q(title_tr__icontains=keyword)
-            query |= Q(message_tr__icontains=keyword)
-            query |= Q(action_text_tr__icontains=keyword)
-            query |= Q(user_condition__icontains=keyword)
-            query |= Q(root_cause__icontains=keyword)
-            query |= Q(expected_result__icontains=keyword)
-
-        if query:
-            rule = base_qs.filter(query).order_by("-priority_score", "code").first()
-            if rule:
-                return rule
-
-        return base_qs.order_by("-priority_score", "code").first()
-
-    def build_competitor_message(self, rule, ad, signal):
-        base = rule.message_tr or rule.user_condition or rule.title_tr
-        name = competitor_name(ad)
-        title = ad_title(ad)
-        landing_url = getattr(ad, "landing_url", None) or "-"
-        ad_format = getattr(ad, "ad_format", None) or "-"
-
-        detail = (
-            f"\n\nRakip firma: {name}"
-            f"\nRakip reklam: {title}"
-            f"\nTespit edilen durum: {signal['label']}"
-            f"\nReklam formatı: {ad_format}"
-            f"\nLanding URL: {landing_url}"
-            f"\nMevcut değer: {format_tr_decimal(signal.get('detected_value'))}"
-            f"\nÖnceki değer: {format_tr_decimal(signal.get('previous_value'))}"
-            f"\nDeğişim: %{format_tr_decimal(signal.get('change_percent'))}"
-        )
-        return f"{base}{detail}"
 
     def detect_signals(self, current, previous):
         signals = []

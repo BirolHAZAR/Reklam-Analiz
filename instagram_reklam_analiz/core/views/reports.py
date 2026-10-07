@@ -324,10 +324,6 @@ def reklam_karsilastirma(request):
     })
 
 
-@login_required
-def rakip_reklam_karsilastirma(request):
-    competitor = scope_queryset(request, Ad.objects.filter(source_type="COMPETITOR"))
-    return render(request, "reports/reklam_tarihcesi.html", {"reklamlar": competitor, "v2_only": True})
 
 
 @login_required
@@ -510,17 +506,3 @@ def api_reklam_detay(request, reklam_id):
         return JsonResponse({"success": False}, status=404)
     metrics = AdMetricHistory.objects.filter(ad=ad).order_by("date")
     return JsonResponse({"success": True, "ad": {"id": ad.id, "name": str(ad)}, "metrics": [{"date": m.date.isoformat(), "spend": float(m.spend), "clicks": m.clicks, "impressions": m.impressions} for m in metrics]})
-
-
-@login_required
-def api_rakip_reklam_listesi(request):
-    qs = scope_queryset(request, Ad.objects.filter(source_type="COMPETITOR")).order_by("-created_at")[:300]
-    return JsonResponse({"success": True, "reklamlar": [{"id": a.id, "name": str(a), "status": a.status} for a in qs]})
-
-
-@login_required
-def api_rakip_reklam_detay(request, reklam_id):
-    ad = scope_queryset(request, Ad.objects.filter(id=reklam_id, source_type="COMPETITOR")).first()
-    if not ad:
-        return JsonResponse({"success": False}, status=404)
-    return JsonResponse({"success": True, "ad": {"id": ad.id, "name": str(ad), "text": ad.primary_text}})

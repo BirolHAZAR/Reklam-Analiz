@@ -23,45 +23,9 @@ class NotificationHelper:
     @staticmethod
     def _category_from_title(title, level):
         return category_from_title(title, level)
-        title_lower = (title or "").lower()
-        if level == "critical":
-            return "critical"
-        if "rakip" in title_lower:
-            return "competitor"
-        if "ai" in title_lower:
-            return "ai"
-        if "kampanya" in title_lower:
-            return "campaign"
-        if "optimizasyon" in title_lower or "bütçe" in title_lower:
-            return "optimization"
-        return "system"
-
     @staticmethod
     def _is_allowed_by_preferences(user, title, level):
         return is_in_app_allowed(user, title, level)
-        try:
-            prefs, _ = user.notification_preferences.__class__.objects.get_or_create(user=user)
-        except Exception:
-            try:
-                from core.models.notification_settings import NotificationPreference
-                prefs, _ = NotificationPreference.objects.get_or_create(user=user)
-            except Exception:
-                return True
-
-        if not prefs.in_app_enabled:
-            return False
-
-        category = NotificationHelper._category_from_title(title, level)
-        checks = {
-            "critical": prefs.critical_notifications,
-            "competitor": prefs.competitor_notifications,
-            "ai": prefs.ai_notifications,
-            "campaign": prefs.campaign_notifications,
-            "optimization": prefs.optimization_notifications,
-            "system": prefs.system_notifications,
-        }
-        return checks.get(category, True)
-
     @staticmethod
     def notify(user, title, message, level="info", icon="🔔", link=None, dedupe_minutes=2):
         if not user or not getattr(user, "is_authenticated", False):
@@ -88,44 +52,6 @@ class NotificationHelper:
         except Exception as exc:
             logger.exception("Bildirim oluşturulamadı: %s", exc)
             return None
-
-    # -------------------- Rakip --------------------
-    @staticmethod
-    def competitor_added(user, rakip):
-        name = getattr(rakip, "name", None) or getattr(rakip, "platform_identifier", "Yeni rakip")
-        return NotificationHelper.notify(user, "Yeni rakip eklendi", f"{name} rakip listenize eklendi.", "success", "🕵️", object_activity_link(rakip) or "/rakip-analiz/")
-
-    @staticmethod
-    def competitor_updated(user, rakip):
-        name = getattr(rakip, "name", None) or getattr(rakip, "platform_identifier", "Rakip")
-        return NotificationHelper.notify(user, "Rakip bilgisi güncellendi", f"{name} rakibinin bilgileri güncellendi.", "info", "🕵️", object_activity_link(rakip) or "/rakip-analiz/", dedupe_minutes=10)
-
-    @staticmethod
-    def competitor_status_changed(user, rakip, is_active):
-        name = getattr(rakip, "name", None) or getattr(rakip, "platform_identifier", "Rakip")
-        return NotificationHelper.notify(
-            user,
-            "Rakip aktif edildi" if is_active else "Rakip pasif edildi",
-            f"{name} rakibi {'aktif edildi' if is_active else 'pasif edildi'}.",
-            "success" if is_active else "warning",
-            "🕵️",
-            "/rakip-analiz/",
-            dedupe_minutes=2,
-        )
-
-    @staticmethod
-    def competitor_deleted(user, name):
-        return NotificationHelper.notify(user, "Rakip silindi", f"{name} rakip listenizden kaldırıldı.", "warning", "🗑️", "/rakip-analiz/", dedupe_minutes=2)
-
-    @staticmethod
-    def competitor_ad_found(user, ad):
-        name = getattr(ad, "name", None) or getattr(ad, "title", None) or "Yeni rakip reklamı"
-        return NotificationHelper.notify(user, "Yeni rakip reklamı bulundu", f"{name[:80]} sisteme eklendi.", "info", "📢", object_activity_link(ad) or "/rakip-reklam-paneli/", dedupe_minutes=5)
-
-    @staticmethod
-    def competitor_ads_synced(user, rakip, count):
-        name = getattr(rakip, "name", None) or getattr(rakip, "platform_identifier", "Rakip")
-        return NotificationHelper.notify(user, "Rakip reklamları güncellendi", f"{name} için {count} reklam güncellendi.", "success", "🔄", "/rakip-reklam-paneli/", dedupe_minutes=1)
 
     # -------------------- Platform / hesap --------------------
     @staticmethod
@@ -197,9 +123,9 @@ class NotificationHelper:
         return NotificationHelper.notify(user, "Reklam performansı düşük", f"{name[:70]} performans skoru kritik seviyede: {score}/100.", "warning", "📉", object_activity_link(ad) or "/ai/dashboard/", dedupe_minutes=60)
 
     @staticmethod
-    def metric_anomaly(user, obj, reason=None, competitor=False):
+    def metric_anomaly(user, obj, reason=None):
         reason = reason or getattr(obj, "anomaly_reason", None) or "Metriklerde olağan dışı değişim tespit edildi."
-        return NotificationHelper.notify(user, "Rakip reklam metriğinde anomali" if competitor else "Reklam metriğinde anomali", reason[:160], "warning", "📊", object_activity_link(obj) or ("/rakip-reklam-hareketleri/" if competitor else "/reklam-hareketleri/"), dedupe_minutes=60)
+        return NotificationHelper.notify(user, "Reklam metriğinde anomali", reason[:160], "warning", "📊", object_activity_link(obj) or "/reklam-hareketleri/", dedupe_minutes=60)
 
     # -------------------- AI / Creative / Anomali --------------------
     @staticmethod

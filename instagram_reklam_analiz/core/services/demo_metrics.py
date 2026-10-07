@@ -184,7 +184,6 @@ DEMO_SCENARIOS = [
     "roas_drop",
     "creative_fatigue",
     "campaign_scaling",
-    "competitor_pressure",
 ]
 
 
@@ -260,7 +259,6 @@ def _scenario_volume_factor(scenario, rng):
         "roas_drop": (Decimal("0.84"), Decimal("1.03")),
         "creative_fatigue": (Decimal("0.90"), Decimal("1.08")),
         "campaign_scaling": (Decimal("1.18"), Decimal("1.42")),
-        "competitor_pressure": (Decimal("0.94"), Decimal("1.14")),
     }
     low, high = ranges.get(scenario, (Decimal("0.88"), Decimal("1.16")))
     return Decimal(str(round(rng.uniform(float(low), float(high)), 4)))
@@ -284,10 +282,6 @@ def _apply_demo_scenario(data, scenario, rng):
         data["impressions"] = max(1, int(data["impressions"] * rng.uniform(1.18, 1.44)))
         data["reach"] = max(1, int(data["reach"] * rng.uniform(1.12, 1.32)))
         data["conversion_value"] = _money(Decimal(data["conversion_value"]) * Decimal(str(rng.uniform(1.10, 1.36))))
-    elif scenario == "competitor_pressure":
-        data["cpc"] = _ratio(Decimal(data.get("cpc") or 0) * Decimal(str(rng.uniform(1.12, 1.35))))
-        data["spend"] = _money(Decimal(data["spend"]) * Decimal(str(rng.uniform(1.06, 1.24))))
-        data["clicks"] = max(1, int(data["clicks"] * rng.uniform(0.82, 0.96)))
     return data
 
 
@@ -416,10 +410,6 @@ def _refresh_demo_marketplace_metrics(metric_date, now):
         elif scenario == "roas_drop":
             stock_delta = -rng.randint(0, 3)
             order_factor = rng.uniform(0.45, 0.85)
-        elif scenario == "competitor_pressure":
-            price_factor = Decimal(str(round(rng.uniform(0.92, 0.98), 4)))
-            stock_delta = -rng.randint(1, 6)
-            order_factor = rng.uniform(0.75, 1.05)
         else:
             stock_delta = -rng.randint(1, 9)
             order_factor = rng.uniform(0.85, 1.3)
@@ -495,13 +485,6 @@ def _create_daily_demo_signal(user, metric_date):
         .order_by("roas")
         .first()
     )
-    competitor = (
-        AdMetricHistory.objects.filter(ad__user=user, date=metric_date, ad__source_type="COMPETITOR")
-        .select_related("ad")
-        .order_by("-impressions")
-        .first()
-    )
-
     candidates = []
     if best and best.roas >= Decimal("3.2"):
         candidates.append({
@@ -529,20 +512,6 @@ def _create_daily_demo_signal(user, metric_date):
             "change_percent": None,
             "action": "Kreatifi yenile, hedef kitleyi daralt ve harcamayi gecici olarak sinirla.",
         })
-    if competitor:
-        candidates.append({
-            "type": "impression_spike",
-            "severity": "medium",
-            "level": "info",
-            "ad": competitor.ad,
-            "title": "Demo rakip baskisi",
-            "description": f"{competitor.ad.name or competitor.ad.headline or 'Rakip reklam'} gorunurlugu yukseldi. Rakip takip senaryosu guncellendi.",
-            "old_value": None,
-            "new_value": float(competitor.impressions),
-            "change_percent": None,
-            "action": "Rakip mesajini incele, teklif ve kreatif ayrismasini guclendir.",
-        })
-
     alerts = 0
     notifications = 0
     for candidate in candidates[:2]:
@@ -554,7 +523,7 @@ def _create_daily_demo_signal(user, metric_date):
         if alert is None:
             alert = AnomalyAlert.objects.create(
                 user=user,
-                rakip=candidate["ad"],
+                ad=candidate["ad"],
                 alert_type=candidate["type"],
                 severity=candidate["severity"],
                 title=candidate["title"],
@@ -587,7 +556,6 @@ def refresh_demo_metrics_for_date(metric_date=None, *, create_signals=True):
     metric_date = metric_date or timezone.localdate()
     now = timezone.now()
     ad_count = 0
-    competitor_ad_count = 0
     creative_count = 0
     ads_by_creative = {}
     ads_by_campaign = {}
@@ -602,13 +570,9 @@ def refresh_demo_metrics_for_date(metric_date=None, *, create_signals=True):
                 date=metric_date,
                 defaults={
                     **metrics,
-                    "is_competitor_snapshot": ad.source_type == "COMPETITOR",
                 },
             )
-            if ad.source_type == "COMPETITOR":
-                competitor_ad_count += 1
-            else:
-                ad_count += 1
+            ad_count += 1
 
             if ad.creative_id:
                 ads_by_creative.setdefault(ad.creative_id, []).append(_copy_metric_fields(ad_metric))
@@ -673,7 +637,6 @@ def refresh_demo_metrics_for_date(metric_date=None, *, create_signals=True):
         "success": True,
         "date": metric_date.isoformat(),
         "ads": ad_count,
-        "competitor_ads": competitor_ad_count,
         "creatives": creative_count,
         "campaigns": campaign_count,
         "ad_groups": ad_group_count,

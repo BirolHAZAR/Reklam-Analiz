@@ -21,14 +21,14 @@ User = get_user_model()
 def _register_cache_invalidation_signals():
     from core.models import (
         ActivityLog, Ad, AdMetricHistory, BudgetOptimizationLog, Campaign,
-        CampaignMetricHistory, Competitor, OctoTaskInstance, PlatformAccount,
+        CampaignMetricHistory, OctoTaskInstance, PlatformAccount,
         SocialPost, SocialPostMetricHistory,
     )
     from core.services.cache_invalidation import schedule_instance_cache_invalidation
 
     for model in (
         PlatformAccount, Campaign, Ad, AdMetricHistory, CampaignMetricHistory,
-        Competitor, SocialPost, SocialPostMetricHistory, BudgetOptimizationLog,
+        SocialPost, SocialPostMetricHistory, BudgetOptimizationLog,
         OctoTaskInstance, ActivityLog,
     ):
         post_save.connect(schedule_instance_cache_invalidation, sender=model, weak=False, dispatch_uid=f"cache_save_{model._meta.label_lower}")
@@ -108,7 +108,7 @@ def _is_created(created):
 
 
 # =========================================================
-# COMPETITOR / RAKİP
+# PAYMENT / ÖDEME
 # =========================================================
 
 try:
@@ -130,34 +130,6 @@ except Exception as exc:
     logger.debug("Payment referral signal yuklenemedi: %s", exc)
 
 
-try:
-    from core.models import Competitor
-
-    @receiver(post_save, sender=Competitor)
-    def notify_competitor_saved(sender, instance, created, **kwargs):
-        if created:
-            notify_user(
-                user=instance.user,
-                title="Yeni rakip eklendi",
-                message=f"{_safe_name(instance, 'Rakip')} rakip listenize eklendi.",
-                level="success",
-                icon="🕵️",
-                link=object_activity_link(instance) or "/rakip/ekle/",
-                dedupe_key=f"competitor_created_{instance.id}",
-            )
-        else:
-            notify_user(
-                user=instance.user,
-                title="Rakip bilgisi güncellendi",
-                message=f"{_safe_name(instance, 'Rakip')} bilgileri güncellendi.",
-                level="info",
-                icon="✏️",
-                link=object_activity_link(instance) or "/rakip/ekle/",
-                dedupe_key=f"competitor_updated_{instance.id}",
-            )
-
-except Exception as exc:
-    logger.debug("Competitor signal yüklenemedi: %s", exc)
 
 
 # =========================================================
@@ -175,18 +147,7 @@ try:
         source_type = getattr(instance, "source_type", "") or ""
         name = _safe_name(instance, "Reklam")
 
-        if source_type == "COMPETITOR":
-            competitor_name = _safe_name(getattr(instance, "competitor", None), "rakip")
-            notify_user(
-                user=instance.user,
-                title="Yeni rakip reklamı bulundu",
-                message=f"{competitor_name} için yeni rakip reklamı kaydedildi: {name}",
-                level="info",
-                icon="👁️",
-                link=object_activity_link(instance) or "/rakip-reklam-paneli/",
-                dedupe_key=f"competitor_ad_created_{instance.id}",
-            )
-        elif source_type == "OWN":
+        if source_type == "OWN":
             notify_user(
                 user=instance.user,
                 title="Yeni reklam kaydedildi",
@@ -231,17 +192,6 @@ try:
                 icon="🚀",
                 link=object_activity_link(ad) or "/performance-center/",
                 dedupe_key=f"admetric_high_ctr_{instance.id}",
-            )
-
-        if source_type == "COMPETITOR" and engagement_rate >= 5:
-            notify_user(
-                user=ad.user,
-                title="Rakip reklamında yüksek etkileşim",
-                message=f"{_safe_name(ad, 'Rakip reklam')} yüksek etkileşim oranı yakaladı: %{engagement_rate:.2f}",
-                level="warning",
-                icon="🔥",
-                link=object_activity_link(ad) or "/rakip-reklam-hareketleri/",
-                dedupe_key=f"competitor_metric_high_eng_{instance.id}",
             )
 
         if spend > 0 and ctr < 0.5:

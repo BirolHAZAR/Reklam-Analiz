@@ -19,5 +19,4 @@ def calculate_ad_health_score(ad: Ad) -> Dict[str, Any]:
 
 def build_decision_center(user):
     own_ads = Ad.objects.filter(user=user, source_type="OWN")
-    competitor_ads = Ad.objects.filter(user=user, source_type="COMPETITOR")
-    return {"own_ads": own_ads.count(), "competitor_ads": competitor_ads.count(), "actions": []}
+    return {"own_ads": own_ads.count(), "actions": []}

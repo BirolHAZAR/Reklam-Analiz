@@ -16,8 +16,7 @@ class AnomalyAlert(models.Model):
     SEVERITY_CHOICES = [('low', 'Düşük'), ('medium', 'Orta'), ('high', 'Yüksek'), ('critical', 'Kritik')]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='anomaly_alerts')
-    # Eski rakip FK yerine artık ilgili reklam Ad tablosundan tutulur.
-    rakip = models.ForeignKey('core.Ad', on_delete=models.SET_NULL, related_name='anomalies', null=True, blank=True)
+    ad = models.ForeignKey('core.Ad', on_delete=models.SET_NULL, related_name='anomalies', null=True, blank=True)
     alert_type = models.CharField(max_length=30, choices=ALERT_TYPES)
     severity = models.CharField(max_length=10, choices=SEVERITY_CHOICES, default='medium')
     title = models.CharField(max_length=300)

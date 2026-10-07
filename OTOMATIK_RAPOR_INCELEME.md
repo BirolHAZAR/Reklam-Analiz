@@ -44,7 +44,7 @@ Yerel veritabanındaki iki aktif otomatik raporun (37 ve 38) sahibi demo kullan�
 ## Uygulanan demo değişiklikleri
 
 - Demo kullanıcı/hesap/bağlantı işaretleri gerçek token kontrolü ve platform senkronundan ayrıldı.
-- Gerçek API kullanan organik, rakip ve pazaryeri senkronları demo hesaplarını atlar. Rapor, Octo, bildirim, duyuru ve yaşam döngüsü e-postalarının kapsamı korunur.
+- Gerçek API kullanan organik ve pazaryeri senkronları demo hesaplarını atlar. Rapor, Octo, bildirim, duyuru ve yaşam döngüsü e-postalarının kapsamı korunur.
 - Günlük demo metrikleri admin zamanlamasından çalışır; ikinci sabit Beat zamanlaması kaldırıldı.
 - Demo metrik yenilemesinin mevcut Octo tetiklemesi korunur.
 - Reklam/gün bazında bağımsız, aynı tarih için tekrarlanabilir üretim korunur; satış hunisi sınırları ve paylaşılan kreatiflerin toplamları düzeltildi.

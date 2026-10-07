@@ -1,7 +1,7 @@
 ﻿# core/ai_agents/market_analyzer.py
 """
-Piyasa ve Rakip Analizi Modülü
-Sektör trendleri, rakip analizi ve pazar fırsatlarını tespit eder
+Piyasa Analizi Modülü
+Sektör trendleri ve pazar fırsatlarını tespit eder
 """
 
 import json
@@ -20,7 +20,7 @@ except ImportError:
 
 class MarketAnalyzer:
     """
-    Piyasa analizi ve rakip takibi yapan sınıf
+    Piyasa trendlerini analiz eden sınıf
     """
     
     def __init__(self, api_key=None, user=None, organization=None):
@@ -46,8 +46,6 @@ class MarketAnalyzer:
         # Mevsimsel trendler
         seasonal_trends = self._get_seasonal_trends(industry, location)
         
-        # Rakip analizi
-        competitor_analysis = self._analyze_competitors(industry)
         
         # Fiyatlandırma içgörüleri
         pricing_insights = self._get_pricing_insights(industry)
@@ -59,60 +57,17 @@ class MarketAnalyzer:
         emerging_platforms = self._get_emerging_platforms()
         
         # AI ile trend analizi
-        ai_analysis = self._get_ai_trend_analysis(seasonal_trends, competitor_analysis, consumer_behavior) if self.use_openai else "OpenAI kullanilamiyor; sahte piyasa analizi uretilmedi."
+        ai_analysis = self._get_ai_trend_analysis(seasonal_trends, consumer_behavior) if self.use_openai else "OpenAI kullanilamiyor; sahte piyasa analizi uretilmedi."
         
         return {
             'success': True,
             'seasonal_trends': seasonal_trends,
-            'competitor_analysis': competitor_analysis,
             'pricing_insights': pricing_insights,
             'consumer_behavior': consumer_behavior,
             'emerging_platforms': emerging_platforms,
             'ai_analysis': ai_analysis,
-            'recommendations': self._generate_market_recommendations(seasonal_trends, competitor_analysis),
+            'recommendations': self._generate_market_recommendations(seasonal_trends),
             'analyzed_at': timezone.now().isoformat()
-        }
-    
-    def analyze_competitor(self, competitor_username, main_username=None):
-        """
-        Belirli bir rakibi analiz et
-        
-        Args:
-            competitor_username: Rakip Instagram kullanıcı adı
-            main_username: Kendi kullanıcı adınız (karşılaştırma için)
-        
-        Returns:
-            dict: Rakip analizi sonuçları
-        """
-        # Rakip verilerini topla
-        competitor_data = self._fetch_competitor_data(competitor_username)
-        
-        if not competitor_data:
-            return {'success': False, 'error': 'Rakip verisi alınamadı'}
-        
-        # Karşılaştırma yap
-        comparison = None
-        if main_username:
-            main_data = self._fetch_competitor_data(main_username)
-            if main_data:
-                comparison = self._compare_with_competitor(main_data, competitor_data)
-        
-        # Rakip stratejileri analiz et
-        strategies = self._analyze_competitor_strategies(competitor_data)
-        
-        # AI ile rakip analizi
-        ai_analysis = self._get_ai_competitor_analysis(competitor_data, comparison) if self.use_openai else "OpenAI kullanilamiyor; sahte rakip analizi uretilmedi."
-        
-        return {
-            'success': True,
-            'competitor': competitor_data,
-            'comparison': comparison,
-            'strategies': strategies,
-            'strengths': self._identify_competitor_strengths(competitor_data),
-            'weaknesses': self._identify_competitor_weaknesses(competitor_data),
-            'opportunities': self._identify_opportunities(competitor_data),
-            'ai_analysis': ai_analysis,
-            'recommendations': self._generate_competitive_recommendations(competitor_data, comparison)
         }
     
     def analyze_industry(self, industry='e-commerce'):
@@ -128,8 +83,6 @@ class MarketAnalyzer:
         # Sektör büyüklüğü ve büyüme
         market_size = self._get_market_size(industry)
         
-        # Rekabet yoğunluğu
-        competition_intensity = self._get_competition_intensity(industry)
         
         # Giriş bariyerleri
         entry_barriers = self._get_entry_barriers(industry)
@@ -144,7 +97,6 @@ class MarketAnalyzer:
             'success': True,
             'industry': industry,
             'market_size': market_size,
-            'competition_intensity': competition_intensity,
             'entry_barriers': entry_barriers,
             'opportunities': opportunities,
             'threats': threats,
@@ -216,44 +168,6 @@ class MarketAnalyzer:
             'insights': f"En yüksek etkileşim {best_season[0]} çeyreğinde görülüyor. Bütçe planlamasını bu döneme göre yapın."
         }
     
-    def _analyze_competitors(self, industry):
-        """Rakip analizi yap"""
-        # Örnek - gerçek uygulamada Instagram Graph API ile rakip hesaplar analiz edilir
-        competitors = {
-            'e-commerce': [
-                {'name': 'Trendyol', 'followers': 5000000, 'engagement_rate': 2.8, 'ad_frequency': 'high', 'strengths': ['Geniş ürün yelpazesi', 'Hızlı kargo'], 'weaknesses': ['Yüksek rekabet', 'Düşük marj']},
-                {'name': 'Hepsiburada', 'followers': 3500000, 'engagement_rate': 2.5, 'ad_frequency': 'high', 'strengths': ['Güvenilirlik', 'Teknoloji odaklı'], 'weaknesses': ['Kullanıcı deneyimi']},
-                {'name': 'Amazon', 'followers': 8000000, 'engagement_rate': 3.2, 'ad_frequency': 'medium', 'strengths': ['Uluslararası güç', 'Prime avantajı'], 'weaknesses': ['Yerelleşme']}
-            ],
-            'fashion': [
-                {'name': 'LC Waikiki', 'followers': 2000000, 'engagement_rate': 3.5, 'ad_frequency': 'high', 'strengths': ['Uygun fiyat', 'Geniş mağaza ağı'], 'weaknesses': ['Sezonluk ürünler']},
-                {'name': 'Zara', 'followers': 4500000, 'engagement_rate': 4.2, 'ad_frequency': 'medium', 'strengths': ['Hızlı moda', 'Trend takibi'], 'weaknesses': ['Yüksek fiyat']}
-            ],
-            'food': [
-                {'name': 'Yemeksepeti', 'followers': 1500000, 'engagement_rate': 2.1, 'ad_frequency': 'high', 'strengths': ['Geniş restoran ağı', 'Hızlı teslimat'], 'weaknesses': ['Komisyon oranları']}
-            ],
-            'technology': [
-                {'name': 'MediaMarkt', 'followers': 800000, 'engagement_rate': 1.8, 'ad_frequency': 'medium', 'strengths': ['Geniş ürün yelpazesi', 'Garanti'], 'weaknesses': ['Fiyat rekabeti']}
-            ],
-            'travel': [
-                {'name': 'Enuygun', 'followers': 500000, 'engagement_rate': 2.3, 'ad_frequency': 'high', 'strengths': ['Karşılaştırma imkanı', 'Uygun fiyat'], 'weaknesses': ['Sezonluk talep']}
-            ]
-        }
-        
-        industry_competitors = competitors.get(industry, competitors['e-commerce'])
-        
-        avg_engagement = sum(c['engagement_rate'] for c in industry_competitors) / len(industry_competitors) if industry_competitors else 0
-        avg_followers = sum(c['followers'] for c in industry_competitors) / len(industry_competitors) if industry_competitors else 0
-        
-        return {
-            'competitors': industry_competitors,
-            'total_competitors': len(industry_competitors),
-            'average_engagement': round(avg_engagement, 1),
-            'average_followers': int(avg_followers),
-            'market_leader': industry_competitors[0] if industry_competitors else None,
-            'insights': f"Sektörde ortalama etkileşim oranı %{avg_engagement:.1f}. Bu oranın altında kalıyorsanız stratejinizi gözden geçirin."
-        }
-    
     def _get_pricing_insights(self, industry):
         """Fiyatlandırma içgörüleri"""
         pricing_data = {
@@ -309,7 +223,7 @@ class MarketAnalyzer:
             'top_pick': platforms[0]
         }
     
-    def _get_ai_trend_analysis(self, seasonal_trends, competitor_analysis, consumer_behavior):
+    def _get_ai_trend_analysis(self, seasonal_trends, consumer_behavior):
         """AI ile trend analizi"""
         if not self.use_openai:
             return "Canli AI trend analizi tamamlanamadi; sahte trend analizi uretilmedi."
@@ -319,7 +233,6 @@ class MarketAnalyzer:
 Piyasa trendleri verilerine göre kapsamlı analiz yap:
 
 Mevsimsel Trendler: {json.dumps(seasonal_trends, ensure_ascii=False, indent=2)[:500]}
-Rakip Analizi: {json.dumps(competitor_analysis, ensure_ascii=False, indent=2)[:500]}
 Tüketici Davranışı: {json.dumps(consumer_behavior, ensure_ascii=False, indent=2)[:500]}
 
 Bu verilere dayanarak:
@@ -348,19 +261,7 @@ Analizi Türkçe yap, 5-6 cümle ile özetle.
             print(f"AI trend analizi hatası: {str(e)}")
             return "Canli AI trend analizi tamamlanamadi; sahte trend analizi uretilmedi."
     
-    def _get_ai_competitor_analysis(self, competitor_data, comparison):
-        """AI ile rakip analizi"""
-        return """
-🎯 RAKİP ANALİZİ ÖZETİ:
-
-Rakibinizin güçlü yönleri: Yüksek takipçi etkileşimi, düzenli paylaşım takvimi, trend içerikleri hızlı yakalama.
-
-Sizin öne çıkabileceğiniz alanlar: Daha samimi içerikler, müşteri hikayeleri, özel indirim kampanyaları.
-
-Öneri: Rakibin zayıf olduğu alanlarda (müşteri hizmetleri, yanıt süresi) fark yaratın.
-"""
-    
-    def _generate_market_recommendations(self, seasonal_trends, competitor_analysis):
+    def _generate_market_recommendations(self, seasonal_trends):
         """Piyasa önerileri üret"""
         recommendations = []
         
@@ -373,17 +274,6 @@ Sizin öne çıkabileceğiniz alanlar: Daha samimi içerikler, müşteri hikayel
             'priority': 'high',
             'expected_impact': 35
         })
-        
-        # Rakip bazlı öneri
-        avg_engagement = competitor_analysis.get('average_engagement', 2.5)
-        if avg_engagement > 2.5:
-            recommendations.append({
-                'type': 'competitive',
-                'title': 'Rekabet Stratejisi',
-                'description': f'Sektör ortalaması %{avg_engagement:.1f}. Daha yaratıcı içeriklerle fark yaratın.',
-                'priority': 'medium',
-                'expected_impact': 25
-            })
         
         # Fiyatlandırma önerisi
         recommendations.append({
@@ -407,111 +297,6 @@ Sizin öne çıkabileceğiniz alanlar: Daha samimi içerikler, müşteri hikayel
         else:
             return 'Sonbahar'
     
-    def _fetch_competitor_data(self, username):
-        """Rakip verilerini gerçek sağlayıcıdan toplar."""
-        return None
-    
-    def _compare_with_competitor(self, main_data, competitor_data):
-        """Rakiplerle karşılaştırma yap"""
-        comparison = {
-            'followers_diff': competitor_data['followers'] - main_data['followers'],
-            'engagement_diff': round(competitor_data['engagement_rate'] - main_data['engagement_rate'], 1),
-            'posts_frequency_diff': competitor_data['posts_per_week'] - main_data['posts_per_week'],
-            'is_ahead': competitor_data['engagement_rate'] > main_data['engagement_rate'],
-            'gap_percentage': round(((competitor_data['engagement_rate'] - main_data['engagement_rate']) / main_data['engagement_rate']) * 100, 1) if main_data['engagement_rate'] > 0 else 0
-        }
-        
-        if comparison['is_ahead']:
-            comparison['message'] = f"Rakip sizden %{comparison['gap_percentage']} daha iyi performans gösteriyor."
-        else:
-            comparison['message'] = f"Siz rakibinizden %{abs(comparison['gap_percentage'])} daha iyi performans gösteriyorsunuz."
-        
-        return comparison
-    
-    def _analyze_competitor_strategies(self, competitor_data):
-        """Rakip stratejilerini analiz et"""
-        strategies = []
-        
-        # İçerik stratejisi
-        content_type = max(competitor_data['content_types'], key=competitor_data['content_types'].get)
-        strategies.append({
-            'area': 'İçerik Stratejisi',
-            'observation': f"Ağırlıklı olarak {content_type} içerik kullanıyor",
-            'recommendation': f"{content_type.capitalize()} içeriklerinizi artırın"
-        })
-        
-        # Paylaşım sıklığı
-        if competitor_data['posts_per_week'] > 4:
-            strategies.append({
-                'area': 'Paylaşım Sıklığı',
-                'observation': f"Haftada {competitor_data['posts_per_week']} paylaşım yapıyor",
-                'recommendation': "Paylaşım sıklığınızı artırmayı düşünün"
-            })
-        
-        # Hashtag stratejisi
-        strategies.append({
-            'area': 'Hashtag Stratejisi',
-            'observation': f"Popüler hashtag'ler: {', '.join(competitor_data['top_hashtags'][:3])}",
-            'recommendation': "Bu hashtag'leri de deneyin"
-        })
-        
-        return strategies
-    
-    def _identify_competitor_strengths(self, competitor_data):
-        """Rakibin güçlü yönlerini belirle"""
-        strengths = []
-        
-        if competitor_data['engagement_rate'] > 3:
-            strengths.append("Yüksek etkileşim oranı")
-        if competitor_data['followers'] > 200000:
-            strengths.append("Geniş takipçi kitlesi")
-        if competitor_data['posts_per_week'] > 5:
-            strengths.append("Düzenli ve sık paylaşım")
-        
-        return strengths if strengths else ["Düzenli içerik üretimi"]
-    
-    def _identify_competitor_weaknesses(self, competitor_data):
-        """Rakibin zayıf yönlerini belirle"""
-        weaknesses = []
-        
-        if competitor_data.get('ad_frequency') == 'high':
-            weaknesses.append("Çok fazla reklam yayınlıyor (reklam yorgunluğu riski)")
-        if competitor_data['engagement_rate'] < 2:
-            weaknesses.append("Düşük etkileşim oranı")
-        
-        return weaknesses if weaknesses else ["Belirgin zayıf yön tespit edilmedi"]
-    
-    def _identify_opportunities(self, competitor_data):
-        """Fırsat alanlarını belirle"""
-        opportunities = []
-        
-        if competitor_data['engagement_rate'] < 2.5:
-            opportunities.append("Rakibin düşük etkileşim oranı sizin için fırsat")
-        
-        opportunities.append("Rakibin kullanmadığı niş hashtag'leri keşfedin")
-        opportunities.append("Rakibin zayıf olduğu konularda içerik üretin")
-        
-        return opportunities
-    
-    def _generate_competitive_recommendations(self, competitor_data, comparison):
-        """Rekabet önerileri üret"""
-        recommendations = []
-        
-        if comparison and comparison.get('is_ahead'):
-            recommendations.append({
-                'title': 'Rakip Analizinden Öğrenin',
-                'description': f"Rakibin başarılı olduğu alanları inceleyin: {', '.join(competitor_data.get('top_hashtags', [])[:2])}",
-                'action': 'Araştır ve uygula'
-            })
-        
-        recommendations.append({
-            'title': 'Farklılaşma Stratejisi',
-            'description': 'Rakibin yapmadığı şeyleri yapın. Örneğin: müşteri hikayeleri, eğitici içerikler.',
-            'action': 'İçerik planı oluştur'
-        })
-        
-        return recommendations
-    
     def _get_market_size(self, industry):
         """Pazar büyüklüğünü hesapla"""
         market_data = {
@@ -522,17 +307,6 @@ Sizin öne çıkabileceğiniz alanlar: Daha samimi içerikler, müşteri hikayel
             'travel': {'size_tr': '100M TL', 'size_global': '2.1T USD', 'growth_rate': 18}
         }
         return market_data.get(industry, market_data['e-commerce'])
-    
-    def _get_competition_intensity(self, industry):
-        """Rekabet yoğunluğunu belirle"""
-        intensities = {
-            'e-commerce': {'level': 'Yüksek', 'score': 85, 'description': 'Çok sayıda büyük oyuncu var'},
-            'fashion': {'level': 'Çok Yüksek', 'score': 90, 'description': 'Sürekli yeni markalar giriyor'},
-            'food': {'level': 'Orta', 'score': 60, 'description': 'Lokal oyuncular baskın'},
-            'technology': {'level': 'Yüksek', 'score': 80, 'description': 'Hızlı değişen dinamikler'},
-            'travel': {'level': 'Orta-Yüksek', 'score': 70, 'description': 'Sezonluk dalgalanmalar var'}
-        }
-        return intensities.get(industry, intensities['e-commerce'])
     
     def _get_entry_barriers(self, industry):
         """Giriş bariyerlerini belirle"""

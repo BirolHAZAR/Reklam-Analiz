@@ -79,13 +79,6 @@ değiştirilmedi. Bağlantıyı yapan Google hesabında
 [iki adımlı doğrulama](https://www.google.com/landing/2step/) etkinleştirilmeli;
 sonrasında kampanya okuması tekrar kontrol edilmeli.
 
-**Meta Ad Library:** Sağlayıcı `Application does not have permission for this
-action` hatasını ve `10 / 2332002` kodunu döndürüyor. Ayrıca
-[Ad Library API erişim sayfasındaki](https://www.facebook.com/ads/library/api/)
-adımların tamamlanmasını istiyor. Bu ayrı erişim, Facebook reklam hesabının ve
-Instagram profilinin çalışmasını engellemiyor; rakip reklam kütüphanesi
-işlevlerini etkiler. Sunucudan izin verilemez; Meta hesabındaki erişim kaydı ve
-istenen doğrulamalar tamamlanmalı. Mevcut çalışan bağlantılar bu amaçla değiştirilmedi.
 
 ## Testler ve bakım
 

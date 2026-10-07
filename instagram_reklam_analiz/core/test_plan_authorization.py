@@ -21,7 +21,6 @@ class PlanAuthorizationTests(TestCase):
             features="Test",
             has_advanced_reporting=True,
             has_ai_content_generation=False,
-            max_competitors=0,
         )
         UserSubscription.objects.create(
             user=self.user,
@@ -47,13 +46,6 @@ class PlanAuthorizationTests(TestCase):
     def test_plan_boolean_allows_included_feature(self):
         self.assertTrue(user_has_agency_menu_permission(self.user, "reports_center"))
         self.assertIsNone(self.middleware.process_view(self.request("reports_center"), None, (), {}))
-
-    def test_plan_limit_blocks_zero_and_allows_positive(self):
-        self.assertFalse(user_has_agency_menu_permission(self.user, "competitor_intelligence"))
-        self.plan.max_competitors = 3
-        self.plan.save(update_fields=["max_competitors"])
-        delattr(self.user, "_agency_menu_permission_cache") if hasattr(self.user, "_agency_menu_permission_cache") else None
-        self.assertTrue(user_has_agency_menu_permission(self.user, "competitor_intelligence"))
 
     def test_api_alias_is_protected_by_parent_feature(self):
         response = self.middleware.process_view(self.request("generate_content_api", "/api/creative/generate/"), None, (), {})

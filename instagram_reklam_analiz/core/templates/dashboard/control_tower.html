@@ -18,7 +18,7 @@
     <div class="ct-actions">
       <div class="ct-date"><i class="fas fa-calendar-days"></i> {{ filters.selected_days }} gün</div>
       <div class="ct-auto" data-tip="Kontrol Kulesi verilerinin hangi sıklıkla tazelendiğini gösterir. Bu bilgi, ekrandaki rakamların ne kadar güncel olduğunu anlamanı sağlar.">Veri yenileme: {{ refresh_meta.snapshot_refresh_label }}</div>
-      <button class="ct-alert-bell {% if control_alert_center.total_count %}has-alerts{% endif %}" type="button" data-ct-alert-toggle aria-label="Kritik uyarı merkezi" aria-expanded="false" data-tip="Kampanya, reklam, kreatif veya rakip tarafında acil kontrol gerektiren mesajları açar.">
+      <button class="ct-alert-bell {% if control_alert_center.total_count %}has-alerts{% endif %}" type="button" data-ct-alert-toggle aria-label="Kritik uyarı merkezi" aria-expanded="false" data-tip="Kampanya, reklam veya kreatif tarafında acil kontrol gerektiren mesajları açar.">
         <i class="fas fa-bell"></i>
         <span class="ct-alert-bell-count">{{ control_alert_center.total_count|default:0 }}</span>
       </button>
@@ -63,7 +63,7 @@
         <div class="ct-alert-drawer-empty">
           <i class="fas fa-circle-check"></i>
           <strong>Kritik mesaj yok</strong>
-          <span>Şu an müdahale gerektiren kampanya, reklam veya rakip sinyali bulunmuyor.</span>
+          <span>Şu an müdahale gerektiren kampanya veya reklam sinyali bulunmuyor.</span>
         </div>
       {% endfor %}
     </div>
@@ -164,12 +164,6 @@
   {% if executive_summary %}
     {% include "dashboard/control_tower/executive_summary_ai.html" %}
   {% endif %}
-
-  <section class="ct-ordered-row ct-competitor-row-full" aria-label="Rakip istihbaratı">
-    <div class="ct-ordered-col ct-ordered-col-full">
-      {% include "dashboard/control_tower/competitor_center.html" %}
-    </div>
-  </section>
 
   <section class="ct-ordered-row ct-health-task-row" aria-label="Kampanya sağlığı ve Octo görev merkezi">
     <div class="ct-ordered-col ct-ordered-col-left ct-health-ordered-col">
@@ -288,7 +282,7 @@
       <div class="ct-analysis-loader-copy">
         <small>OCTO CONTROL TOWER</small>
         <h3>Octo AI analiz ediyor...</h3>
-        <p>Kampanya, kreatif, rakip ve risk sinyalleri değerlendiriliyor.</p>
+        <p>Kampanya, kreatif ve risk sinyalleri değerlendiriliyor.</p>
       </div>
       <div class="ct-analysis-loader-progress"><div id="ctAnalysisLoaderBar"></div></div>
       <div class="ct-analysis-loader-progress-meta"><span id="ctAnalysisProgressLabel">0%</span><em>İşlem sürüyor</em></div>
@@ -296,7 +290,6 @@
         <span><i class="fas fa-database"></i> Snapshot</span>
         <span><i class="fas fa-chart-line"></i> KPI</span>
         <span><i class="fas fa-bullseye"></i> Aksiyon</span>
-        <span><i class="fas fa-users-viewfinder"></i> Rakip</span>
         <span><i class="fas fa-brain"></i> Octo AI</span>
         <span><i class="fas fa-file-pdf"></i> Rapor</span>
       </div>
@@ -462,7 +455,6 @@ document.addEventListener('DOMContentLoaded', function () {
 })();
 </script>
 
-<!-- CT Faz 5: Competitor pressure pill and final role separation styles -->
 
 <script>
 (function(){

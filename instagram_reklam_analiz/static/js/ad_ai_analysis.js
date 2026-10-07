@@ -177,7 +177,6 @@ class AdAIAnalyzer {
             { key: 'sentiment', label: 'Duygu', icon: '😊', color: '#ff6b6b' },
             { key: 'content_quality', label: 'İçerik', icon: '📝', color: '#4ecdc4' },
             { key: 'hashtag_effectiveness', label: 'Hashtag', icon: '#️⃣', color: '#45b7d1' },
-            { key: 'competitor', label: 'Rekabet', icon: '⚔️', color: '#f9ca24' },
             { key: 'performance', label: 'Performans', icon: '📈', color: '#6c5ce7' },
             { key: 'budget_efficiency', label: 'Bütçe', icon: '💰', color: '#a29bfe' },
             { key: 'lead_potential', label: 'Lead', icon: '🎯', color: '#fd79a8' },

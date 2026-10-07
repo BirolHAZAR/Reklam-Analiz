@@ -222,11 +222,9 @@ const UI = {
   noTitle: "{{ labels.no_title|escapejs }}",
   score: "{{ labels.score|escapejs }}",
   selectAccount: "{{ labels.select_account|escapejs }}",
-  selectCompetitor: "{{ labels.select_competitor|escapejs }}",
   selectAd: "{{ labels.select_ad|escapejs }}",
   adFallback: "{{ labels.ad_fallback|escapejs }}",
   productRequired: "{{ labels.product_required|escapejs }}",
-  competitorAdRequired: "{{ labels.competitor_ad_required|escapejs }}",
   generationFailed: "{{ labels.generation_failed|escapejs }}",
   networkError: "{{ labels.network_error|escapejs }}",
   mediaTypeError: "{{ labels.media_type_error|escapejs }}",
@@ -519,64 +517,6 @@ qs("rightAgencyClient")?.addEventListener("change", async event => {
 
 function refreshPostTypes(){
   qs("postType").innerHTML = `<option value="IMAGE">Görsel</option>`;
-}
-
-async function loadCompetitors(){
-  const platform = qs("platformSelect").value;
-  const select = qs("competitorSelect");
-  const status = qs("competitorLoadStatus");
-  select.innerHTML = `<option value="">${UI.selectCompetitor}</option>`;
-  qs("adSelect").innerHTML = `<option value="">${UI.selectAd}</option>`;
-  status.style.display = "none";
-  try {
-    const r = await fetch(`/api/competitors/${encodeURIComponent(platform)}/`, {cache:"no-store", credentials:"same-origin"});
-    if(!r.ok) throw new Error(`HTTP ${r.status}`);
-    const d = await r.json();
-    if(!d.success) throw new Error(d.message || UI.networkError);
-    (d.competitors || []).forEach(comp => {
-      const opt = document.createElement("option");
-      opt.value = comp.id;
-      opt.textContent = `${comp.name} (${comp.ad_count})`;
-      select.appendChild(opt);
-    });
-    if(!(d.competitors || []).length){
-      status.textContent = "Bu platform için aktif rakip reklamı bulunamadı.";
-      status.style.display = "block";
-    }
-  } catch(err) {
-    status.textContent = `Rakipler yüklenemedi: ${err.message || UI.networkError}`;
-    status.style.display = "block";
-  }
-}
-
-async function loadCompetitorAds(){
-  const compId = qs("competitorSelect").value;
-  const select = qs("adSelect");
-  const status = qs("competitorLoadStatus");
-  select.innerHTML = `<option value="">${UI.selectAd}</option>`;
-  if(!compId) return;
-  select.disabled = true;
-  status.textContent = "Rakip reklamları yükleniyor…";
-  status.style.display = "block";
-  try {
-    const r = await fetch(`/api/competitor/${encodeURIComponent(compId)}/ads/`, {cache:"no-store", credentials:"same-origin"});
-    if(!r.ok) throw new Error(`HTTP ${r.status}`);
-    const d = await r.json();
-    if(!d.success) throw new Error(d.message || UI.networkError);
-    (d.ads || []).forEach(ad => {
-      const opt = document.createElement("option");
-      opt.value = ad.db_id || ad.id;
-      opt.textContent = `${ad.name || ad.title || UI.adFallback} - CTR %${ad.ctr || 0}`;
-      select.appendChild(opt);
-    });
-    status.textContent = (d.ads || []).length ? `${d.ads.length} rakip reklamı yüklendi.` : "Bu rakibe ait aktif reklam bulunamadı.";
-    status.style.color = (d.ads || []).length ? "#86efac" : "#fbbf24";
-  } catch(err) {
-    status.textContent = `Rakip reklamları yüklenemedi: ${err.message || UI.networkError}`;
-    status.style.color = "#fbbf24";
-  } finally {
-    select.disabled = false;
-  }
 }
 
 qs("accountSelect").addEventListener("change", async () => {

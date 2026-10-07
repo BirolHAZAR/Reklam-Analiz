@@ -20,7 +20,7 @@ from core.models import (
 from core.services.cache_service import CacheService
 from core.services.agency_scope import get_agency_scope, platform_accounts_for_request, scope_queryset
 from core.services.openai_usage import consume_openai_operation, record_openai_token_usage, refund_ai_tariff_credits
-from core.services.ai_agent_ecosystem import run_sixteen_agent_orchestration
+from core.services.ai_agent_ecosystem import run_agent_orchestration
 from core.utils.metric_text import format_metric_text_tr
 from core.tasks.admin_ops import generate_octo_tasks
 
@@ -702,7 +702,7 @@ def _build_health_ai_payload(
         return None, f"Analiz paketi yüklenemedi: {exc}"
 
     try:
-        parsed = run_sixteen_agent_orchestration(
+        parsed = run_agent_orchestration(
             client=OpenAI(api_key=api_key, timeout=60, max_retries=2),
             model=getattr(settings, "OPENAI_MODEL", "gpt-4o"),
             task=(

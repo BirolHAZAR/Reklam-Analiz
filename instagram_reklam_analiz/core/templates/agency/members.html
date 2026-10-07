@@ -47,7 +47,6 @@
                 {% if member.role_group %}
                   {% if member.role_group.can_manage_clients %}<span class="agency-chip">Müşteri</span>{% endif %}
                   {% if member.role_group.can_manage_accounts %}<span class="agency-chip">Hesap</span>{% endif %}
-                  {% if member.role_group.can_manage_competitors %}<span class="agency-chip">Rakip</span>{% endif %}
                   {% if member.role_group.can_view_reports %}<span class="agency-chip">Rapor</span>{% endif %}
                   {% if member.role_group.can_manage_members %}<span class="agency-chip">Kullanıcı</span>{% endif %}
                   {% if member.role_group.can_manage_billing %}<span class="agency-chip">Fatura</span>{% endif %}

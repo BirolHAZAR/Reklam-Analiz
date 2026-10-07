@@ -7,7 +7,7 @@ from django.test import TestCase, override_settings
 from core.models import AICreditLedger, AICreditPackage, AIOperationTariff, FeatureUsageLedger, MembershipPlan, OpenAITokenUsageLedger, Organization
 from core.services.entitlements import add_ai_credits, get_ai_credit_balance
 from core.services.openai_usage import consume_openai_operation, record_openai_token_usage, refund_ai_tariff_credits
-from core.services.ai_agent_ecosystem import run_sixteen_agent_orchestration
+from core.services.ai_agent_ecosystem import run_agent_orchestration
 from core.services.ai_gateway import AIGatewayBudgetExceeded, AIOperationBudget, create_chat_completion
 from core.services.ai_credit_purchase import insufficient_credit_payload
 
@@ -285,8 +285,8 @@ class OpenAITokenUsageTests(TestCase):
             ).exists()
         )
 
-    def test_real_orchestrator_runs_four_grouped_calls_for_sixteen_agents(self):
-        user = get_user_model().objects.create_user(username="sixteen-user", password="test")
+    def test_real_orchestrator_runs_four_grouped_calls_for_fifteen_agents(self):
+        user = get_user_model().objects.create_user(username="fifteen-user", password="test")
 
         class FakeCompletions:
             def __init__(self):
@@ -309,22 +309,22 @@ class OpenAITokenUsageTests(TestCase):
         client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
         credit_rows_before = AICreditLedger.objects.filter(user=user, action=AICreditLedger.ACTION_CONSUME).count()
         AIOperationTariff.objects.update_or_create(
-            key="test-sixteen",
+            key="test-fifteen",
             defaults={
-                "display_name": "Test sixteen", "credit_cost": 0, "model_name": "gpt-4o",
+                "display_name": "Test fifteen", "credit_cost": 0, "model_name": "gpt-4o",
                 "max_input_tokens": 10000, "max_output_tokens": 4000, "max_calls": 4,
                 "is_active": True,
             },
         )
 
-        result = run_sixteen_agent_orchestration(
+        result = run_agent_orchestration(
             client=client, model="gpt-4o", task="Test", context={"metric": 1}, user=user,
-            reference="test.sixteen", max_workers=4, tariff_key="test-sixteen",
+            reference="test.fifteen", max_workers=4, tariff_key="test-fifteen",
         )
 
         self.assertEqual(completions.calls, 4)
-        self.assertEqual(len(result["agents"]), 16)
-        self.assertEqual(OpenAITokenUsageLedger.objects.filter(user=user, reference__startswith="test.sixteen.group.").count(), 4)
+        self.assertEqual(len(result["agents"]), 15)
+        self.assertEqual(OpenAITokenUsageLedger.objects.filter(user=user, reference__startswith="test.fifteen.group.").count(), 4)
         self.assertEqual(
             AICreditLedger.objects.filter(user=user, action=AICreditLedger.ACTION_CONSUME).count(), credit_rows_before
         )

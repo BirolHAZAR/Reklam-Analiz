@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 ACTION_KEYWORDS = (
-    ("competitor", ("rakip", "competitor")),
     ("campaign", ("kampanya", "campaign")),
     ("ad", ("reklam", "ad ")),
     ("ai", ("ai", "octo", "analiz")),
@@ -29,7 +28,6 @@ LEVEL_TO_STATUS = {
 
 ACTION_TO_ICON = {
     "notification": "fa-bell",
-    "competitor": "fa-user-secret",
     "campaign": "fa-bullhorn",
     "ad": "fa-rectangle-ad",
     "ai": "fa-robot",
@@ -116,9 +114,6 @@ def object_activity_link(obj):
         if model_name == "Campaign":
             return f"{reverse('campaign_center')}?open_octo={obj_id}"
         if model_name == "Ad":
-            source_type = (getattr(obj, "source_type", "") or "").upper()
-            if source_type == "COMPETITOR":
-                return f"{reverse('competitor_intelligence')}?open_competitor_ad={obj_id}"
             return f"{reverse('ads_center')}?open_ad={obj_id}"
         if model_name == "Creative":
             return f"{reverse('creative_center')}?open_creative={obj_id}"
@@ -135,8 +130,6 @@ def object_activity_link(obj):
             return f"{reverse('sync_center')}?snapshot={obj_id}"
         if model_name == "AnomalyAlert":
             return f"{reverse('anomaly_dashboard')}?alert={obj_id}"
-        if model_name == "Competitor":
-            return f"{reverse('competitor_intelligence')}?competitor={obj_id}"
     except Exception:
         return None
 

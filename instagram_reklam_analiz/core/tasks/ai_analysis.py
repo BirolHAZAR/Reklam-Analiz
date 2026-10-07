@@ -25,22 +25,3 @@ def analyze_multiple_ads(ad_ids):
     for ad_id in ad_ids:
         results.append(analyze_single_ad_with_all_agents(ad_id))
     return results
-
-
-@shared_task(name="core.tasks.ai_analysis.scan_anomalies_for_all_users")
-def scan_anomalies_for_all_users():
-    from core.services.account_lifecycle import active_user_queryset
-    from core.services.anomaly_detector import CompetitorAnomalyDetector
-
-    users = active_user_queryset()
-    total = 0
-    for user in users:
-        try:
-            result = CompetitorAnomalyDetector(user).scan()
-            if isinstance(result, int):
-                total += result
-            elif isinstance(result, dict):
-                total += int(result.get("created", 0) or result.get("total", 0) or 0)
-        except Exception:
-            continue
-    return {"success": True, "users_checked": users.count(), "anomalies": total}

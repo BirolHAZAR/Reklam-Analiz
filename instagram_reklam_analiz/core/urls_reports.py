@@ -16,13 +16,10 @@ urlpatterns = [
     path('reports/<int:report_id>/', reports.report_detail, name='report_detail'),
     path('reports/<int:report_id>/delete/', reports.report_delete, name='report_delete'),
     path('reports/reklam-karsilastirma/', reports.reklam_karsilastirma, name='reklam_karsilastirma'),
-    path('reports/rakip-reklam-karsilastirma/', reports.rakip_reklam_karsilastirma, name='rakip_reklam_karsilastirma'),
     path('reports/reklam-tarihcesi/', reports.reklam_tarihcesi, name='reports_reklam_tarihcesi'),
     path('reklam-tarihcesi/', reports.reklam_tarihcesi, name='reklam_tarihcesi'),
     path('reports/daily-budget/', reports.daily_budget_report, name='daily_budget_report'),
 
     path('api/reklam-listesi/', reports.api_reklam_listesi, name='api_reklam_listesi_report'),
     path('api/reklam-detay/<int:reklam_id>/', reports.api_reklam_detay, name='api_reklam_detay'),
-    path('api/rakip-reklam-listesi/', reports.api_rakip_reklam_listesi, name='api_rakip_reklam_listesi'),
-    path('api/rakip-reklam-detay/<int:reklam_id>/', reports.api_rakip_reklam_detay, name='api_rakip_reklam_detay'),
 ]

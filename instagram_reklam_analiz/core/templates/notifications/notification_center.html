@@ -14,7 +14,7 @@
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
             <div>
                 <h1 class="mb-2 notification-page-title"><i class="fas fa-bell"></i> Bildirim Merkezi</h1>
-                <p class="mb-0 notification-page-lead">Rakip, reklam, AI, kampanya ve kritik sistem uyarılarını tek merkezden yönetin.</p>
+                <p class="mb-0 notification-page-lead">Reklam, AI, kampanya ve kritik sistem uyarılarını tek merkezden yönetin.</p>
             </div>
             <div class="notification-actions">
                 <form method="post" action="{% url 'mark_all_notifications_read' %}">
@@ -91,7 +91,6 @@
                 {% csrf_token %}
                 <label class="pref-row">Uygulama içi <input type="checkbox" name="in_app_enabled" {% if preferences.in_app_enabled %}checked{% endif %}></label>
                 <label class="pref-row">Canlı bildirim <input type="checkbox" name="realtime_enabled" {% if preferences.realtime_enabled %}checked{% endif %}></label>
-                <label class="pref-row">Rakip <input type="checkbox" name="competitor_notifications" {% if preferences.competitor_notifications %}checked{% endif %}></label>
                 <label class="pref-row">AI <input type="checkbox" name="ai_notifications" {% if preferences.ai_notifications %}checked{% endif %}></label>
                 <label class="pref-row">Kampanya <input type="checkbox" name="campaign_notifications" {% if preferences.campaign_notifications %}checked{% endif %}></label>
                 <label class="pref-row">Optimizasyon <input type="checkbox" name="optimization_notifications" {% if preferences.optimization_notifications %}checked{% endif %}></label>

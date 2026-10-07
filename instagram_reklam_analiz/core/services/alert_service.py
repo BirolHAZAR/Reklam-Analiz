@@ -53,13 +53,3 @@ class AlertService:
 
     def get_anomaly_alerts(self):
         return AnomalyAlert.objects.filter(user=self.user, is_dismissed=False).order_by('-detected_at')
-
-    def competitor_suggestion(self):
-        try:
-            from core.models import Ad
-            exists = Ad.objects.filter(user=self.user, source_type="COMPETITOR").exists()
-        except Exception:
-            exists = True
-        if exists:
-            return None
-        return {"title": "Rakip reklam ekleyin", "message": "Rakip reklamları artık Ad(source_type=COMPETITOR) tablosunda izlenir."}

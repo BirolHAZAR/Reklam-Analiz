@@ -91,7 +91,6 @@ from core.services.control_tower_context import (
     _analysis_model_field_names,
     _archive_analysis_to_row,
     _bar_heights,
-    _build_competitor_intelligence,
     _build_executive_summary_from_context,
     _build_octo_ai_analysis_pdf,
     _build_octo_ai_report_from_latest_snapshot,
@@ -99,7 +98,6 @@ from core.services.control_tower_context import (
     _campaign_expected_gain,
     _campaign_health_score_engine,
     _campaign_metric_queryset,
-    _competitor_pressure_score,
     _control_tower_refresh_meta,
     _delta_class,
     _delta_text,
@@ -140,7 +138,7 @@ from core.services.cache_service import CacheService
 from core.services.entitlements import get_access_subscription
 from core.services.openai_usage import consume_openai_operation, refund_ai_tariff_credits
 from core.services.ai_credit_purchase import ai_credit_purchase_url, insufficient_credit_payload
-from core.services.ai_agent_ecosystem import run_sixteen_agent_orchestration
+from core.services.ai_agent_ecosystem import run_agent_orchestration
 from core.services.rate_limit import check_rate_limit, identity_for_request
 from core.utils.html_translations import repair_mojibake, translate_html_to_english
 
@@ -178,7 +176,6 @@ def _localize_control_tower_context(context, language):
     for key in (
         "octo_ai_report",
         "executive_summary",
-        "competitor_intelligence",
         "control_alert_center",
         "decision_center",
     ):
@@ -273,7 +270,7 @@ def _control_tower_ai_organization(request, agency_scope=None):
 
 
 def _control_tower_deep_ai_context(context):
-    """Roll up every page row into a TPM-safe evidence pack for all 16 agents."""
+    """Roll up every page row into a TPM-safe evidence pack for all active agents."""
     keys = (
         "filters",
         "summary",
@@ -291,9 +288,6 @@ def _control_tower_deep_ai_context(context):
         "octo_task_center_tasks",
         "octo_task_center_sections",
         "octo_task_center_stats",
-        "competitor_rows",
-        "competitor_ad_groups",
-        "competitor_intelligence",
         "creative_wall",
         "creative_wall_segment_cards",
         "creative_wall_stats",
@@ -324,16 +318,13 @@ def _control_tower_deep_ai_context(context):
 
     campaign_rows = context.get("campaign_health") or []
     creative_rows = context.get("creative_wall") or []
-    competitor_rows = context.get("competitor_rows") or []
     alert_rows = context.get("critical_alerts") or []
     task_rows = context.get("octo_task_center_tasks") or []
     platform_rows = context.get("platform_strip_cards") or []
-    competitor_groups = context.get("competitor_ad_groups") or []
-    competitor_ads = [ad for group in competitor_groups if isinstance(group, dict) for ad in (group.get("rows") or [])]
 
     summary = context.get("summary") or {}
     core_summary_keys = (
-        "octo_score", "campaigns", "ad_groups", "creatives", "own_ads", "active_ads", "competitor_ads",
+        "octo_score", "campaigns", "ad_groups", "creatives", "own_ads", "active_ads",
         "total_impressions", "total_clicks", "total_spend", "total_revenue", "total_conversions",
         "avg_roas", "avg_ctr", "avg_cpc", "avg_cpm", "conversion_rate", "roas_delta", "ctr_delta", "cpc_delta",
     )
@@ -357,22 +348,9 @@ def _control_tower_deep_ai_context(context):
             numeric_fields=("score", "impressions", "clicks", "spend", "revenue", "conversions", "ctr", "roas", "fatigue"),
             highlight_fields=("status_label", "score", "roas", "ctr", "fatigue", "recommended_action"),
         ),
-        "competitors": row_rollup(
-            competitor_rows,
-            numeric_fields=("threat_score", "activity", "estimated_impressions", "estimated_engagement", "avg_ctr"),
-            highlight_fields=("threat_score", "activity", "share", "platform_name"),
-        ),
-        "competitor_ads": row_rollup(
-            competitor_ads,
-            highlight_fields=("platform", "format", "seen_label", "text"),
-        ),
         "alerts": row_rollup(alert_rows, highlight_fields=("severity", "message", "target_name")),
         "tasks": row_rollup(task_rows, numeric_fields=("priority",), highlight_fields=("status", "priority", "detail")),
         "platforms": row_rollup(platform_rows, highlight_fields=("status", "accounts", "sync")),
-        "competitor_intelligence": {
-            key: (context.get("competitor_intelligence") or {}).get(key)
-            for key in ("pressure_score", "growth_label", "new_ads_label", "share_of_voice_label")
-        },
         "creative_wall_stats": context.get("creative_wall_stats") or {},
         "octo_task_center_stats": context.get("octo_task_center_stats") or {},
     }
@@ -380,9 +358,6 @@ def _control_tower_deep_ai_context(context):
     payload["data_coverage"] = {
         "campaigns": len(campaign_rows),
         "creatives": len(creative_rows),
-        "competitors": len(competitor_rows),
-        "competitor_groups": len(competitor_groups),
-        "competitor_ads": len(competitor_ads),
         "alerts": len(alert_rows),
         "tasks": len(task_rows),
         "platforms": len(platform_rows),
@@ -479,7 +454,7 @@ def control_tower(request):
     control_tower_cache_version = CacheService.get_version("control_tower", user.id)
     control_tower_cache_key_parts = (
         "schema",
-        "no-empty-summary-v1",
+        "own-performance-v2",
         "user",
         user.id,
         "agency_client",
@@ -505,12 +480,11 @@ def control_tower(request):
     prev_end = start_date - timedelta(days=1)
 
     own_ads = scope_queryset(request, Ad.objects.filter(source_type="OWN"))
-    competitor_ads = scope_queryset(request, Ad.objects.filter(source_type="COMPETITOR"))
 
     def scoped_anomaly_queryset(queryset):
         if agency_scope.selected_client:
             return queryset.filter(
-                rakip__platform_account__agency_client=agency_scope.selected_client
+                ad__platform_account__agency_client=agency_scope.selected_client
             )
         return queryset
 
@@ -782,7 +756,6 @@ def control_tower(request):
 
     # Octo Görev Merkezi V3
     # Yeni OctoTaskInstance görev motorundan beslenir.
-    # Rakip/competitor modülü görevleri de aynı motor içinde devrededir; ayrı kopya görev üretilmez.
     octo_task_center_tasks = []
     octo_task_center_sections = []
     octo_task_center_stats = {
@@ -810,7 +783,7 @@ def control_tower(request):
             scoped_octo_task_queryset(
                 OctoTaskInstance.objects.filter(user=user, status__in=["open", "viewed", "snoozed"])
             )
-            .select_related("rule", "campaign", "ad_group", "ad", "ad__competitor", "creative", "platform_account", "platform_connection")
+            .select_related("rule", "campaign", "ad_group", "ad", "creative", "platform_account", "platform_connection")
             .order_by("-priority_score", "-last_detected_at", "-created_at")
         )
 
@@ -847,7 +820,6 @@ def control_tower(request):
             "performance": "Performans",
             "creative": "Kreatif",
             "budget": "Bütçe",
-            "competitor": "Rakip",
             "conversion": "Dönüşüm",
         }
 
@@ -856,22 +828,8 @@ def control_tower(request):
             ad = getattr(task, "ad", None)
             platform_account = getattr(task, "platform_account", None)
             rule = getattr(task, "rule", None)
-            is_competitor_task = (
-                getattr(task, "module", None) == "competitor"
-                or (ad is not None and getattr(ad, "source_type", None) == "COMPETITOR")
-            )
-
             campaign_name = "Genel hesap görevi"
-            competitor_name = ""
-            if is_competitor_task and ad is not None:
-                competitor = getattr(ad, "competitor", None)
-                competitor_name = (
-                    getattr(competitor, "name", None)
-                    or getattr(ad, "competitor_name", None)
-                    or "Rakip firma"
-                )
-                campaign_name = competitor_name
-            elif campaign is not None and getattr(campaign, "name", None):
+            if campaign is not None and getattr(campaign, "name", None):
                 campaign_name = campaign.name
             elif platform_account is not None:
                 campaign_name = (
@@ -901,14 +859,7 @@ def control_tower(request):
             campaign_url = ""
             campaign_analysis_url = ""
 
-            if is_competitor_task:
-                try:
-                    competitor_url = reverse("competitor_intelligence")
-                except NoReverseMatch:
-                    competitor_url = "/competitor-intelligence/"
-                query = {"open_competitor_ad": ad_id or "", "competitor": competitor_name or campaign_name}
-                campaign_url = f"{competitor_url}?{urlencode(query)}"
-            elif campaign_id:
+            if campaign_id:
                 try:
                     campaign_analysis_url = reverse("octo_campaign_analysis_safe", kwargs={"campaign_id": campaign_id})
                 except NoReverseMatch:
@@ -923,27 +874,26 @@ def control_tower(request):
                 campaign_url = f"{campaign_center_url}?{urlencode({'open_octo': campaign_id, 'campaign_name': campaign_name})}"
 
             target_url = campaign_url or "#"
-            if not is_competitor_task:
-                ad_group = getattr(task, "ad_group", None)
-                creative = getattr(task, "creative", None)
-                if ad is not None and getattr(ad, "id", None):
-                    try:
-                        ads_center_url = reverse("ads_center")
-                    except NoReverseMatch:
-                        ads_center_url = "/ads-center/"
-                    target_url = f"{ads_center_url}?{urlencode({'open_ad': ad.id})}"
-                elif creative is not None and getattr(creative, "id", None):
-                    try:
-                        creative_center_url = reverse("creative_center")
-                    except NoReverseMatch:
-                        creative_center_url = "/creative-center/"
-                    target_url = f"{creative_center_url}?{urlencode({'open_creative': creative.id})}"
-                elif ad_group is not None and getattr(ad_group, "id", None):
-                    try:
-                        adgroup_center_url = reverse("adgroup_center")
-                    except NoReverseMatch:
-                        adgroup_center_url = "/adgroup-center/"
-                    target_url = f"{adgroup_center_url}?{urlencode({'open_adgroup': ad_group.id})}"
+            ad_group = getattr(task, "ad_group", None)
+            creative = getattr(task, "creative", None)
+            if ad is not None and getattr(ad, "id", None):
+                try:
+                    ads_center_url = reverse("ads_center")
+                except NoReverseMatch:
+                    ads_center_url = "/ads-center/"
+                target_url = f"{ads_center_url}?{urlencode({'open_ad': ad.id})}"
+            elif creative is not None and getattr(creative, "id", None):
+                try:
+                    creative_center_url = reverse("creative_center")
+                except NoReverseMatch:
+                    creative_center_url = "/creative-center/"
+                target_url = f"{creative_center_url}?{urlencode({'open_creative': creative.id})}"
+            elif ad_group is not None and getattr(ad_group, "id", None):
+                try:
+                    adgroup_center_url = reverse("adgroup_center")
+                except NoReverseMatch:
+                    adgroup_center_url = "/adgroup-center/"
+                target_url = f"{adgroup_center_url}?{urlencode({'open_adgroup': ad_group.id})}"
 
             return {
                 "id": task.id,
@@ -956,8 +906,7 @@ def control_tower(request):
                 "campaign_analysis_url": campaign_analysis_url,
                 "target_url": target_url,
                 "ad_id": ad_id,
-                "is_competitor_task": is_competitor_task,
-                "source_label": "Rakip Reklamı" if is_competitor_task else "Kampanya",
+                "source_label": "Kampanya",
                 "platform": platform_name,
                 "impact": impact_text,
                 "severity": task.severity,
@@ -1005,21 +954,11 @@ def control_tower(request):
 
         for section in section_definitions:
             rows = [_task_payload(task) for task in section["queryset"]]
-            competitor_rows = [row for row in rows if row.get("is_competitor_task")]
-            campaign_rows = [row for row in rows if not row.get("is_competitor_task")]
+            campaign_rows = rows
             section["rows"] = rows
-            section["campaign_rows"] = campaign_rows
-            section["competitor_rows"] = competitor_rows
-            section["competitor_count"] = len(competitor_rows)
-            section["campaign_count"] = len(campaign_rows)
+            section["campaign_rows"] = rows
+            section["campaign_count"] = len(rows)
             section["task_groups"] = [
-                {
-                    "key": "competitor",
-                    "label": "Rakip reklam görevleri",
-                    "icon": "fa-binoculars",
-                    "rows": competitor_rows,
-                    "count": len(competitor_rows),
-                },
                 {
                     "key": "campaign",
                     "label": "Kampanya görevleri",
@@ -1037,14 +976,6 @@ def control_tower(request):
     def _ct_alert_target_for_ad(ad_obj):
         if ad_obj is None or not getattr(ad_obj, "id", None):
             return "#"
-        if getattr(ad_obj, "source_type", None) == "COMPETITOR":
-            competitor = getattr(ad_obj, "competitor", None)
-            competitor_name = getattr(competitor, "name", None) or getattr(ad_obj, "competitor_name", "") or ""
-            try:
-                base_url = reverse("competitor_intelligence")
-            except NoReverseMatch:
-                base_url = "/competitor-intelligence/"
-            return f"{base_url}?{urlencode({'open_competitor_ad': ad_obj.id, 'competitor': competitor_name})}"
         try:
             base_url = reverse("ads_center")
         except NoReverseMatch:
@@ -1110,7 +1041,7 @@ def control_tower(request):
             AnomalyAlert.objects.filter(user=user, is_dismissed=False, severity__in=["critical", "high"])
         ).order_by("-detected_at")[:10]
         for alert in anomaly_qs:
-            ad_obj = getattr(alert, "rakip", None)
+            ad_obj = getattr(alert, "ad", None)
             action_link = getattr(alert, "action_link", None)
             target_url = action_link or _ct_alert_target_for_ad(ad_obj)
             alert_items.append({
@@ -1121,7 +1052,7 @@ def control_tower(request):
                 "message": getattr(alert, "description", None) or getattr(alert, "suggested_action", None) or "Sistem gerçek performans anomalisi yakaladı.",
                 "target_name": getattr(ad_obj, "name", None) or getattr(ad_obj, "ad_name", None) or "",
                 "target_url": target_url,
-                "source_label": "Anomali" if not ad_obj else "Rakip Reklamı" if getattr(ad_obj, "source_type", None) == "COMPETITOR" else "Reklam",
+                "source_label": "Anomali" if not ad_obj else "Reklam",
                 "severity": getattr(alert, "severity", "warning"),
                 "severity_label": _ct_alert_label(getattr(alert, "severity", "warning")),
                 "time_label": _ct_alert_time(getattr(alert, "detected_at", None)),
@@ -1146,7 +1077,6 @@ def control_tower(request):
         "opportunity_count": sum(1 for item in deduped_alerts if item.get("severity") == "opportunity"),
     }
 
-    total_competitor = competitor_ads.count() or 1
 
     platform_icon_map = {
         "facebook": "fab fa-facebook-f",
@@ -1264,200 +1194,6 @@ def control_tower(request):
         "applied_tasks": octo_task_center_stats.get("done", 0),
         "metrics": today_metrics_count,
     }
-
-    competitor_rows = []
-    competitor_ad_groups = []
-
-    competitor_category_meta = {
-        "direct": {
-            "label": "Doğrudan Rakipler",
-            "tone": "bad",
-            "icon": "fa-crosshairs",
-            "note": "Aynı müşteri kitlesine doğrudan baskı yapan reklamlar",
-        },
-        "indirect": {
-            "label": "Dolaylı Rakipler",
-            "tone": "mid",
-            "icon": "fa-route",
-            "note": "Benzer ihtiyaca oynayan, pazarı dolaylı etkileyen reklamlar",
-        },
-        "potential": {
-            "label": "Potansiyel Rakipler",
-            "tone": "good",
-            "icon": "fa-seedling",
-            "note": "Yeni yükselen ve izlemeye alınması gereken reklam sinyalleri",
-        },
-        "unknown": {
-            "label": "Kategorisiz Rakip Reklamları",
-            "tone": "neutral",
-            "icon": "fa-layer-group",
-            "note": "Rakip kategorisi tanımlanmamış reklamlar",
-        },
-    }
-
-    def _clean_text(value, fallback=""):
-        text = str(value or "").strip()
-        if not text:
-            return fallback
-
-        first_line = next(
-            (line.strip(" -•\t") for line in text.splitlines() if line.strip()),
-            text,
-        )
-        return first_line[:150]
-
-    def _safe_date_label(value):
-        if not value:
-            return "-"
-        try:
-            return timezone.localtime(value).strftime("%d.%m.%Y")
-        except Exception:
-            try:
-                return value.strftime("%d.%m.%Y")
-            except Exception:
-                return "-"
-
-    def _competitor_ad_payload(ad):
-        competitor = getattr(ad, "competitor", None)
-        platform_account = getattr(ad, "platform_account", None)
-        platform_name = "-"
-        try:
-            if platform_account and platform_account.platform:
-                platform_name = platform_account.platform.name
-        except Exception:
-            platform_name = "-"
-
-        ad_title = (
-            getattr(ad, "headline", None)
-            or getattr(ad, "name", None)
-            or getattr(ad, "primary_text", None)
-            or f"Rakip reklam #{getattr(ad, 'id', '')}"
-        )
-        ad_title = _clean_text(ad_title, "Rakip reklam")
-        primary_text = _clean_text(getattr(ad, "primary_text", None) or getattr(ad, "description", None), "Metin bulunamadı")
-        if len(primary_text) > 110:
-            primary_text = primary_text[:107].rstrip() + "..."
-
-        competitor_name = (
-            getattr(competitor, "name", None)
-            or getattr(platform_account, "account_name", None)
-            or "Rakip"
-        )
-        category = getattr(competitor, "category", None) or "unknown"
-        if category not in competitor_category_meta:
-            category = "unknown"
-
-        return {
-            "id": getattr(ad, "id", None),
-            "title": ad_title,
-            "text": primary_text,
-            "competitor": competitor_name,
-            "category": category,
-            "platform": platform_name,
-            "format": getattr(ad, "ad_format", None) or getattr(ad, "objective", None) or "Reklam",
-            "cta": getattr(ad, "call_to_action", None) or "İncele",
-            "landing_url": getattr(ad, "landing_url", None) or "",
-            "seen_label": _safe_date_label(getattr(ad, "last_seen_at", None) or getattr(ad, "created_at", None)),
-            "status": getattr(ad, "status", None) or "UNKNOWN",
-        }
-
-    competitor_group = (
-        competitor_ads.values(
-            "competitor_id",
-            "competitor__name",
-            "platform_account__account_name",
-            "platform_account__platform__name",
-        )
-        .annotate(total=Count("id"))
-        .order_by("-total")[:8]
-    )
-
-    for row in competitor_group:
-        name = (
-            row.get("competitor__name")
-            or row.get("platform_account__account_name")
-            or row.get("platform_account__platform__name")
-            or "Competitor"
-        )
-        total = row["total"] or 0
-        share = round((total / total_competitor) * 100)
-        pressure_score, pressure_state, pressure_label = _competitor_pressure_score(total, share)
-        competitor_rows.append({
-            "name": name,
-            "new_ads": total,
-            "new_ads_label": _format_dashboard_number(total, decimals=0),
-            "trend": "up" if total else "flat",
-            "trend_icon": "▲" if total else "▬",
-            "trend_state": "bad" if total else "neutral",
-            "share": share,
-            "share_label": _fmt_percent(share),
-            "pressure_score": pressure_score,
-            "pressure_state": pressure_state,
-            "pressure_label": pressure_label,
-        })
-
-    competitor_ads_for_list = list(
-        competitor_ads
-        .select_related("competitor", "platform_account", "platform_account__platform")
-        .order_by("competitor__name", "-last_seen_at", "-created_at")[:120]
-    )
-
-    # Rakip reklam listesi kategoriye göre değil, firma bazlı gösterilir:
-    # Rakip Firma -> o firmanın reklamları.
-    # Böylece kullanıcı hangi rakibin hangi kreatif/reklam hamlesini yaptığını doğrudan görür.
-    competitor_company_buckets = {}
-    for ad in competitor_ads_for_list:
-        payload = _competitor_ad_payload(ad)
-        competitor_name = payload.get("competitor") or "Rakip firma"
-        bucket = competitor_company_buckets.setdefault(competitor_name, {
-            "key": competitor_name.lower().replace(" ", "-"),
-            "name": competitor_name,
-            "platform": payload.get("platform") or "-",
-            "count": 0,
-            "rows": [],
-        })
-        bucket["rows"].append(payload)
-        bucket["count"] += 1
-
-    for bucket in competitor_company_buckets.values():
-        rows = bucket.get("rows") or []
-        total_count = bucket.get("count") or len(rows)
-        bucket["visible_count"] = min(total_count, 5)
-        bucket["hidden_count"] = max(total_count - 5, 0)
-        bucket["latest_label"] = rows[0].get("seen_label") if rows else "-"
-
-    competitor_ad_groups = sorted(
-        competitor_company_buckets.values(),
-        key=lambda item: item["count"],
-        reverse=True,
-    )[:8]
-
-    # Octo Görev Merkezi rakip görevleri yalnızca OctoTaskInstance tablosundan gelir.
-    # Gösterim amaçlı sanal görev üretilmez. Rakip reklam görevi görünmüyorsa
-    # generate_octo_tasks komutu gerçek koşulu yakalayıp instance açmamış demektir.
-
-    competitor_current_count = 0
-    competitor_previous_count = 0
-    try:
-        if _model_has_field(Ad, "created_at"):
-            competitor_current_count = competitor_ads.filter(created_at__date__gte=start_date, created_at__date__lte=today).count()
-            competitor_previous_count = competitor_ads.filter(created_at__date__gte=prev_start, created_at__date__lte=prev_end).count()
-        else:
-            competitor_current_count = total_competitor
-    except Exception:
-        competitor_current_count = total_competitor
-        competitor_previous_count = 0
-
-    if not competitor_current_count:
-        competitor_current_count = sum(int(_num(r.get("new_ads"))) for r in competitor_rows)
-
-    competitor_intelligence = _build_competitor_intelligence(
-        competitor_rows=competitor_rows,
-        total_competitor=total_competitor,
-        current_count=competitor_current_count,
-        previous_count=competitor_previous_count,
-        selected_days=selected_days,
-    )
 
     # Creative Performans Duvarı
     # Kaynak doğrudan DB metrik tablolarıdır.
@@ -1841,25 +1577,20 @@ def control_tower(request):
     conversion_score = _score(effective_conversion_rate, 5)
     ctr_score = _score(avg_ctr, 3)
 
-    # Rakip baskısı ters skordur: çok rakip reklamı = daha düşük sağlık.
-    competitor_ad_count = competitor_ads.count()
-    competitor_score = _inverse_score(competitor_ad_count, 0, 40) if competitor_ad_count else 100
     if not has_performance_data:
         budget_score = 0
         roas_score = 0
         conversion_score = 0
         creative_score = 0
-        competitor_score = 0
         ctr_score = 0
 
-    # Radar eksen sırası SVG ile aynıdır: Harcama, Gelir, Dönüşüm, Creative, Rekabet, Hedefleme.
-    radar_values = [budget_score, roas_score, conversion_score, creative_score, competitor_score, ctr_score]
+    # Radar eksen sırası SVG ile aynıdır: Harcama, Gelir, Dönüşüm, Creative, Hedefleme.
+    radar_values = [budget_score, roas_score, conversion_score, creative_score, ctr_score]
     radar_avg_score = _weighted_avg([
         (budget_score, 20),
         (roas_score, 20),
         (conversion_score, 20),
         (creative_score, 15),
-        (competitor_score, 15),
         (ctr_score, 10),
     ])
     radar_state_class, radar_state_label = _radar_state(radar_avg_score)
@@ -1886,11 +1617,6 @@ def control_tower(request):
             "tip": "Creative performansı, kreatif skorlarının ortalamasından gelir. Veri yoksa ROAS ve CTR tabanlı güvenli fallback kullanılır.",
         },
         {
-            "key": "competition", "label": "Rekabet", "value": competitor_score, "raw": competitor_ad_count,
-            "icon": "fas fa-trophy", "weight": 15,
-            "tip": "Rekabet gücü ters skorlanır. Rakip reklam yoğunluğu arttıkça rekabet baskısı yükselir ve skor düşer.",
-        },
-        {
             "key": "targeting", "label": "Hedefleme", "value": ctr_score, "raw": f"{round(_num(avg_ctr), 2)}%",
             "icon": "fas fa-crosshairs", "weight": 10,
             "tip": "Hedefleme kalitesi CTR ile okunur. CTR 3.00% ve üzeri 100 puan kabul edilir.",
@@ -1904,7 +1630,6 @@ def control_tower(request):
         "roas": roas_score,
         "creative": creative_score,
         "conversion": conversion_score,
-        "competitor": competitor_score,
         "ctr": ctr_score,
         "polygon_points": _radar_polygon(radar_values),
         "avg_score": radar_avg_score,
@@ -1915,7 +1640,7 @@ def control_tower(request):
 
     # Octo AI Skoru V2
     # Bu skor artık yalnızca OctoScoreHistory veya basit ROAS/CTR fallback'ine bağlı değildir.
-    # Performans, maliyet, dönüşüm, creative sağlık, bütçe dengesi, rakip baskısı,
+    # Performans, maliyet, dönüşüm, creative sağlık, bütçe dengesi,
     # kritik uyarılar ve bekleyen Octo görevleri birlikte değerlendirilir.
     octo_ai_result = _octo_ai_score_engine(
         roas=effective_roas,
@@ -1924,7 +1649,6 @@ def control_tower(request):
         conversion_rate=effective_conversion_rate,
         spend_delta=spend_delta,
         creative_score=creative_score,
-        competitor_ad_count=competitor_ad_count,
         critical_alert_count=real_critical_alert_count,
         pending_ai_tasks=octo_task_center_stats.get("open", 0),
         high_ai_tasks=octo_task_center_stats.get("critical", 0),
@@ -1948,7 +1672,6 @@ def control_tower(request):
         conversion_rate=_num(prev_conversion_rate),
         spend_delta=0,
         creative_score=prev_creative_score,
-        competitor_ad_count=competitor_ad_count,
         critical_alert_count=0,
         pending_ai_tasks=0,
         high_ai_tasks=0,
@@ -2003,7 +1726,6 @@ def control_tower(request):
             "creatives": scope_queryset(request, Creative.objects.all()).count(),
             "own_ads": own_ads.count(),
             "active_ads": own_ads.filter(is_active=True).count(),
-            "competitor_ads": competitor_ads.count(),
             "total_impressions": total_impressions,
             "total_clicks": total_clicks,
             "total_spend": total_spend,
@@ -2081,9 +1803,6 @@ def control_tower(request):
         "octo_task_center_tasks": octo_task_center_tasks,
         "octo_task_center_sections": octo_task_center_sections,
         "octo_task_center_stats": octo_task_center_stats,
-        "competitor_rows": competitor_rows,
-        "competitor_ad_groups": competitor_ad_groups,
-        "competitor_intelligence": competitor_intelligence,
         "today_summary": today_summary,
         "creative_wall": creative_wall,
         "creative_wall_segment_cards": creative_wall_segment_cards,
@@ -2190,7 +1909,7 @@ def control_tower(request):
                         "octo_ai_report": report,
                     })
                     from openai import OpenAI
-                    real_ai = run_sixteen_agent_orchestration(
+                    real_ai = run_agent_orchestration(
                         client=OpenAI(api_key=settings.OPENAI_API_KEY, timeout=60, max_retries=2),
                         model=settings.OPENAI_MODEL,
                         task="Tum Control Tower verilerini capraz analiz et; kanitli bulgu, risk ve oncelikli aksiyon ver.",
@@ -2224,7 +1943,7 @@ def control_tower(request):
                         what_happened="\n".join(row.get("finding", "") for row in ai_rows),
                         root_cause="\n".join(row.get("risk", "") for row in ai_rows if row.get("risk")),
                         action_plan="\n".join(row.get("recommendation", "") for row in ai_rows),
-                        expected_impact="16 uzman ajanin tum Control Tower verilerini capraz analiz sonucu.",
+                        expected_impact="Uzman ajanlarin tum Control Tower verilerini capraz analiz sonucu.",
                         severity="info",
                         priority="high",
                         status="active",
@@ -2397,7 +2116,6 @@ def control_tower_archive(request):
         ("all", "Tümü", "fas fa-layer-group", None),
         ("executive_summary", "Executive Summary", "fas fa-chart-pie", ["executive_summary"]),
         ("strategic_advisor", "Strategic Advisor", "fas fa-brain", ["strategic_advisor", "decision_center", "kpi_strip"]),
-        ("competitor_intelligence", "Competitor Intelligence", "fas fa-binoculars", ["competitor_intelligence"]),
         ("campaign_health", "Campaign Health", "fas fa-heart-pulse", ["campaign_health"]),
         ("creative_wall", "Creative Performance", "fas fa-wand-magic-sparkles", ["creative_wall", "creative"]),
     ]

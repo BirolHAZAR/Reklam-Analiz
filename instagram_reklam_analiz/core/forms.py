@@ -122,7 +122,7 @@ from .models import (
     AgencyClient,
     AgencyRoleGroup,
     BillingInfo,
-    Competitor,
+
     MarketplaceAccount,
     MarketplaceProductResearch,
     Organization,
@@ -334,65 +334,6 @@ class MarketplaceProductResearchForm(forms.ModelForm):
         return cleaned_data
 
 
-class AgencyCompetitorForm(forms.ModelForm):
-    facebook_page_id = forms.CharField(required=False,
-        label="Facebook sayfa ID / Reklam Kütüphanesi bağlantısı",
-        widget=forms.TextInput(attrs={"class": "form-control"}))
-    class Meta:
-        model = Competitor
-        fields = ["agency_client", "platform", "platform_account", "platform_identifier", "name", "website", "category", "description", "is_active"]
-        widgets = {
-            "agency_client": forms.Select(attrs={"class": "form-select"}),
-            "platform": forms.Select(attrs={"class": "form-select"}),
-            "platform_account": forms.Select(attrs={"class": "form-select"}),
-            "platform_identifier": forms.TextInput(attrs={"class": "form-control", "placeholder": "Rakip hesap adı / ID"}),
-            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Rakip marka adı"}),
-            "website": forms.URLInput(attrs={"class": "form-control", "placeholder": "https://"}),
-            "category": forms.Select(attrs={"class": "form-select"}),
-            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-        }
-
-    def __init__(self, *args, organization=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        from core.services.competitor_public_sources import SUPPORTED_COMPETITOR_PLATFORMS
-        from core.models import Platform
-        self.fields["platform"].queryset = Platform.objects.filter(is_active=True, code__in=SUPPORTED_COMPETITOR_PLATFORMS)
-        self.fields["platform"].required = True
-        if organization is not None:
-            clients = organization.clients.filter(is_active=True).order_by("name")
-            self.fields["agency_client"].queryset = clients
-            self.fields["platform_account"].queryset = PlatformAccount.objects.filter(agency_client__organization=organization, platform__code__in=SUPPORTED_COMPETITOR_PLATFORMS).select_related("platform", "agency_client")
-
-    def clean_facebook_page_id(self):
-        from core.services.competitor_live_sync import parse_meta_page_reference
-        try:
-            return parse_meta_page_reference(self.cleaned_data.get("facebook_page_id"))
-        except ValueError as exc:
-            raise forms.ValidationError(str(exc)) from exc
-
-    def clean_platform_identifier(self):
-        from core.services.competitor_identity import normalize_competitor_identifier
-        try:
-            platform = self.cleaned_data.get('platform')
-            return normalize_competitor_identifier(self.cleaned_data.get("platform_identifier"), getattr(platform, 'code', None))
-        except ValueError as exc:
-            raise forms.ValidationError(str(exc)) from exc
-
-    def clean(self):
-        cleaned = super().clean()
-        account = cleaned.get("platform_account")
-        if account and (account.platform != cleaned.get("platform") or account.agency_client != cleaned.get("agency_client")):
-            raise forms.ValidationError("Bağlı hesap, seçilen platform ve ajans müşterisiyle eşleşmelidir.")
-        platform, client, identifier = cleaned.get("platform"), cleaned.get("agency_client"), cleaned.get("platform_identifier")
-        if platform and client and identifier:
-            from core.services.competitor_identity import duplicate_competitors
-            page_id = cleaned.get("facebook_page_id", "")
-            if platform.code == "facebook" and identifier.isdigit() and page_id and identifier != page_id:
-                raise forms.ValidationError("Hesap ID'si ile Facebook sayfa ID'si eşleşmiyor.")
-            if duplicate_competitors(None, platform, identifier, client, page_id).exclude(pk=self.instance.pk).exists():
-                raise forms.ValidationError("Bu rakip müşterinin listesinde zaten kayıtlı.")
-        return cleaned
 
 
 class OrganizationMemberInviteForm(forms.Form):
@@ -485,7 +426,7 @@ class AgencyRoleGroupForm(forms.ModelForm):
         model = AgencyRoleGroup
         fields = [
             "name", "description", "can_manage_clients", "can_manage_accounts",
-            "can_manage_competitors", "can_view_reports", "can_manage_members",
+            "can_view_reports", "can_manage_members",
             "can_manage_billing", "menu_permissions", "is_active",
         ]
         widgets = {
@@ -493,7 +434,6 @@ class AgencyRoleGroupForm(forms.ModelForm):
             "description": forms.TextInput(attrs={"class": "form-control"}),
             "can_manage_clients": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "can_manage_accounts": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "can_manage_competitors": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "can_view_reports": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "can_manage_members": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "can_manage_billing": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -529,22 +469,22 @@ class AgencyRoleGroupForm(forms.ModelForm):
 
 class BillingInfoForm(forms.ModelForm):
     """Fatura bilgileri formu - BillingInfo modelini kullanır"""
-    
+
     class Meta:
         model = BillingInfo  # İNVOICE DEĞİL! BillingInfo olmalı!
         fields = [
             'customer_type',
-            'first_name', 
-            'last_name', 
-            'email', 
+            'first_name',
+            'last_name',
+            'email',
             'phone',
-            'company_name', 
-            'tax_office', 
+            'company_name',
+            'tax_office',
             'tax_number',
             'tc_kimlik',
-            'address', 
-            'city', 
-            'district', 
+            'address',
+            'city',
+            'district',
             'zip_code',
         ]
         widgets = {
@@ -558,7 +498,7 @@ class PaymentMethodForm(forms.Form):
         ('credit_card', 'Kredi Kartı'),
         ('bank_transfer', 'Havale/EFT'),
     ]
-    
+
     payment_method = forms.ChoiceField(
         choices=PAYMENT_CHOICES,
         widget=forms.RadioSelect(),
@@ -570,36 +510,36 @@ class PaymentMethodForm(forms.Form):
 class CreditCardForm(forms.Form):
     """Kredi kartı bilgileri formu"""
     card_holder = forms.CharField(
-        max_length=100, 
+        max_length=100,
         required=False,
         label='Kart Üzerindeki İsim',
         widget=forms.TextInput(attrs={'placeholder': 'AD SOYAD'})
     )
     card_number = forms.CharField(
-        max_length=19, 
+        max_length=19,
         required=False,
         label='Kart Numarası',
         widget=forms.TextInput(attrs={'placeholder': '0000 0000 0000 0000'})
     )
     expiry_month = forms.CharField(
-        max_length=2, 
+        max_length=2,
         required=False,
         label='Ay',
         widget=forms.TextInput(attrs={'placeholder': 'AA'})
     )
     expiry_year = forms.CharField(
-        max_length=2, 
+        max_length=2,
         required=False,
         label='Yıl',
         widget=forms.TextInput(attrs={'placeholder': 'YY'})
     )
     cvv = forms.CharField(
-        max_length=4, 
+        max_length=4,
         required=False,
         label='CVV',
         widget=forms.PasswordInput(attrs={'placeholder': '***'})
     )
-    
+
     def clean_card_number(self):
         card_number = self.cleaned_data.get('card_number', '')
         # Boşlukları kaldır
@@ -608,7 +548,7 @@ class CreditCardForm(forms.Form):
 
 
 class LegacyCheckoutForm(forms.ModelForm):
-    
+
     # Müşteri tipi seçimi
     CUSTOMER_TYPE_CHOICES = [
         ('individual', 'Bireysel'),
@@ -621,7 +561,7 @@ class LegacyCheckoutForm(forms.ModelForm):
         initial='individual',
         label='Müşteri Tipi'
     )
-    
+
     # TC Kimlik No: 11 haneli, sadece rakam (algoritma kontrolü YOK)
     tc_kimlik = forms.CharField(
         max_length=11,
@@ -637,7 +577,7 @@ class LegacyCheckoutForm(forms.ModelForm):
         }),
         label='TC Kimlik No'
     )
-    
+
     # Vergi No: 10 haneli, sadece rakam
     tax_number = forms.CharField(
         max_length=10,
@@ -653,7 +593,7 @@ class LegacyCheckoutForm(forms.ModelForm):
         }),
         label='Vergi No'
     )
-    
+
     # Vergi Dairesi
     tax_office = forms.CharField(
         max_length=100,
@@ -664,14 +604,14 @@ class LegacyCheckoutForm(forms.ModelForm):
         }),
         label='Vergi Dairesi'
     )
-    
+
     # Ödeme yöntemi - GİZLİ, otomatik atanacak
     payment_method = forms.CharField(
         required=False,
         initial='credit_card',
         widget=forms.HiddenInput()
     )
-    
+
     class Meta:
         model = BillingInfo
         fields = [
@@ -681,57 +621,57 @@ class LegacyCheckoutForm(forms.ModelForm):
         ]
         widgets = {
             'first_name': forms.TextInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'placeholder': 'Adınız',
                 'required': 'required'
             }),
             'last_name': forms.TextInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'placeholder': 'Soyadınız',
                 'required': 'required'
             }),
             'email': forms.EmailInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'placeholder': 'ornek@email.com',
                 'required': 'required'
             }),
             'phone': forms.TextInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'placeholder': '5XXXXXXXXX',
                 'required': 'required'
             }),
             'company_name': forms.TextInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'placeholder': 'Şirket Adı'
             }),
             'address': forms.Textarea(attrs={
-                'class': 'form-control', 
-                'rows': 3, 
+                'class': 'form-control',
+                'rows': 3,
                 'placeholder': 'Açık adresiniz',
                 'required': 'required'
             }),
             'city': forms.TextInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'placeholder': 'İl',
                 'required': 'required'
             }),
             'district': forms.TextInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'placeholder': 'İlçe'
             }),
             'zip_code': forms.TextInput(attrs={
-                'class': 'form-control', 
+                'class': 'form-control',
                 'placeholder': 'Posta Kodu'
             }),
         }
-    
+
     def clean(self):
         cleaned_data = super().clean()
         customer_type = cleaned_data.get('customer_type')
         tc_kimlik = cleaned_data.get('tc_kimlik', '')
         tax_number = cleaned_data.get('tax_number', '')
         tax_office = cleaned_data.get('tax_office', '')
-        
+
         # Bireysel müşteri için TC Kimlik zorunlu
         if customer_type == 'individual':
             if not tc_kimlik:
@@ -740,7 +680,7 @@ class LegacyCheckoutForm(forms.ModelForm):
                 self.add_error('tc_kimlik', 'TC Kimlik No tam olarak 11 hane olmalıdır.')
             elif not tc_kimlik.isdigit():
                 self.add_error('tc_kimlik', 'TC Kimlik No sadece rakamlardan oluşmalıdır.')
-        
+
         # Kurumsal müşteri için Vergi No ve Vergi Dairesi zorunlu
         if customer_type in ('corporate', 'company'):
             if not tax_number:
@@ -749,13 +689,13 @@ class LegacyCheckoutForm(forms.ModelForm):
                 self.add_error('tax_number', 'Vergi No tam olarak 10 hane olmalıdır.')
             elif not tax_number.isdigit():
                 self.add_error('tax_number', 'Vergi No sadece rakamlardan oluşmalıdır.')
-            
+
             if not tax_office:
                 self.add_error('tax_office', 'Kurumsal müşteriler için Vergi Dairesi zorunludur.')
-            
+
             if not cleaned_data.get('company_name'):
                 self.add_error('company_name', 'Kurumsal müşteriler için Şirket Adı zorunludur.')
-        
+
         return cleaned_data
 
 

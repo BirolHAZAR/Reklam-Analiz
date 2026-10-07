@@ -30,7 +30,7 @@ from .user_profile import (
     SuspendedAccountDeletionRecord,
     UserProfile,
 )
-from .competitor import Competitor
+
 from .octo_task import OctoTaskRule, OctoTaskInstance, OctoTaskActionLog, OctoRuleEngineRun
 from .membership import (
     MembershipPlan,
@@ -157,7 +157,7 @@ __all__ = [
     "AccountDeletionRecord",
     "SuspendedAccountDeletionRecord",
     "DeletedAccountDeletionRecord",
-    "Competitor",
+
     "OctoRuleEngineRun",
 
     "MembershipPlan",
@@ -260,4 +260,4 @@ __all__ = [
 ]
 
 from .payment_gateway import PaymentGatewaySettings, HostedPaymentSession
-from .integration_application import IntegrationApplication, CompetitorSourceSetting
+from .integration_application import IntegrationApplication

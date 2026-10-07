@@ -21,7 +21,7 @@ class CacheControlMiddlewareTests(SimpleTestCase):
         self.assertIn("Cookie", response["Vary"])
 
     def test_api_cache_policy_is_unchanged(self):
-        response = self.middleware(self.factory.get("/api/competitors/instagram/"))
+        response = self.middleware(self.factory.get("/api/campaigns/"))
 
         self.assertEqual(
             response["Cache-Control"],

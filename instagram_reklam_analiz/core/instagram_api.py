@@ -78,10 +78,6 @@ class InstagramAPI:
             },
         )
 
-    def get_competitor_ads(self, competitor=None):
-        """Legacy metod. Rakip reklamları artık Ad(source_type='COMPETITOR') olarak saklanır."""
-        return []
-
     def publish_instagram_post(self, instagram_business_id, image_url, caption):
         creation = self._request(f"{self.graph_url}/{instagram_business_id}/media", method='POST', data={'image_url': image_url, 'caption': caption})
         if 'error' in creation:

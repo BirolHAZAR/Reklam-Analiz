@@ -25,7 +25,7 @@ class CreativeStudioModelRoutingTests(TestCase):
                 "ai_score": 90,
                 "predicted_engagement": 80,
                 "predicted_ctr": 3,
-                "competitive_advantage": "Net sunum",
+                "value_proposition": "Net sunum",
                 "target_emotion": "Merak"
             }"""))]
         )

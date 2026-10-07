@@ -11,7 +11,7 @@ from django.views.decorators.http import require_safe
 ORIGIN = "https://reklamanaliz.net"
 PUBLIC_PAGES = {
     "delivery_terms": ("Teslimat ve Aktivasyon | ReklamAnaliz.net", "Dijital abonelik ve kullanım haklarının aktivasyonunu, havale kontrol süresini, yenileme ve destek koşullarını inceleyin."),
-    "index": ("ReklamAnaliz.net | Akıllı Reklam Analizi", "Reklam performansınızı tek merkezden izleyin. ReklamAnaliz.net ile kampanya, bütçe, rakip ve sosyal medya analizlerini keşfedin."),
+    "index": ("ReklamAnaliz.net | Akıllı Reklam Analizi", "Reklam performansınızı tek merkezden izleyin. ReklamAnaliz.net ile kampanya, bütçe ve sosyal medya analizlerini keşfedin."),
     "about": ("Hakkımızda | ReklamAnaliz.net", "ReklamAnaliz.net'in reklam analizi, kampanya yönetimi ve veriye dayalı dijital pazarlama yaklaşımını tanıyın."),
     "contact": ("İletişim | ReklamAnaliz.net", "ReklamAnaliz.net ekibine ulaşın. Reklam analizi, platform entegrasyonları ve hizmetlerimiz hakkında sorularınızı iletin."),
     "demo_request": ("Demo Talebi | ReklamAnaliz.net", "ReklamAnaliz.net için demo talep edin; reklam analizi, raporlama ve kampanya yönetimi özelliklerini işletmeniz için keşfedin."),

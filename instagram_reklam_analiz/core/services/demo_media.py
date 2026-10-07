@@ -57,9 +57,6 @@ def _label_from_seed(seed: str) -> str:
             f"{PLATFORM_LABELS.get(parts[1].lower(), parts[1].upper())}"
         )
 
-    if platform == "rival":
-        return "RAKİP REKLAM"
-
     if platform == "social":
         return "SOCIAL DEMO"
 

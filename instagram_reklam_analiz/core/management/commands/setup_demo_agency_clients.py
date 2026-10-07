@@ -19,7 +19,7 @@ from core.models import (
     AdMetricHistory,
     AgencyClient,
     Campaign,
-    Competitor,
+
     Creative,
     Organization,
     Platform,
@@ -67,27 +67,21 @@ class Command(BaseCommand):
                 },
             )
             accounts_2 = self._create_client_two_data(user, client_2, now)
-            competitor_ads = self._configure_competitors(user, client_1, client_2, accounts_2, now)
 
         # Her müşteri kendi kalıcı hesap işaretine göre ayrı ayrı yenilenir.
         call_command("refresh_demo_agency_history", username="demo", client_name="Demo Marka", days=90)
         call_command("refresh_demo_agency_history", username="demo", client_name="Demo Marka 2", days=90)
-        self._refresh_competitor_history(competitor_ads, days=90)
 
         DashboardCacheManager.invalidate_user_dashboard(user.id)
         for namespace in (
             "control_tower",
-            "competitor_intelligence",
-            "competitor_movements_page",
-            "competitor_movements",
-            "competitors",
         ):
             CacheService.bump_version(namespace, user.id)
 
         self.stdout.write(
             self.style.SUCCESS(
                 "Demo ajans müşteri ayrımı hazır: Demo Marka ve Demo Marka 2; "
-                "her müşteride 2 rakip, müşteri 2 için 7 hesap / 14 kampanya / 28 reklam."
+                "müşteri 2 için 7 hesap / 14 kampanya / 28 reklam."
             )
         )
 
@@ -222,114 +216,3 @@ class Command(BaseCommand):
                         },
                     )
         return accounts
-
-    def _configure_competitors(self, user, client_1, client_2, accounts_2, now):
-        accounts_1 = {
-            code: PlatformAccount.objects.filter(
-                user=user,
-                agency_client=client_1,
-                platform__code=code,
-            ).order_by("id").first()
-            for code in ("instagram", "facebook")
-        }
-        specs = (
-            (client_1, accounts_1["instagram"], "ModaVitrin Instagram", "modavitrin_demo"),
-            (client_1, accounts_1["instagram"], "PazarLideri Instagram", "pazarlideri_demo"),
-            (client_2, accounts_2["facebook"], "FirsatSepeti Facebook", "firsatsepeti_demo"),
-            (client_2, accounts_2["facebook"], "TrendMarka Facebook", "trendmarka_demo"),
-        )
-        all_ads = []
-        for client, account, name, identifier in specs:
-            platform = account.platform
-            competitor = Competitor.objects.filter(user=user, name=name).order_by("id").first()
-            if not competitor:
-                competitor = Competitor(user=user, name=name)
-            competitor.platform = platform
-            competitor.platform_account = account
-            competitor.agency_client = client
-            competitor.platform_identifier = identifier
-            competitor.website = f"https://reklamanaliz.net/rakip/{identifier}/"
-            competitor.category = "direct"
-            competitor.description = f"{client.name} için izlenen sentetik rakip firma."
-            competitor.is_active = True
-            competitor.total_ads_seen = 2
-            competitor.last_seen_at = now
-            competitor.raw_data = {
-                "demo": True,
-                "presentation_demo": True,
-                "demo_agency_client": client.name,
-            }
-            competitor.save()
-
-            existing_ads = list(
-                Ad.objects.filter(user=user, competitor=competitor, source_type="COMPETITOR").order_by("id")[:2]
-            )
-            while len(existing_ads) < 2:
-                existing_ads.append(Ad(user=user, competitor=competitor, source_type="COMPETITOR"))
-            for index, ad in enumerate(existing_ads, start=1):
-                ad.platform_account = account
-                ad.platform_connection = account.connection
-                ad.competitor = competitor
-                ad.platform_ad_id = f"demo-rival-{client.id}-{competitor.id}-{index}"
-                ad.ad_library_id = f"library-{client.id}-{competitor.id}-{index}"
-                ad.name = f"{name} Reklam {index}"
-                ad.status = "ACTIVE"
-                ad.ad_format = "VIDEO" if index == 2 else "IMAGE"
-                ad.objective = "SALES"
-                ad.headline = f"{name} yeni kampanya {index}"
-                ad.primary_text = f"{client.name} pazarında izlenen rakip reklam mesajı."
-                ad.call_to_action = "SHOP_NOW"
-                ad.landing_url = f"https://reklamanaliz.net/rakip/{identifier}/kampanya-{index}"
-                ad.preview_image_url = f"https://picsum.photos/seed/rival-{client.id}-{competitor.id}-{index}/900/900"
-                ad.first_seen_at = now - timedelta(days=89)
-                ad.last_seen_at = now
-                ad.started_at = now - timedelta(days=89)
-                ad.last_synced_at = now
-                ad.raw_data = {
-                    "demo": True,
-                    "presentation_demo": True,
-                    "demo_agency_client": client.name,
-                    "budget": 24000 + index * 3500,
-                }
-                ad.save()
-                all_ads.append(ad)
-        return all_ads
-
-    def _refresh_competitor_history(self, ads, days):
-        refresher = HistoryCommand()
-        today = timezone.localdate()
-        start_date = today - timedelta(days=days - 1)
-        rows = []
-        for day_index in range(days):
-            date = start_date + timedelta(days=day_index)
-            for ad in ads:
-                metrics = refresher._daily_metrics(ad, date, day_index, days)
-                metrics["raw_metrics"] = {
-                    **metrics["raw_metrics"],
-                    "competitor_snapshot": True,
-                    "demo_agency_client": ad.competitor.agency_client.name,
-                }
-                rows.append(
-                    AdMetricHistory(
-                        ad_id=ad.id,
-                        date=date,
-                        estimated_engagement=metrics["engagement"],
-                        estimated_reach_min=metrics["reach"],
-                        estimated_reach_max=metrics["impressions"],
-                        is_competitor_snapshot=True,
-                        **metrics,
-                    )
-                )
-        AdMetricHistory.objects.filter(ad__in=ads).exclude(date__range=(start_date, today)).delete()
-        refresher._upsert(
-            AdMetricHistory,
-            rows,
-            [
-                *METRIC_UPDATE_FIELDS,
-                "estimated_engagement",
-                "estimated_reach_min",
-                "estimated_reach_max",
-                "is_competitor_snapshot",
-            ],
-            ["ad", "date"],
-        )

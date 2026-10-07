@@ -27,7 +27,6 @@ class PlanSyncPolicyTests(TestCase):
                 "features": "Sync",
                 "content_fetch_period_days": history_days,
                 "ad_sync_interval_minutes": hours * 60,
-                "competitor_sync_interval_minutes": hours * 60,
                 "organic_sync_interval_minutes": hours * 60,
                 "marketplace_sync_interval_minutes": hours * 60,
                 "is_active": True,
@@ -77,11 +76,9 @@ class PlanSyncPolicyTests(TestCase):
     def test_each_celery_source_reads_its_own_admin_table_value(self):
         user = self.make_user("gold", 24, 365)
         plan = user.subscriptions.get().plan
-        plan.competitor_sync_interval_minutes = 180
         plan.organic_sync_interval_minutes = 360
         plan.marketplace_sync_interval_minutes = 720
-        plan.save(update_fields=["competitor_sync_interval_minutes", "organic_sync_interval_minutes", "marketplace_sync_interval_minutes"])
+        plan.save(update_fields=["organic_sync_interval_minutes", "marketplace_sync_interval_minutes"])
         policy = policy_for_user(user)
-        self.assertEqual(policy.interval_minutes_for("competitor"), 180)
         self.assertEqual(policy.interval_minutes_for("organic"), 360)
         self.assertEqual(policy.interval_minutes_for("marketplace"), 720)

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{% if current_language == "en" %}ReklamAnaliz.net - Ad Campaigns, Octo AI and Competitor Intelligence{% else %}ReklamAnaliz.net - Reklam Kampanyaları, Octo AI ve Rakip Reklam Zekası{% endif %}{% endblock %}
+{% block title %}{% if current_language == "en" %}ReklamAnaliz.net - Ad Campaigns, Octo AI{% else %}ReklamAnaliz.net - Reklam Kampanyaları, Octo AI{% endif %}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/home_index.css' %}?v=home-theme-20260924-3">
@@ -24,9 +24,9 @@
                 </h1>
                 <p class="hero-copy">
                     {% if current_language == "en" %}
-                    ReklamAnaliz.net unifies Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn, and X data. Octo AI turns complex dashboards into clear decisions: which ad creates value, which one wastes budget, what competitors are saying, and what to improve next.
+                    ReklamAnaliz.net unifies Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn, and X data. Octo AI turns complex dashboards into clear decisions: which ad creates value, which one wastes budget, and what to improve next.
                     {% else %}
-                    ReklamAnaliz.net; Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn ve X reklam verilerini tek merkezde toplar. Octo AI karmaşık tabloları sade kararlara dönüştürür: hangi reklam satış getiriyor, hangisi bütçeyi boşa harcıyor, rakipler hangi mesajlarla öne çıkıyor ve bir sonraki reklamda neyi değiştirmen gerekiyor.
+                    ReklamAnaliz.net; Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn ve X reklam verilerini tek merkezde toplar. Octo AI karmaşık tabloları sade kararlara dönüştürür: hangi reklam satış getiriyor, hangisi bütçeyi boşa harcıyor ve bir sonraki reklamda neyi değiştirmen gerekiyor.
                     {% endif %}
                 </p>
                 <div class="hero-actions">
@@ -59,7 +59,6 @@
                     <div class="metric-card"><strong>{% if current_language == "en" %}One screen{% else %}Tek ekran{% endif %}</strong><span>{% if current_language == "en" %}Ads + Campaigns{% else %}Reklamlar + Kampanyalar{% endif %}</span></div>
                     <div class="metric-card"><strong>{% if current_language == "en" %}Smart advice{% else %}Akıllı öneriler{% endif %}</strong><span>{% if current_language == "en" %}Budget, copy, creative{% else %}Bütçe, metin, kreatif{% endif %}</span></div>
                     <div class="metric-card"><strong>{% if current_language == "en" %}Ad report card{% else %}Reklam karnesi{% endif %}</strong><span>{% if current_language == "en" %}PDF sales report{% else %}PDF satış raporu{% endif %}</span></div>
-                    <div class="metric-card"><strong>{% if current_language == "en" %}Competitor tracking{% else %}Rakip takibi{% endif %}</strong><span>{% if current_language == "en" %}Ads and opportunities{% else %}Aktif reklam ve fırsat{% endif %}</span></div>
                 </div>
                 <div class="octo-assistant-strip">
                     <img src="{% static 'images/octo-nexus.webp' %}" alt="Octo AI" onerror="this.style.display='none';">
@@ -77,7 +76,7 @@
                         <div class="orbit-dot dot-brain"><i class="fas fa-brain"></i></div>
                         <div class="orbit-dot dot-binoculars"><i class="fas fa-binoculars"></i></div>
                         <div class="orbit-dot dot-magic"><i class="fas fa-wand-magic-sparkles"></i></div>
-                        <div class="mini-insight"><strong>{% if current_language == "en" %}Octo recommendation ready{% else %}Octo önerisi hazır{% endif %}</strong><span>{% if current_language == "en" %}Competitors are increasing short video usage. Create a new short video ad.{% else %}Rakiplerinde video kreatif oranı artıyor. Yeni kısa video reklamı oluştur.{% endif %}</span></div>
+                        <div class="mini-insight"><strong>{% if current_language == "en" %}Octo recommendation ready{% else %}Octo önerisi hazır{% endif %}</strong><span>{% if current_language == "en" %}Create a short video ad and measure its performance.{% else %}Yeni kısa video reklamı oluştur ve performansını ölç.{% endif %}</span></div>
                     </div>
                 </div>
             </div>
@@ -131,11 +130,9 @@
     <section class="section-shell">
         <div class="section-title">
             <div><div class="eyebrow"><i class="fas fa-layer-group"></i> {% if current_language == "en" %}Octo product architecture{% else %}Octo ürün mimarisi{% endif %}</div><h2>{% if current_language == "en" %}Octo explains advertising performance in language your team and clients can understand.{% else %}Octo, müşterinin anlayacağı dille reklam performansını anlatan akıllı rehberdir.{% endif %}</h2></div>
-            <p>{% if current_language == "en" %}Users do not get lost inside complex tables. Octo connects accounts, explains results, reveals competitor opportunities, and gives practical ideas for better campaigns.{% else %}Kullanıcı karmaşık tabloların içinde kaybolmaz. Octo; reklam hesabını bağlatır, sonuçları açıklar, rakiplerdeki fırsatları gösterir ve daha iyi reklam üretmek için somut öneriler verir.{% endif %}</p>
+            <p>{% if current_language == "en" %}Users do not get lost inside complex tables. Octo connects accounts, explains results, and gives practical ideas for better campaigns.{% else %}Kullanıcı karmaşık tabloların içinde kaybolmaz. Octo; reklam hesabını bağlatır, sonuçları açıklar ve daha iyi reklam üretmek için somut öneriler verir.{% endif %}</p>
         </div>
         <div class="feature-grid">
-            <div class="feature-card"><div class="feature-octo"><img src="{% static 'images/octo-commander.webp' %}" alt="Octo Commander" loading="lazy" decoding="async" onerror="this.style.display='none';"></div><h3>Octo Commander</h3><p>{% if current_language == "en" %}Tracks active competitor ads, new creatives, sales messages, and rising ad angles in the market.{% else %}Rakiplerinin aktif reklamlarını takip eder. Yeni kreatifleri, satış mesajlarını ve pazarda yükselen reklam açılarını gösterir.{% endif %}</p><a class="feature-link" href="{% url 'rakip_reklam_paneli' %}">{% if current_language == "en" %}Open competitor panel{% else %}Rakip panelini aç{% endif %} <i class="fas fa-arrow-right"></i></a></div>
-            <div class="feature-card"><div class="feature-octo"><img src="{% static 'images/octo-nexus.webp' %}" alt="Octo Nexus" loading="lazy" decoding="async" onerror="this.style.display='none';"></div><h3>Octo Nexus</h3><p>{% if current_language == "en" %}Creates new headlines, descriptions, creative ideas, and campaign suggestions from your performance and competitor data.{% else %}Kendi reklam performansın ve rakip verilerinden yola çıkarak yeni başlıklar, açıklamalar, kreatif fikirler ve kampanya önerileri üretir.{% endif %}</p><a class="feature-link" href="{% url 'creative_studio' %}">{% if current_language == "en" %}Create content{% else %}Reklam oluştur{% endif %} <i class="fas fa-arrow-right"></i></a></div>
             <div class="feature-card"><div class="feature-octo"><img src="{% static 'images/octo-analyst.webp' %}" alt="Octo Analyst" loading="lazy" decoding="async" onerror="this.style.display='none';"></div><h3>Octo Analyst</h3><p>{% if current_language == "en" %}Simplifies clicks, spend, conversions and campaign data; then answers what to do next.{% else %}Tıklama, harcama, dönüşüm verilerini sadeleştirir; şimdi ne yapmalısın sorusuna cevap verir.{% endif %}</p><a class="feature-link" href="{% url 'tum_reklam_raporu' %}">{% if current_language == "en" %}View reports{% else %}Raporları gör{% endif %} <i class="fas fa-arrow-right"></i></a></div>
             <div class="feature-card"><div class="feature-octo"><img src="{% static 'images/octo-galaxy.webp' %}" alt="Octo Galaxy" loading="lazy" decoding="async" onerror="this.style.display='none';"></div><h3>Octo Galaxy</h3><p>{% if current_language == "en" %}Prioritizes new channels, audiences, ad formats, and growth opportunities to test.{% else %}Yeni kanal, hedef kitle, reklam formatı ve büyüme fırsatlarını önceliklendirir.{% endif %}</p><a class="feature-link" href="{% url 'dashboard' %}">{% if current_language == "en" %}Explore opportunities{% else %}Fırsatları keşfet{% endif %} <i class="fas fa-arrow-right"></i></a></div>
         </div>
@@ -144,12 +141,10 @@
     <section class="section-shell">
         <div class="section-title">
             <div><div class="eyebrow"><i class="fas fa-diagram-project"></i> {% if current_language == "en" %}User flow{% else %}Kullanıcı akışı{% endif %}</div><h2>{% if current_language == "en" %}Simple enough for business users, powerful enough for professionals.{% else %}Reklam yönetimini herkesin anlayacağı kadar sade, profesyonellerin kullanacağı kadar güçlü hale getirir.{% endif %}</h2></div>
-            <p>{% if current_language == "en" %}Connect accounts, see the health of campaigns, track competitors, create better content, and receive action-oriented recommendations.{% else %}Hesaplarını bağla, kampanyaların durumunu gör, rakipleri takip et, daha iyi içerik üret ve uygulanabilir aksiyon önerileri al.{% endif %}</p>
+            <p>{% if current_language == "en" %}Connect accounts, see the health of campaigns, create better content, and receive action-oriented recommendations.{% else %}Hesaplarını bağla, kampanyaların durumunu gör, daha iyi içerik üret ve uygulanabilir aksiyon önerileri al.{% endif %}</p>
         </div>
         <div class="workflow">
             <div class="workflow-card"><div class="workflow-step">1</div><h3>{% if current_language == "en" %}Connect every account{% else %}Tüm hesaplarını bağla{% endif %}</h3><p>{% if current_language == "en" %}Bring Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn, and X campaigns into one view.{% else %}Meta, Instagram, Facebook, TikTok, Google Ads, LinkedIn, X kampanya verilerini tek ekranda birleştir.{% endif %}</p></div>
-            <div class="workflow-card"><div class="workflow-step">2</div><h3>{% if current_language == "en" %}Track competitors{% else %}Rakipleri takip et{% endif %}</h3><p>{% if current_language == "en" %}Follow active ads and message changes. Octo creates alerts when new signals appear.{% else %}Rakiplerinin aktif reklamlarını ve mesaj değişimlerini takip et. Yeni sinyal yakalandığında Octo bildirim üretir.{% endif %}</p><div class="signal-panel"><div class="signal-row"><span>{% if current_language == "en" %}New competitor ads{% else %}Yeni rakip reklamı{% endif %}</span><strong>+7</strong></div><div class="signal-row"><span>{% if current_language == "en" %}Video creative{% else %}Video kreatif{% endif %}</span><strong>%64</strong></div></div></div>
-            <div class="workflow-card"><div class="workflow-step">3</div><h3>{% if current_language == "en" %}Create better ads{% else %}Daha iyi reklam oluştur{% endif %}</h3><p>{% if current_language == "en" %}Use performance and competitor data to create new headlines, copy, creative angles, and budget actions.{% else %}Performans ve rakip verilerini kullanarak yeni başlık, açıklama, kreatif açı ve bütçe aksiyonları oluştur.{% endif %}</p><div class="signal-panel"><div class="signal-row"><span>{% if current_language == "en" %}AI headline ideas{% else %}AI başlık önerisi{% endif %}</span><strong>12</strong></div><div class="signal-row"><span>{% if current_language == "en" %}Budget advice{% else %}Bütçe önerisi{% endif %}</span><strong>{% if current_language == "en" %}Ready{% else %}Hazır{% endif %}</strong></div></div></div>
         </div>
     </section>
 
@@ -159,14 +154,14 @@
                 <div class="browser-top"><div class="browser-dots"><span></span><span></span><span></span></div><strong>ReklamAnaliz.net / Octo Dashboard</strong><span>{% if current_language == "en" %}Live preview{% else %}Canlı önizleme{% endif %}</span></div>
                 <div class="preview-grid">
                     <div class="chart-box"><div class="d-flex justify-content-between align-items-center"><strong>{% if current_language == "en" %}Performance chart{% else %}Performans grafiği{% endif %}</strong><span class="platform-pill"><i class="fas fa-arrow-trend-up"></i> +%28</span></div><div class="chart-bars"><span style="height:42%"></span><span style="height:68%"></span><span style="height:55%"></span><span style="height:82%"></span><span style="height:74%"></span><span style="height:92%"></span><span style="height:77%"></span></div></div>
-                    <div class="list-box"><strong>{% if current_language == "en" %}Octo tasks{% else %}Octo görevleri{% endif %}</strong><div class="signal-row"><span>{% if current_language == "en" %}Competitor analysis{% else %}Rakip analizi{% endif %}</span><strong>✓</strong></div><div class="signal-row"><span>{% if current_language == "en" %}Anomaly check{% else %}Anomali kontrolü{% endif %}</span><strong>!</strong></div><div class="signal-row"><span>{% if current_language == "en" %}AI recommendations{% else %}AI öneriler{% endif %}</span><strong>12</strong></div></div>
+                    <div class="list-box"><strong>{% if current_language == "en" %}Octo tasks{% else %}Octo görevleri{% endif %}</strong><div class="signal-row"><span>{% if current_language == "en" %}Campaign analysis{% else %}Kampanya analizi{% endif %}</span><strong>✓</strong></div><div class="signal-row"><span>{% if current_language == "en" %}Anomaly check{% else %}Anomali kontrolü{% endif %}</span><strong>!</strong></div><div class="signal-row"><span>{% if current_language == "en" %}AI recommendations{% else %}AI öneriler{% endif %}</span><strong>12</strong></div></div>
                 </div>
                 <div class="assistant-box mt-3"><div class="octo-avatar"><span>O</span></div><div class="assistant-copy"><strong>{% if current_language == "en" %}Octo: Cost per click is rising in this campaign.{% else %}Octo: Bu kampanyada tıklama maliyeti yükseliyor.{% endif %}</strong><span>{% if current_language == "en" %}Move budget toward the best performing ad group.{% else %}Bütçeyi en iyi performans veren reklam grubuna kaydırmanı öneriyorum.{% endif %}</span></div></div>
             </div>
             <div>
                 <div class="eyebrow"><i class="fas fa-display"></i> {% if current_language == "en" %}Decision support assistant{% else %}Panel içi karar asistanı{% endif %}</div>
                 <h2 class="mb-3" style="font-weight:950;letter-spacing:-.04em;">{% if current_language == "en" %}Octo works like the decision layer of your advertising operation.{% else %}Octo, platformun karar destek asistanı gibi çalışır.{% endif %}</h2>
-                <p class="muted-copy">{% if current_language == "en" %}This SaaS is not only a reporting panel. Octo reads ad and campaign performance, explains performance problems, interprets competitor signals, produces new advertising ideas, and gives action-oriented recommendations.{% else %}Bu SaaS sadece reklamları listeleyen bir panel değildir. Octo; reklam ve kampanya verilerini okur, performans sorunlarını açıklar, rakip hareketlerinden anlam çıkarır, yeni reklam fikirleri üretir ve uygulanabilir aksiyon önerileri sunar.{% endif %}</p>
+                <p class="muted-copy">{% if current_language == "en" %}This SaaS is not only a reporting panel. Octo reads ad and campaign performance, explains performance problems, produces new advertising ideas, and gives action-oriented recommendations.{% else %}Bu SaaS sadece reklamları listeleyen bir panel değildir. Octo; reklam ve kampanya verilerini okur, performans sorunlarını açıklar, yeni reklam fikirleri üretir ve uygulanabilir aksiyon önerileri sunar.{% endif %}</p>
             </div>
         </div>
     </section>
@@ -185,7 +180,7 @@
             <div class="demo-cta-points">
                 <div><strong>20 dk</strong><span>Ihtiyaca gore odakli demo</span></div>
                 <div><strong>Net plan</strong><span>Platform, paket ve kurulum yol haritasi</span></div>
-                <div><strong>Octo AI</strong><span>Analiz, oneri ve rakip takip akisinin canli anlatimi</span></div>
+                <div><strong>Octo AI</strong><span>Analiz ve oneri akisinin canli anlatimi</span></div>
             </div>
         </div>
     </section>
@@ -194,7 +189,7 @@
         <div class="row align-items-center">
             <div class="col-lg-8">
                 <div class="eyebrow"><i class="fas fa-bolt"></i> {% if current_language == "en" %}Move your ad intelligence to one center{% else %}Reklam zekanı tek merkeze taşı{% endif %}</div>
-                <h2>{% if current_language == "en" %}Unify all ad platforms with Octo AI; analyze, compare, receive recommendations, and create better campaigns.{% else %}Octo AI ile tüm reklam platformlarını tek merkezde birleştir; analiz et, yorumla, rakiplerle karşılaştır, AI önerileri al ve daha iyi kampanyalar üret.{% endif %}</h2>
+                <h2>{% if current_language == "en" %}Unify all ad platforms with Octo AI; analyze, compare, receive recommendations, and create better campaigns.{% else %}Octo AI ile tüm reklam platformlarını tek merkezde birleştir; analiz et, yorumla, AI önerileri al ve daha iyi kampanyalar üret.{% endif %}</h2>
                 <p class="muted-copy mt-3">{% if current_language == "en" %}A premium SaaS experience for agencies, e-commerce brands, and advertisers.{% else %}Ajanslar, e-ticaret markaları ve reklam veren işletmeler için premium SaaS deneyimi.{% endif %}</p>
                 <div class="hero-actions">
                     {% if user.is_authenticated %}

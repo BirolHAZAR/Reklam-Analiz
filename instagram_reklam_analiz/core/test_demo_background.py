@@ -73,7 +73,7 @@ class DemoBackgroundTests(TestCase):
             sync_due_organic_accounts.run()
         delay.assert_called_once_with(account.pk)
 
-    @override_settings(INSTAGRAM_ACCESS_TOKEN="", META_AD_LIBRARY_ACCESS_TOKEN="")
+    @override_settings(INSTAGRAM_ACCESS_TOKEN="")
     def test_token_check_ignores_demo_and_checks_real_connection(self):
         from core.services.platform_token_service import check_and_refresh_platform_tokens
         real_connection = PlatformConnection.objects.create(user=self.real, platform=self.platform)

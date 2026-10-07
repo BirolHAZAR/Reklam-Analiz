@@ -40,13 +40,11 @@ FEATURE_FIELD_MAP = {
     "ai_content_generation": "has_ai_content_generation",
     "campaign_calendar": "has_campaign_calendar",
     "content_calendar": "has_content_calendar",
-    "competitor_auto_discovery": "competitor_auto_discovery",
 }
 
 
 LIMIT_FIELD_MAP = {
     "instagram_accounts": "max_instagram_accounts",
-    "competitors": "max_competitors",
     "ai_analysis": "ai_analysis_per_month",
     "ai_recommendation": "ai_recommendation_per_month",
     "ai_analysis_weekly": "ai_analysis_per_week",

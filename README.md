@@ -388,7 +388,7 @@ Reklam sağlık hesaplamaları
 
 Rapor görevleri
 
-Rakip analiz görevleri
+
 
 Temizlik ve bakım görevleri
 

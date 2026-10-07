@@ -69,7 +69,6 @@ def upsert_v2_ad_snapshot(*, user, platform_account, payload: Dict[str, Any], so
 
     Zorunlu mantık:
     PlatformAccount -> Campaign -> AdGroup -> Creative -> Ad -> AdMetricHistory
-    Rakip reklamlar için source_type='COMPETITOR' kullanılır.
     """
     now = timezone.now()
     platform_code = getattr(getattr(platform_account, "platform", None), "code", "platform") or "platform"

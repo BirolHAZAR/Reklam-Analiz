@@ -7,7 +7,6 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from core.forms import (
     AgencyClientForm,
-    AgencyCompetitorForm,
     AgencyAccountAssignmentForm,
     AgencyRoleGroupForm,
     AgencyPlatformAccountForm,
@@ -15,7 +14,7 @@ from core.forms import (
     OrganizationMemberRoleForm,
     OrganizationBrandingForm,
 )
-from core.models import AgencyRoleGroup, AgencyClient, Competitor, Organization, OrganizationMember, Platform, PlatformAccount
+from core.models import AgencyRoleGroup, AgencyClient, Organization, OrganizationMember, Platform, PlatformAccount
 from core.services.cache_service import CacheService
 from core.services.agency_roles import ensure_default_agency_role_groups
 from core.services.notification_helper import NotificationHelper
@@ -83,22 +82,17 @@ def agency_dashboard(request, organization_id=None):
 
     clients = organization.clients.filter(is_active=True).annotate(
         platform_account_count=Count("platform_accounts", distinct=True),
-        competitor_count=Count("competitors", distinct=True),
     )
     platform_accounts = PlatformAccount.objects.filter(agency_client__organization=organization).select_related("platform", "agency_client")
-    competitors = Competitor.objects.filter(agency_client__organization=organization).select_related("platform", "platform_account", "agency_client")
     context = {
         "organization": organization,
         "organizations": _agency_organizations(request.user),
         "clients": clients,
         "platform_accounts": platform_accounts[:8],
         "platform_account_count": platform_accounts.count(),
-        "competitors": competitors[:8],
-        "competitor_count": competitors.count(),
         "can_manage": _user_can_manage(organization, request.user),
         "can_manage_clients": _user_has_permission(organization, request.user, "manage_clients"),
         "can_manage_accounts": _user_has_permission(organization, request.user, "manage_accounts"),
-        "can_manage_competitors": _user_has_permission(organization, request.user, "manage_competitors"),
         "can_manage_members": _user_has_permission(organization, request.user, "manage_members"),
         "can_view_reports": _user_has_permission(organization, request.user, "view_reports"),
         "can_access_agency_menu": _user_has_menu_permission(organization, request.user, "agency_dashboard"),
@@ -110,7 +104,6 @@ def agency_dashboard(request, organization_id=None):
     context["organizations"] = list(context["organizations"])
     context["clients"] = list(context["clients"])
     context["platform_accounts"] = list(context["platform_accounts"])
-    context["competitors"] = list(context["competitors"])
     CacheService.set(
         "agency_dashboard",
         "org",
@@ -180,7 +173,6 @@ def agency_client_detail(request, organization_id, client_id):
     organization = _get_organization_for_user(request.user, organization_id)
     client = get_object_or_404(organization.clients, id=client_id)
     platform_accounts = client.platform_accounts.select_related("platform").order_by("platform__name", "account_name")
-    competitors = client.competitors.select_related("platform", "platform_account").order_by("name")
     assignment_form = AgencyAccountAssignmentForm(organization=organization, user=request.user)
     return render(
         request,
@@ -189,11 +181,9 @@ def agency_client_detail(request, organization_id, client_id):
             "organization": organization,
             "client": client,
             "platform_accounts": platform_accounts,
-            "competitors": competitors,
             "assignment_form": assignment_form,
             "can_manage": _user_can_manage(organization, request.user),
             "can_manage_accounts": _user_has_permission(organization, request.user, "manage_accounts"),
-            "can_manage_competitors": _user_has_permission(organization, request.user, "manage_competitors"),
         },
     )
 
@@ -531,43 +521,3 @@ def agency_platform_account_create(request, organization_id, client_id=None):
     if selected_client:
         url += f"?agency_client={selected_client.pk}"
     return redirect(url)
-
-
-
-@login_required
-@transaction.atomic
-def agency_competitor_create(request, organization_id):
-    organization = _get_organization_for_user(request.user, organization_id)
-    if not _user_has_permission(organization, request.user, "manage_competitors"):
-        messages.error(request, "Rakip ekleme yetkiniz yok.")
-        return redirect("agency_dashboard_org", organization_id=organization.id)
-
-    if request.method == "POST":
-        # Serialize all competitor form inserts in this organization, including
-        # inserts by different member users.
-        type(organization).objects.select_for_update().get(pk=organization.pk)
-        form = AgencyCompetitorForm(request.POST, organization=organization)
-        raw_client_id = str(request.POST.get("agency_client") or "")
-        client = form.fields["agency_client"].queryset.filter(pk=raw_client_id).first() if raw_client_id.isdigit() else None
-        if client:
-            from core.services.competitor_identity import lock_competitor_scope
-            lock_competitor_scope(request.user, client)
-        if form.is_valid():
-            competitor = form.save(commit=False)
-            competitor.user = request.user
-            if competitor.platform_account and not competitor.platform:
-                competitor.platform = competitor.platform_account.platform
-            from core.services.competitor_identity import platform_identity_metadata
-            competitor.raw_data = {**platform_identity_metadata(competitor.platform, competitor.platform_identifier),
-                                   "facebook_page_id": form.cleaned_data.get("facebook_page_id", ""), "identity_status": "unverified"}
-            competitor.save()
-            if competitor.is_active:
-                from core.tasks.competitor_sync import queue_competitor_sync
-                transaction.on_commit(lambda: queue_competitor_sync(competitor.pk))
-            _invalidate_agency_cache(organization)
-            messages.success(request, f"{competitor.name} rakibi müşteri alanına eklendi.")
-            return redirect("agency_client_detail", organization_id=organization.id, client_id=competitor.agency_client_id)
-    else:
-        form = AgencyCompetitorForm(organization=organization, initial={"is_active": True})
-
-    return render(request, "agency/competitor_form.html", {"organization": organization, "form": form})

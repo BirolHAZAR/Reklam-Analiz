@@ -392,11 +392,8 @@ class Command(BaseCommand):
 
         her zaman aynı sonucu üretir.
 
-        Competitor reklamlarında:
-            is_competitor_snapshot = True
 
         Normal reklamlarda:
-            is_competitor_snapshot = False
         """
 
         seed_value = (
@@ -723,13 +720,8 @@ class Command(BaseCommand):
             )
 
         # ==========================================================
-        # COMPETITOR SNAPSHOT
         # ==========================================================
 
-        is_competitor = (
-            str(ad.source_type).upper()
-            == "COMPETITOR"
-        )
 
         # ==========================================================
         # RAW METRICS
@@ -741,7 +733,6 @@ class Command(BaseCommand):
             "generator": "generate_demo_daily_data",
             "date": target_date.isoformat(),
             "source_type": ad.source_type,
-            "is_competitor": is_competitor,
         }
 
         return {
@@ -783,7 +774,6 @@ class Command(BaseCommand):
             "estimated_engagement": estimated_engagement,
             "estimated_reach_min": estimated_reach_min,
             "estimated_reach_max": estimated_reach_max,
-            "is_competitor_snapshot": is_competitor,
         }
 
     # ==============================================================

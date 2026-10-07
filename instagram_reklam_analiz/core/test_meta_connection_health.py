@@ -71,7 +71,7 @@ class MetaCooldownTests(SimpleTestCase):
         self.assertIsNone(ads.exchange_code("facebook", "code")["expires_in"])
 
 
-@override_settings(INSTAGRAM_ACCESS_TOKEN="", META_AD_LIBRARY_ACCESS_TOKEN="")
+@override_settings(INSTAGRAM_ACCESS_TOKEN="")
 class MetaHealthTests(TestCase):
     def setUp(self):
         cache.clear()

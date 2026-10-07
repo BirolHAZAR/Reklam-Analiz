@@ -212,38 +212,6 @@ def _validate_env_instagram_token(token):
     }
 
 
-def _validate_meta_ad_library_token(token):
-    response = _meta_get(
-        f"{settings.FACEBOOK_GRAPH_URL}/ads_archive",
-        params={
-            "access_token": token,
-            "ad_reached_countries": "TR",
-            "search_terms": "reklam",
-            "fields": "id",
-            "limit": 1,
-        },
-        timeout=30,
-    )
-    payload = response.json()
-    error = payload.get("error") or {}
-    details = {
-        field: str(error[field]).replace(token, "[ACCESS_TOKEN]") if token else str(error[field])
-        for field in ("code", "error_subcode", "error_user_title", "error_user_msg", "fbtrace_id")
-        if error.get(field) is not None
-    }
-    message = str(error.get("message") or "")
-    if token:
-        message = message.replace(token, "[ACCESS_TOKEN]")
-    diagnostic = "\n".join([message] + [f"{key}: {value}" for key, value in details.items()])
-    return {
-        "valid": response.ok and not error,
-        "error_code": error.get("code"),
-        "error_subcode": details.get("error_subcode"),
-        "error_user_msg": details.get("error_user_msg", ""),
-        "error": diagnostic,
-    }
-
-
 def _record_env_failure(label, message):
     diagnostic_message = str(message or "ENV token kontrolu basarisiz oldu.")
     full_message = f"{label}: {diagnostic_message}"
@@ -371,16 +339,6 @@ def _check_and_refresh_platform_tokens():
         except Exception as exc:
             env_result["error"] = _safe_error(exc, env_token)
 
-    ad_library_token = getattr(settings, "META_AD_LIBRARY_ACCESS_TOKEN", "") or ""
-    ad_library_result = {"configured": bool(ad_library_token), "valid": None}
-    if ad_library_token:
-        try:
-            ad_library_result.update(_validate_meta_ad_library_token(ad_library_token))
-            if not ad_library_result["valid"]:
-                _notify_admins_for_env_failure("META_AD_LIBRARY_ACCESS_TOKEN", ad_library_result.get("error") or "Ad Library erişimi yok.")
-        except Exception as exc:
-            ad_library_result["error"] = _safe_error(exc, ad_library_token)
-
     result = {
         "success": True,
         "checked": len(results),
@@ -389,7 +347,6 @@ def _check_and_refresh_platform_tokens():
         "expired": sum(1 for row in results if row.get("status") == "expired"),
         "check_failed": sum(1 for row in results if row.get("status") == "check_failed"),
         "env_instagram": env_result,
-        "env_meta_ad_library": ad_library_result,
         "results": results,
     }
     cache.set(HEALTH_CACHE_KEY, result, timeout=60 * 60 * 2)

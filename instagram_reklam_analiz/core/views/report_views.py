@@ -29,18 +29,6 @@ def comparison_report_api(request):
     return JsonResponse(report)
 
 
-@login_required
-def compare_with_competitor_api(request, competitor_username):
-    """Belirli bir rakip ile karşılaştırma"""
-    
-    days = int(request.GET.get('days', 30))
-    end_date = timezone.now().date()
-    start_date = end_date - timedelta(days=days)
-    
-    service = ComparisonReportService(request.user, start_date, end_date)
-    comparison = service.compare_with_competitor(competitor_username)
-    
-    return JsonResponse(comparison)
 
 
 @login_required

@@ -25,7 +25,6 @@ LEVEL_LABELS = {
 }
 ACTION_LABELS = {
     "notification": "Bildirim",
-    "competitor": "Rakip",
     "campaign": "Kampanya",
     "ad": "Reklam",
     "ai": "AI",
@@ -42,8 +41,6 @@ GENERIC_ACTIVITY_LINKS = {
     "/creative-studio/",
     "/sync-center/",
     "/budget-optimization/",
-    "/rakip-reklam-paneli/",
-    "/rakip-reklam-hareketleri/",
     "/reklam-hareketleri/",
     "/ads-center/",
     "/campaign-center/",
@@ -51,7 +48,6 @@ GENERIC_ACTIVITY_LINKS = {
 }
 DEFAULT_ACTIVITY_MESSAGES = {
     "notification": "Bildirim merkezi üzerinden takip edilen bir sistem bildirimi oluştu.",
-    "competitor": "Rakip izleme alanında bir kayıt veya güncelleme yapıldı.",
     "campaign": "Kampanya yönetimiyle ilgili bir işlem kayda alındı.",
     "ad": "Reklam hesabı veya reklam metriğiyle ilgili bir işlem gerçekleşti.",
     "ai": "Octo AI tarafından analiz, öneri veya içerik üretim süreci çalıştı.",
@@ -72,9 +68,6 @@ LEGACY_NOTIFICATION_LINKS = {
     "/hesap-ekle/": "hesap_ekle",
     "/instagram/": "instagram_dashboard",
     "/membership/": "my_account",
-    "/rakip-analiz/": "competitor_intelligence",
-    "/rakip-reklam-hareketleri/": "rakip_reklam_hareketleri",
-    "/rakip-reklam-paneli/": "rakip_reklam_paneli",
     "/reklam-hareketleri/": "reklam_hareketleri",
     "/reklam-raporu/": "reports_center",
     "/reports/": "reports_center",
@@ -90,19 +83,18 @@ def _reverse_or_none(name):
 
 def _inferred_object_url(notification):
     """Resolve legacy generic notifications to the object named in their copy."""
-    from core.models import Ad, AdCampaign, Campaign, Competitor
+    from core.models import Ad, AdCampaign, Campaign
     from core.services.activity_service import object_activity_link
 
     text = f"{notification.title or ''} {notification.message or ''}".casefold()
     candidates = []
-    candidates.extend(Ad.objects.filter(user=notification.user).exclude(name="").only("id", "name", "source_type"))
+    candidates.extend(Ad.objects.filter(user=notification.user, source_type="OWN").exclude(name="").only("id", "name", "source_type"))
     candidates.extend(Campaign.objects.filter(user=notification.user).exclude(name="").only("id", "name"))
     candidates.extend(
         AdCampaign.objects.filter(instagram_account__user=notification.user)
         .exclude(campaign_name="")
         .only("id", "campaign_name")
     )
-    candidates.extend(Competitor.objects.filter(user=notification.user).exclude(name="").only("id", "name"))
 
     matches = []
     for obj in candidates:
@@ -122,15 +114,7 @@ def _notification_target_url(notification, request):
 
     parsed = urlsplit(raw_link)
     query = parse_qs(parsed.query)
-    if parsed.path.rstrip("/") == "/rakip-reklam-paneli" and query.get("ad"):
-        try:
-            ad_id = int(query["ad"][0])
-        except (TypeError, ValueError):
-            ad_id = None
-        if ad_id:
-            return f"{reverse('competitor_intelligence')}?open_competitor_ad={ad_id}"
-
-    if parsed.path in {"/dashboard/", "/ads-center/", "/campaign-center/", "/rakip-reklam-paneli/"}:
+    if parsed.path in {"/dashboard/", "/ads-center/", "/campaign-center/"}:
         inferred = _inferred_object_url(notification)
         if inferred:
             return inferred
@@ -366,7 +350,7 @@ def update_notification_preferences(request):
 
     preferences, _ = NotificationPreference.objects.get_or_create(user=request.user)
     fields = [
-        "competitor_notifications", "ai_notifications", "campaign_notifications",
+        "ai_notifications", "campaign_notifications",
         "optimization_notifications", "system_notifications", "critical_notifications",
         "in_app_enabled", "realtime_enabled", "email_enabled", "daily_summary_enabled",
     ]

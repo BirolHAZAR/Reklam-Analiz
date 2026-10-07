@@ -11,7 +11,7 @@ from core.models import (
     OctoTaskRule,
     ReklamAIAnaliz,
 )
-from core.services.ai_agent_ecosystem import build_campaign_agent_ecosystem, run_sixteen_agent_orchestration
+from core.services.ai_agent_ecosystem import build_campaign_agent_ecosystem, run_agent_orchestration
 from core.services.performance_metrics import aggregate_metric_queryset
 from core.utils.metric_text import format_metric_text_tr
 
@@ -269,7 +269,7 @@ def generate_ad_report(ad, user, report_type, organization=None):
     direct_ad_rules = [rule for rule in rules if rule.get("scope") == "ad"]
     agents = _fallback_agents(metrics, detail, direct_ad_rules, report_type)
     strategy = {}
-    model_used = "deterministic-16-agent"
+    model_used = "deterministic-agent-ensemble"
     visual_analyzed = False
 
     api_key = getattr(settings, "OPENAI_API_KEY", "") or ""
@@ -278,7 +278,7 @@ def generate_ad_report(ad, user, report_type, organization=None):
             from openai import OpenAI
 
             context = _compact_ai_context(detail, report_type)
-            result = run_sixteen_agent_orchestration(
+            result = run_agent_orchestration(
                 client=OpenAI(api_key=api_key, timeout=45, max_retries=1),
                 model=getattr(settings, "OPENAI_MODEL", "gpt-4o"),
                 task=(
@@ -288,7 +288,7 @@ def generate_ad_report(ad, user, report_type, organization=None):
                 ),
                 context=context,
                 modalities=["text", "image"] if creative.get("image_url") else ["text"],
-                reference=f"ads_panel.{report_type}.sixteen_agents",
+                reference=f"ads_panel.{report_type}.agents",
                 user=user,
                 organization=organization,
                 tariff_key=("ad-report-card-analysis" if report_type == "analysis" else "ad-report-card-recommendation"),

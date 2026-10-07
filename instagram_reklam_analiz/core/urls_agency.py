@@ -18,5 +18,4 @@ urlpatterns = [
     path("agency/<int:organization_id>/clients/<int:client_id>/assign-account/", agency.agency_client_assign_account, name="agency_client_assign_account"),
     path("agency/<int:organization_id>/accounts/new/", agency.agency_platform_account_create, name="agency_platform_account_create"),
     path("agency/<int:organization_id>/clients/<int:client_id>/accounts/new/", agency.agency_platform_account_create, name="agency_client_platform_account_create"),
-    path("agency/<int:organization_id>/competitors/new/", agency.agency_competitor_create, name="agency_competitor_create"),
 ]

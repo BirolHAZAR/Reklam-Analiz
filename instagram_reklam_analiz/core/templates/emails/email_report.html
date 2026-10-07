@@ -274,11 +274,8 @@
             <p class="header-subtitle">{{ ad_title|default:'Reklam Analiz Raporu' }}</p>
             <p class="header-date">{{ generated_at|default:'' }}</p>
         </div>
-        {% if competitor_username or ad_name %}
+        {% if ad_name %}
 <div style="background: #f8f9ff; padding: 12px 24px; border-bottom: 1px solid #e8ecff; font-size: 12px; color: #555;">
-    {% if competitor_username %}
-    👤 <strong>Rakip Hesap:</strong> @{{ competitor_username }} &nbsp;&nbsp;
-    {% endif %}
     {% if ad_name %}
     📢 <strong>Reklam:</strong> {{ ad_name }}
     {% endif %}

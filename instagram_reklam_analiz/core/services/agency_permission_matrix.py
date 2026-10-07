@@ -44,17 +44,6 @@ AGENCY_MENU_PERMISSION_GROUPS = [
         ],
     },
     {
-        "key": "competition",
-        "label": "Rekabet Merkezi",
-        "items": [
-            ("rakip_ekle", "Rakip Ekle"),
-            ("competitor_intelligence", "Rakip İstihbaratı"),
-            ("rakip_reklam_paneli", "Rakip Reklamları"),
-            ("rakip_reklam_hareketleri", "Rakip Hareketleri"),
-            ("rakip_reklam_karsilastirma", "Rakip Karşılaştırma"),
-        ],
-    },
-    {
         "key": "ai",
         "label": "Octo AI",
         "items": [
@@ -113,11 +102,6 @@ PLAN_PERMISSION_RULES = {
     "scheduled_reports": ("boolean", "has_advanced_reporting"),
     "reports_center": ("boolean", "has_advanced_reporting"),
     "anomaly_dashboard": ("boolean", "has_opportunity_finder"),
-    "rakip_ekle": ("positive", "max_competitors"),
-    "competitor_intelligence": ("positive", "max_competitors"),
-    "rakip_reklam_paneli": ("positive", "max_competitors"),
-    "rakip_reklam_hareketleri": ("positive", "max_competitors"),
-    "rakip_reklam_karsilastirma": ("positive", "max_competitors"),
     "marketplace_accounts": ("positive", "marketplace_product_research_per_month"),
     "marketplace_product_management": ("positive", "marketplace_product_research_per_month"),
     "marketplace_product_research": ("positive", "marketplace_product_research_per_month"),

@@ -10,10 +10,6 @@ def api_analyze_instagram(request):
     return JsonResponse({"success": True, "message": "V2 analiz endpointi aktif."})
 
 
-@login_required
-def api_competitor_analysis(request):
-    total = Ad.objects.filter(user=request.user, source_type="COMPETITOR").count()
-    return JsonResponse({"success": True, "competitor_ads": total})
 
 
 @login_required

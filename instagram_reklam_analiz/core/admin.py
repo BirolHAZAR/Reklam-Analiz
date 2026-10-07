@@ -49,7 +49,7 @@ from core.models import (
     SocialPost, SocialPostMetricHistory,
     Influencer, InfluencerMetricHistory,
     CampaignOctoAnalysis, CampaignOctoRecommendation,
-    ContactMessage, DemoRequest, Competitor, OctoTaskRule, OctoTaskInstance, OctoTaskActionLog, OctoRuleEngineRun,
+    ContactMessage, DemoRequest, OctoTaskRule, OctoTaskInstance, OctoTaskActionLog, OctoRuleEngineRun,
     BillingInfo, Invoice, Payment, PaymentTransaction,
     InstagramAccount, InstagramMedia, InstagramInsight, InstagramPostQueue,
     AdCampaign, AdMetric, AIAnalysis, ReklamAIAnaliz, Report,
@@ -2052,7 +2052,7 @@ class CreativeAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
 @admin.register(Ad)
 class AdAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
     list_display = ("name", "user", "source_type", "platform_account", "campaign", "landing_page", "status_badge", "is_active", "last_synced_at")
-    search_fields = ("name", "headline", "platform_ad_id", "ad_library_id", "landing_url")
+    search_fields = ("name", "headline", "platform_ad_id", "landing_url")
     list_filter = ("source_type", "status", "is_active")
     autocomplete_fields = ("platform_account", "campaign", "ad_group", "creative")
     date_hierarchy = "last_synced_at"
@@ -2070,7 +2070,7 @@ class AdAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
 @admin.register(AdMetricHistory)
 class AdMetricHistoryAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
     list_display = ("ad", "date", "impressions", "clicks", "spend", "ctr", "conversions", "conversion_value")
-    list_filter = ("date", "is_competitor_snapshot")
+    list_filter = ("date", )
     search_fields = ("ad__name", "ad__platform_ad_id")
     autocomplete_fields = ("ad",)
     date_hierarchy = "date"
@@ -2176,10 +2176,10 @@ class MembershipPlanAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
                 "content_fetch_period_days",
                 "auto_fetch_enabled",
                 "auto_fetch_frequency",
-                "max_competitors",
-                "competitor_fetch_enabled",
-                "competitor_fetch_frequency",
-                "competitor_auto_discovery",
+
+
+
+
             )
         }),
         ("Ajans ve ekip limitleri", {
@@ -2213,17 +2213,17 @@ class PlanAuthorizationPolicyAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
     """Single admin surface for every runtime entitlement and sync limit."""
 
     list_display = (
-        "display_name", "plan_type_badge", "is_active", "included_seats", "max_client_accounts", "max_instagram_accounts", "max_competitors",
+        "display_name", "plan_type_badge", "is_active", "included_seats", "max_client_accounts", "max_instagram_accounts",
         "ai_credits_per_month", "ai_analysis_per_month", "ai_recommendation_per_month",
         "marketplace_product_research_per_month", "marketplace_price_check_per_month",
-        "ad_sync_interval_minutes", "competitor_sync_interval_minutes",
+        "ad_sync_interval_minutes",
         "organic_sync_interval_minutes", "marketplace_sync_interval_minutes",
     )
     list_editable = (
-        "is_active", "included_seats", "max_client_accounts", "max_instagram_accounts", "max_competitors", "ai_credits_per_month",
+        "is_active", "included_seats", "max_client_accounts", "max_instagram_accounts",  "ai_credits_per_month",
         "ai_analysis_per_month", "ai_recommendation_per_month",
         "marketplace_product_research_per_month", "marketplace_price_check_per_month",
-        "ad_sync_interval_minutes", "competitor_sync_interval_minutes",
+        "ad_sync_interval_minutes",
         "organic_sync_interval_minutes", "marketplace_sync_interval_minutes",
     )
     ordering = ("order", "price")
@@ -2232,9 +2232,9 @@ class PlanAuthorizationPolicyAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
     save_on_top = True
     fieldsets = (
         ("Plan", {"fields": ("display_name", "name", "plan_type", "is_active", "features")}),
-        ("Hesap, veri ve rakip limitleri", {"fields": (
+        ("Hesap ve veri limitleri", {"fields": (
             "max_instagram_accounts", "max_content_fetch_count", "content_fetch_period_days",
-            "max_competitors", "competitor_fetch_enabled", "competitor_auto_discovery",
+
             "max_products", "max_campaigns",
         )}),
         ("AI kredi ve işlem limitleri", {"fields": (
@@ -2247,9 +2247,9 @@ class PlanAuthorizationPolicyAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
         )}),
         ("Senkronizasyon tarifesi", {"fields": (
             "auto_fetch_enabled", "auto_fetch_frequency", "ad_sync_interval_minutes",
-            "competitor_sync_interval_minutes", "organic_sync_interval_minutes",
+             "organic_sync_interval_minutes",
             "marketplace_sync_interval_minutes", "max_sync_records",
-            "allow_manual_ad_sync", "allow_manual_competitor_sync",
+            "allow_manual_ad_sync",
             "allow_manual_organic_sync", "allow_manual_marketplace_sync",
         ), "description": "Dakika değerleri görev dispatcher'ları tarafından doğrudan kullanılır."}),
         ("Kampanya ve içerik", {"fields": (
@@ -3388,7 +3388,7 @@ class DemoRequestAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
 
 
 for model in [
-    Competitor, OctoTaskRule, OctoTaskInstance, OctoTaskActionLog,
+    OctoTaskRule, OctoTaskInstance, OctoTaskActionLog,
     InstagramAccount, InstagramMedia, InstagramInsight, InstagramPostQueue,
     AdCampaign, AdMetric, AIAnalysis, ReklamAIAnaliz, Report,
     ControlTowerSnapshot, ControlTowerCardSnapshot, ControlTowerAIAnalysis,

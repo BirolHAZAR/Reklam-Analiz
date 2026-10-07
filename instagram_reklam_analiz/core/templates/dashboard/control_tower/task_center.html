@@ -10,7 +10,7 @@
   <div class="octo-task-head">
     <div>
       <h3>OCTO GÖREV MERKEZİ</h3>
-      <small>Kampanya görevleri ve rakip reklam görevleri ayrı gruplarda listelenir.</small>
+      <small>Kampanya ve reklam görevleri önceliklerine göre listelenir.</small>
     </div>
     <div class="octo-task-total">
       <strong>{{ octo_task_center_stats.total_active|default:0|tr_int }}</strong>
@@ -48,7 +48,7 @@
 
                 <div class="octo-task-campaign-list" aria-label="{{ section.title }} - {{ group.label }}">
                   {% for task in group.rows %}
-                    <a class="octo-task-campaign-card octo-task-campaign-open {% if task.is_competitor_task %}is-competitor-task{% endif %}"
+                    <a class="octo-task-campaign-card octo-task-campaign-open"
                        href="{{ task.target_url|default:task.campaign_url|default:'#' }}"
                        data-campaign-id="{{ task.campaign_id|default:'' }}"
                        data-ad-id="{{ task.ad_id|default:'' }}"
@@ -68,7 +68,7 @@
                        title="{{ task.source_label|default:'Kampanya' }} · {{ task.campaign }} · {{ task.impact }}">
                         <div class="octo-task-campaign-left">
                           <div class="octo-task-campaign-kicker">
-                            <i class="fas {% if task.is_competitor_task %}fa-binoculars{% else %}fa-bullseye{% endif %}"></i>
+                            <i class="fas fa-bullseye"></i>
                             <span>{{ task.source_label|default:'Kampanya' }} · {{ task.module_label|default:'Genel' }}</span>
                           </div>
                           <strong>{{ task.campaign|default:'Genel hesap görevi' }}</strong>
@@ -96,7 +96,7 @@
       <div class="octo-task-empty main">
         <i class="fas fa-circle-check"></i>
         <strong>Şu anda açık Octo görevi bulunmuyor.</strong>
-        <span>Aktif kampanyalarda veya rakip reklamlarda yeni sinyal oluştuğunda görevler burada görünür.</span>
+        <span>Aktif kampanyalarda ve reklamlarda yeni sinyal oluştuğunda görevler burada görünür.</span>
       </div>
     {% endfor %}
   </div>
@@ -179,7 +179,7 @@
     const label = sourceLabel || 'Kampanya';
     title.textContent = name || label;
     sourceTitle.textContent = label + ' Detayı';
-    directLink.textContent = (label === 'Rakip Reklamı') ? 'Rakip İstihbarat’ta aç' : 'Campaign Center’da aç';
+    directLink.textContent = 'Detay sayfasında aç';
     directLink.href = directUrl || '#';
     body.scrollTop = 0;
     modal.classList.add('show');
@@ -231,7 +231,7 @@
         </div>
       </div>
       <div class="octo-task-popup-direct-note">
-        Detay sayfasına geçmek için üstteki bağlantıyı kullan. Kampanya görevleri Campaign Center’a, reklam görevleri ilgili reklam detayına, rakip reklam görevleri Rakip İstihbarat ekranına gider.
+        Detay sayfasına geçmek için üstteki bağlantıyı kullan. Kampanya görevleri Kampanya Merkezi’ne, reklam görevleri ilgili reklam detayına gider.
       </div>`;
   }
 

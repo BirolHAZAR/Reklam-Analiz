@@ -16,12 +16,11 @@
     <div class="agency-topbar">
       <div class="agency-title">
         <h1>{{ organization.name }}</h1>
-        <p>Ajans müşterileri, platform hesapları, rakipler ve rapor markası tek merkezde.</p>
+        <p>Ajans müşterileri, platform hesapları ve rapor markası tek merkezde.</p>
       </div>
       <div class="agency-actions">
         {% if can_manage_members %}<a class="agency-btn" href="{% url 'agency_members' organization.id %}"><i class="fas fa-user-shield"></i> Kullanıcılar</a>{% endif %}
         {% if can_manage_accounts %}<a class="agency-btn" href="{% url 'agency_platform_account_create' organization.id %}"><i class="fas fa-link"></i> Hesap Bağla</a>{% endif %}
-        {% if can_manage_competitors %}<a class="agency-btn" href="{% url 'agency_competitor_create' organization.id %}"><i class="fas fa-crosshairs"></i> Rakip Ekle</a>{% endif %}
         {% if can_manage_clients %}<a class="agency-btn primary" href="{% url 'agency_client_create' organization.id %}"><i class="fas fa-plus"></i> Müşteri Ekle</a>{% endif %}
         {% if can_manage_members %}<a class="agency-btn" href="{% url 'agency_branding' organization.id %}"><i class="fas fa-image"></i> Logo & Rapor</a>{% endif %}
       </div>
@@ -31,7 +30,6 @@
       <div class="agency-stat"><span>Müşteri / Marka</span><strong>{{ client_count }}{% if client_limit %}/{{ client_limit }}{% endif %}</strong></div>
       <div class="agency-stat"><span>Kullanıcı</span><strong>{{ member_count }}/{{ seat_limit }}</strong></div>
       <div class="agency-stat"><span>Platform Hesabı</span><strong>{{ platform_account_count }}</strong></div>
-      <div class="agency-stat"><span>Rakip Profili</span><strong>{{ competitor_count }}</strong></div>
     </div>
 
     <div class="agency-layout">
@@ -48,7 +46,6 @@
             </div>
             <div class="agency-chip-row">
               <span class="agency-chip">{{ client.platform_account_count }} hesap</span>
-              <span class="agency-chip">{{ client.competitor_count }} rakip</span>
             </div>
           </a>
           {% endfor %}

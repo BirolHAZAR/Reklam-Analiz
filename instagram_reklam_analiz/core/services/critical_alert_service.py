@@ -3,7 +3,6 @@ from core.models import Ad, AnomalyAlert
 
 def generate_critical_alerts(user):
     own_count = Ad.objects.filter(user=user, source_type="OWN").count()
-    comp_count = Ad.objects.filter(user=user, source_type="COMPETITOR").count()
     alerts = AnomalyAlert.objects.filter(
         user=user,
         is_dismissed=False,
@@ -18,7 +17,7 @@ def generate_critical_alerts(user):
         }
         for alert in alerts[:20]
     ]
-    return {"own_ads": own_count, "competitor_ads": comp_count, "alerts": alert_summaries}
+    return {"own_ads": own_count, "alerts": alert_summaries}
 
 
 class CriticalAlertService:

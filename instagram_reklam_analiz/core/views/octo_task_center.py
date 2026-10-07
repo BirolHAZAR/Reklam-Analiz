@@ -18,7 +18,6 @@ def _module_label(module):
         "performance": "Performans",
         "creative": "Kreatif",
         "budget": "Bütçe",
-        "competitor": "Rakip",
         "conversion": "Dönüşüm",
     }
     return labels.get(module, "Genel")
@@ -322,7 +321,6 @@ def octo_task_center(request):
             ("performance", "Performans"),
             ("creative", "Kreatif"),
             ("budget", "Bütçe"),
-            ("competitor", "Rakip"),
             ("conversion", "Dönüşüm"),
         ],
         "severity_options": [

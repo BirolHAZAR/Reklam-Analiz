@@ -14,11 +14,6 @@ urlpatterns = [
     path("reklam-hareketleri/", health_center, name="reklam_hareketleri"),
     path("reklam-raporu/", reports_center, name="reklam_raporu"),
 
-    # Rakip / competitor artık Ad(source_type=COMPETITOR)
-    path("rakip-ekle/", health_center, name="rakip_ekle"),
-    path("rakip-reklam-paneli/", health_center, name="rakip_reklam_paneli"),
-    path("rakip-reklam-hareketleri/", health_center, name="rakip_reklam_hareketleri"),
-    path("competitor-intelligence/", health_center, name="competitor_intelligence"),
 
     # AI / kreatif / performans
     path("ai-dashboard/", health_center, name="ai_dashboard"),

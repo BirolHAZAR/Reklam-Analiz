@@ -139,105 +139,7 @@ def _campaign_ai_summary(health):
         return "İzleme: Trend zayıflarsa kreatif ve bütçe aksiyonu hazırlanmalı."
     return "Fırsat: Sağlıklı kampanya, kontrollü ölçekleme adayı."
 
-def _competitor_pressure_score(total_ads, share):
-    """Rakip baskısını 0-100 skorlar.
-    Yeni reklam sayısı ve share of voice birlikte değerlendirilir.
-    """
-    total_ads = _num(total_ads)
-    share = _num(share)
-    score = min(100, int(round((min(total_ads, 25) / 25 * 55) + (min(share, 100) * 0.45))))
-    if score >= 70:
-        return score, "bad", "Yüksek Baskı"
-    if score >= 40:
-        return score, "neutral", "İzlenmeli"
-    return score, "good", "Düşük Baskı"
 
-def _build_competitor_intelligence(*, competitor_rows, total_competitor, current_count, previous_count, selected_days):
-    """Control Tower için premium rakip istihbarat katmanı.
-
-    Canlı scrape/API çağırmaz. Mevcut DB'deki COMPETITOR reklamları ve
-    snapshot dönem sinyallerinden baskı, momentum, forecast ve aksiyon üretir.
-    """
-    rows = competitor_rows or []
-    total_competitor = int(_num(total_competitor))
-    current_count = int(_num(current_count))
-    previous_count = int(_num(previous_count))
-    growth_rate = _pct_change(current_count, previous_count)
-    top = rows[0] if rows else {}
-    top_name = top.get("name") or "Rakip verisi bekleniyor"
-    top_share = _num(top.get("share"))
-    avg_pressure = int(round(sum(_num(r.get("pressure_score")) for r in rows) / len(rows))) if rows else 0
-
-    # Baskı skoru sadece reklam sayısı değil; momentum + paylaşım sesi + lider rakip etkisi.
-    activity_score = min(100, int(round((min(current_count, 60) / 60) * 40)))
-    momentum_score = min(30, max(0, int(round(growth_rate / 3)))) if growth_rate > 0 else 0
-    share_score = min(30, int(round(top_share * 0.30)))
-    pressure_score = max(avg_pressure, min(100, activity_score + momentum_score + share_score))
-
-    if pressure_score >= 72:
-        state, threat_label, threat_icon = "bad", "Yüksek Tehdit", "🔴"
-    elif pressure_score >= 45:
-        state, threat_label, threat_icon = "neutral", "Orta Baskı", "🟠"
-    else:
-        state, threat_label, threat_icon = "good", "Düşük Baskı", "🟢"
-
-    cpm_min = 8 if pressure_score >= 72 else 4 if pressure_score >= 45 else 0
-    cpm_max = 12 if pressure_score >= 72 else 7 if pressure_score >= 45 else 3
-    ctr_risk = 9 if pressure_score >= 72 else 5 if pressure_score >= 45 else 2
-    opportunity_ctr = 12 if pressure_score >= 45 else 6
-
-    if not rows:
-        forecast = "Rakip reklam verisi henüz yeterli değil. Octo bu alanı gözlem modunda tutuyor; veri arttıkça baskı, momentum ve fırsat tahmini üretilecek."
-        opportunity = "İlk hedef, rakip reklam verisini düzenli toplamak ve en az 7 günlük benchmark havuzu oluşturmaktır."
-        recommendation = "Rakip hesap bağlantıları ve veri toplama görevleri doğrulanmalı. Gerçek rakip reklam sağlayıcısı bağlanmadan rakip reklam geçmişi üretilmez."
-    else:
-        forecast = (
-            f"{selected_days} günlük pencerede {current_count} rakip reklam sinyali okundu. "
-            f"En güçlü baskı {top_name} tarafında. Momentum {growth_rate:+.1f}% seviyesinde. "
-            f"Bu eğilim devam ederse CPM tarafında %{cpm_min}-{cpm_max} arası baskı, CTR tarafında yaklaşık %{ctr_risk} kalite riski oluşabilir."
-        )
-        opportunity = (
-            f"Rakip yoğunluğu artarken kreatif çeşitliliği düşük kalan alanlarda fırsat oluşur. "
-            f"UGC/video varyasyonları ve remarketing mesajlarıyla yaklaşık +%{opportunity_ctr} CTR potansiyeli hedeflenebilir."
-        )
-        recommendation = (
-            f"Öncelik: {top_name} kreatifleri izlenmeli, aynı gün içinde karşı kreatif varyasyonu hazırlanmalı. "
-            "İkinci öncelik: remarketing bütçesi korunmalı; üçüncü öncelik: CPM artışına karşı kreatif tazeleme planı açılmalı."
-        )
-
-    heatmap = []
-    for r in rows[:5]:
-        score = int(_num(r.get("pressure_score")))
-        heatmap.append({
-            "name": r.get("name"),
-            "activity": int(_num(r.get("new_ads"))),
-            "momentum": r.get("growth_label") or ("▲" if int(_num(r.get("new_ads"))) else "▬"),
-            "share": r.get("share_label"),
-            "threat_score": score,
-            "state": r.get("pressure_state") or ("bad" if score >= 70 else "neutral" if score >= 40 else "good"),
-        })
-
-    return {
-        "pressure_score": pressure_score,
-        "state": state,
-        "threat_label": threat_label,
-        "threat_icon": threat_icon,
-        "new_ads": current_count,
-        "new_ads_label": _format_dashboard_number(current_count, decimals=0),
-        "growth_rate": growth_rate,
-        "growth_label": _fmt_percent(abs(growth_rate)),
-        "growth_icon": "▲" if growth_rate > 0 else "▼" if growth_rate < 0 else "▬",
-        "growth_state": "bad" if growth_rate > 0 else "good" if growth_rate < 0 else "neutral",
-        "share_of_voice": top_share,
-        "share_of_voice_label": _fmt_percent(top_share),
-        "top_threat": top_name,
-        "cpm_forecast_label": f"%{cpm_min}-{cpm_max}" if cpm_max else "%0-3",
-        "ctr_risk_label": f"%{ctr_risk}",
-        "forecast_tr": forecast,
-        "opportunity_tr": opportunity,
-        "recommendation_tr": recommendation,
-        "heatmap": heatmap,
-    }
 
 def _safe_aware_datetime(value):
     """DB'den gelen naive/aware datetime değerlerini güvenli karşılaştırılabilir hale getirir."""
@@ -413,7 +315,6 @@ def _octo_ai_score_engine(
     conversion_rate,
     spend_delta,
     creative_score,
-    competitor_ad_count,
     critical_alert_count,
     pending_ai_tasks,
     high_ai_tasks,
@@ -456,7 +357,6 @@ def _octo_ai_score_engine(
                 "cpc": 0,
                 "budget": 0,
                 "creative": 0,
-                "competitor": 0,
                 "alert_penalty": 0,
                 "task_penalty": 0,
                 "high_task_penalty": 0,
@@ -474,13 +374,6 @@ def _octo_ai_score_engine(
     budget_score = _inverse_score(abs(spend_delta_v), 15, 80)
 
     creative_health = int(max(0, min(100, creative_v))) if creative_v else _score_from_roas_ctr(roas_v, ctr_v)
-
-    # Rakip reklam sayısı tek başına performans bozukluğu değildir; etkisi yumuşak tutulur.
-    competitor_score = (
-        _inverse_score(competitor_ad_count, 15, 100)
-        if competitor_ad_count
-        else 100
-    )
 
     # Eksik metrik varsa skor yine çalışır ama güven düşük olur.
     signal_count = sum([
@@ -503,9 +396,12 @@ def _octo_ai_score_engine(
         conversion_score * 0.15 +
         cpc_score * 0.10 +
         budget_score * 0.08 +
-        creative_health * 0.16 +
-        competitor_score * 0.08
+        creative_health * 0.16
     )
+
+    weighted_score /= 0.92
+
+    weighted_score /= 0.92
 
     # Veri güveni düşükse skoru sıfıra değil, temkinli aralığa çeker.
     if data_confidence < 60:
@@ -537,7 +433,6 @@ def _octo_ai_score_engine(
             "cpc": cpc_score,
             "budget": budget_score,
             "creative": creative_health,
-            "competitor": competitor_score,
             "alert_penalty": alert_penalty,
             "task_penalty": task_penalty,
             "high_task_penalty": high_task_penalty,
@@ -762,8 +657,8 @@ def _weighted_avg(pairs):
     return int(round(sum(_num(value) * _num(weight) for value, weight in pairs) / total_weight))
 
 def _radar_polygon(scores, center=120, radius=78):
-    """6 eksenli radar için SVG polygon point üretir."""
-    angles = [-90, -30, 30, 90, 150, 210]
+    """Mevcut eksen sayısı için SVG polygon noktalarını üretir."""
+    angles = [-90 + i * 360 / len(scores) for i in range(len(scores))]
     points = []
     for score, angle in zip(scores, angles):
         r = radius * (max(0, min(100, _num(score))) / 100)
@@ -1255,7 +1150,7 @@ def _build_executive_summary_from_context(context):
             "items": _ensure_numbered_report_items([
                 "Mevcut snapshot içinde yüksek güvenli fırsatlar izlenmeye devam ediyor.",
                 "Yeni gelir potansiyeli oluştuğunda Octo bu alanı öncelikli fırsat olarak işaretleyecek.",
-                "Kampanya, kreatif ve rakip sinyalleri sonraki analiz döneminde tekrar karşılaştırılmalıdır.",
+                "Kampanya ve kreatif sinyalleri sonraki analiz döneminde tekrar karşılaştırılmalıdır.",
             ]),
         }
     if not top_risk:
@@ -1265,7 +1160,7 @@ def _build_executive_summary_from_context(context):
             "amount": potential_loss,
             "items": _ensure_numbered_report_items([
                 "Mevcut analizde acil müdahale gerektiren büyük bir risk öne çıkmadı.",
-                "Risk seviyesi düşük olsa bile kreatif yorgunluğu, bütçe verimliliği ve rakip baskısı izlenmelidir.",
+                "Risk seviyesi düşük olsa bile kreatif yorgunluğu ve bütçe verimliliği izlenmelidir.",
                 "Yeni kritik sinyal oluşursa Octo bunu sonraki analizde risk alanına taşıyacaktır.",
             ]),
         }

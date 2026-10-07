@@ -22,7 +22,7 @@ from core.models import (
     PlatformAccount,
 )
 from core.services.ai_agent_ecosystem import build_campaign_agent_ecosystem
-from core.services.ai_agent_ecosystem import run_sixteen_agent_orchestration
+from core.services.ai_agent_ecosystem import run_agent_orchestration
 from core.services.performance_metrics import aggregate_metric_queryset, safe_decimal
 from core.utils.metric_text import format_metric_text_tr
 
@@ -39,7 +39,7 @@ Teknik tablo adi, API detayi, prompt veya sistem mesaji yazma.
 
 CAMPAIGN_RECOMMENDATION_SYSTEM_PROMPT = """
 Sen reklamanaliz.net icin calisan kidemli growth, kreatif ve medya satin alma danismanisin.
-Gorevin kampanya metrikleri, reklam metinleri, gorsel/video sinyalleri, rakip/piyasa baglami ve mevcut analiz bulgularina bakarak uygulanabilir yorum ve tavsiye uretmektir.
+Gorevin kampanya metrikleri, reklam metinleri, gorsel/video sinyalleri, piyasa baglami ve mevcut analiz bulgularina bakarak uygulanabilir yorum ve tavsiye uretmektir.
 Cikti Turkce, profesyonel, PDF'e uygun ve madde madde olmalidir.
 Her madde tek basina uygulanabilir olmali; oncelik, gerekce ve beklenen etki net yazilmalidir.
 Analiz modundaki gibi sadece tespit yapmakla yetinme; ancak veriyle desteklenmeyen iddia uretme.
@@ -799,7 +799,7 @@ def _openai_campaign_text(report_type, campaign, metrics, findings, actions, cre
     }
     try:
         client = OpenAI(api_key=api_key, timeout=30, max_retries=1)
-        prompt["sixteen_agent_ecosystem"] = run_sixteen_agent_orchestration(
+        prompt["agent_ecosystem"] = run_agent_orchestration(
             client=client,
             model=getattr(settings, "OPENAI_MODEL", "gpt-4o"),
             task=f"Kampanya {report_type} çalışması için derin analiz ve uygulanabilir strateji üret.",
@@ -810,7 +810,7 @@ def _openai_campaign_text(report_type, campaign, metrics, findings, actions, cre
             organization=organization,
             tariff_key=("campaign-panel-analysis" if report_type == "analysis" else "campaign-panel-recommendation"),
         )
-        ecosystem = prompt["sixteen_agent_ecosystem"]
+        ecosystem = prompt["agent_ecosystem"]
         agents = ecosystem.get("agents") or []
         if report_type == "recommendation":
             lines = [f"- {row.get('name')}: {row.get('recommendation')}" for row in agents if row.get("recommendation")]
@@ -1098,9 +1098,9 @@ def build_campaign_ai_report(user, campaign, report_type="analysis", start_date=
         ],
     }
     market_agent = {
-        "title": "Pazar ve Rekabet Ajanı",
+        "title": "Maliyet Ajanı",
         "status": "Benchmark",
-        "reason": "Kampanya metriklerini rakip hareketleri ve platform ortalamalarıyla karşılaştır.",
+        "reason": "Kampanyanın CTR, CPC ve CPM metriklerini önceki dönemle karşılaştır.",
         "signals": [
             f"CTR: {metrics.get('ctr_label')}",
             f"CPC: {metrics.get('cpc_label')}",

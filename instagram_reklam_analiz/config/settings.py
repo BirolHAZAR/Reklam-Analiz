@@ -285,53 +285,6 @@ FACEBOOK_GRAPH_URL = config(
     default='https://graph.facebook.com/v25.0',
 )
 
-META_AD_LIBRARY_ACCESS_TOKEN = config(
-    'META_AD_LIBRARY_ACCESS_TOKEN',
-    default='',
-)
-
-TIKTOK_AD_LIBRARY_ACCESS_TOKEN = config('TIKTOK_AD_LIBRARY_ACCESS_TOKEN', default='')
-SEARCHAPI_API_KEY = config('SEARCHAPI_API_KEY', default='')
-GOOGLE_COMPETITOR_DETAILS_ENABLED = config('GOOGLE_COMPETITOR_DETAILS_ENABLED', default=True, cast=bool)
-META_COMPETITOR_SOURCE = config('META_COMPETITOR_SOURCE', default='graph')
-TIKTOK_AD_LIBRARY_COUNTRIES = [item.strip().upper() for item in config('TIKTOK_AD_LIBRARY_COUNTRIES', default='').split(',') if item.strip()]
-
-META_AD_LIBRARY_COUNTRIES = [
-    item.strip().upper()
-    for item in config(
-        'META_AD_LIBRARY_COUNTRIES',
-        default='TR',
-    ).split(',')
-    if item.strip()
-]
-
-META_AD_LIBRARY_SEARCH_TYPE = config(
-    'META_AD_LIBRARY_SEARCH_TYPE',
-    default='KEYWORD_UNORDERED',
-)
-
-META_AD_LIBRARY_AD_TYPE = config(
-    'META_AD_LIBRARY_AD_TYPE',
-    default='ALL',
-)
-
-META_AD_LIBRARY_ACTIVE_STATUS = config(
-    'META_AD_LIBRARY_ACTIVE_STATUS',
-    default='ALL',
-)
-
-META_AD_LIBRARY_COUNTRIES_FORMAT = config(
-    'META_AD_LIBRARY_COUNTRIES_FORMAT',
-    default='comma',
-)
-
-META_AD_LIBRARY_LIMIT = config(
-    'META_AD_LIBRARY_LIMIT',
-    default=50,
-    cast=int,
-)
-
-
 # ============================================================
 # FACEBOOK OAUTH
 # ============================================================
@@ -1155,7 +1108,6 @@ RATE_LIMIT_RULES = [
         "url_names": [
             "api_sync_account",
             "api_campaign_panel_sync_account",
-            "api_rakip_reklam_sync",
             "sync_instagram_data",
             "organic_content_sync_account",
         ],
@@ -1598,10 +1550,6 @@ CELERY_TASK_ROUTES = {
         "queue": "sync"
     },
 
-    "core.tasks.competitor_sync.*": {
-        "queue": "sync"
-    },
-
     "core.tasks.metric_tasks.*": {
         "queue": "sync"
     },
@@ -1785,20 +1733,6 @@ CELERY_BEAT_SCHEDULE = {
         "task":
             "core.tasks.sync_tasks."
             "sync_all_platform_accounts",
-
-        "schedule":
-            crontab(minute="*/30"),
-
-        "options": {
-            "expires": 60 * 25,
-            "queue": "sync",
-        },
-    },
-
-    "sync-live-competitor-ads": {
-        "task":
-            "core.tasks.competitor_sync."
-            "sync_all_live_competitors",
 
         "schedule":
             crontab(minute="*/30"),

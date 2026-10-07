@@ -201,28 +201,6 @@
     .action-link{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 11px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);font-size:12px;font-weight:900;color:var(--theme-page-text, #dcd6ff);text-decoration:none;}
     .action-link:hover{background:rgba(124,92,255,.16);color:var(--theme-page-text, #fff);}
 
-    .competitor-pulse{display:grid;grid-template-columns:220px minmax(0,1fr);gap:14px;align-items:start;margin-top:14px;}
-    .competitor-tabs{display:grid;gap:8px;max-height:390px;overflow:auto;padding-right:4px;scrollbar-width:thin;scrollbar-color:rgba(124,92,255,.55) rgba(255,255,255,.06);}
-    .competitor-tabs::-webkit-scrollbar,.competitor-campaign-wrap::-webkit-scrollbar{width:9px;height:9px;}
-    .competitor-tabs::-webkit-scrollbar-track,.competitor-campaign-wrap::-webkit-scrollbar-track{background:rgba(255,255,255,.06);border-radius:999px;}
-    .competitor-tabs::-webkit-scrollbar-thumb,.competitor-campaign-wrap::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--exec-primary),var(--exec-primary-2));border-radius:999px;}
-    .competitor-tab{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.045);color:var(--theme-page-text, #e2e8f0);border-radius:15px;padding:11px 12px;text-align:left;cursor:pointer;transition:.16s ease;}
-    .competitor-tab:hover,.competitor-tab.active{background:rgba(124,92,255,.16);border-color:rgba(124,92,255,.38);}
-    .competitor-tab strong{display:block;color:var(--theme-page-text, #fff);font-size:13px;line-height:1.25;}
-    .competitor-tab span{display:block;color:var(--exec-muted);font-size:11px;margin-top:4px;}
-    .competitor-panel{display:none;}
-    .competitor-panel.active{display:block;}
-    .competitor-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:12px;}
-    .competitor-mini{padding:12px;border-radius:15px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);text-align:center;}
-    .competitor-mini span{display:block;color:var(--exec-muted);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;}
-    .competitor-mini strong{display:block;color:var(--theme-page-text, #fff);font-size:18px;line-height:1.15;margin-top:4px;overflow-wrap:anywhere;}
-    .competitor-campaign-wrap{max-height:245px;overflow:auto;border-radius:16px;border:1px solid rgba(255,255,255,.08);scrollbar-width:thin;scrollbar-color:rgba(124,92,255,.55) rgba(255,255,255,.06);}
-    .competitor-campaign-table{width:100%;border-collapse:collapse;min-width:620px;background:rgba(255,255,255,.032);}
-    .competitor-campaign-table th{padding:11px 12px;text-align:left;color:var(--exec-muted);font-size:10px;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid rgba(255,255,255,.08);}
-    .competitor-campaign-table td{padding:11px 12px;color:var(--theme-page-text, #e2e8f0);border-bottom:1px solid rgba(255,255,255,.055);font-size:12px;}
-    .competitor-campaign-table tr:last-child td{border-bottom:0;}
-    .competitor-campaign-name{font-weight:950;color:var(--theme-page-text, #fff);}
-    .competitor-campaign-sub{display:block;color:var(--exec-muted);font-size:11px;margin-top:2px;}
 
     .alert-row{padding:13px 14px;border-radius:17px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);margin-bottom:10px;}
     .alert-row strong{display:block;color:var(--theme-page-text, #fff);font-size:13px;margin-bottom:4px;}
@@ -244,8 +222,7 @@
     .empty-state p{font-size:13px;color:var(--exec-muted);margin:0 auto 16px;max-width:520px;line-height:1.55;}
 
     @media(max-width:1200px){.exec-agency-filter{grid-template-columns:auto 1fr minmax(280px,390px)}.exec-agency-state{grid-column:2 / -1;justify-self:start}.exec-hero,.exec-grid{grid-template-columns:1fr}.metric-grid{grid-template-columns:repeat(2,1fr)}.ops-grid{grid-template-columns:repeat(2,1fr)}}
-    @media(max-width:900px){.competitor-pulse{grid-template-columns:1fr}.competitor-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
-    @media(max-width:720px){.exec-agency-filter{grid-template-columns:auto 1fr;padding:14px}.exec-agency-select,.exec-agency-state{grid-column:1 / -1}.exec-agency-state{white-space:normal}.exec-page{padding:16px;border-radius:18px}.exec-title{font-size:26px}.metric-grid,.ops-grid{grid-template-columns:1fr}.health-score{font-size:46px}.exec-actions{display:grid}.exec-btn{width:100%}.competitor-summary-grid{grid-template-columns:1fr}}
+    @media(max-width:720px){.exec-agency-filter{grid-template-columns:auto 1fr;padding:14px}.exec-agency-select,.exec-agency-state{grid-column:1 / -1}.exec-agency-state{white-space:normal}.exec-page{padding:16px;border-radius:18px}.exec-title{font-size:26px}.metric-grid,.ops-grid{grid-template-columns:1fr}.health-score{font-size:46px}.exec-actions{display:grid}.exec-btn{width:100%}}
 </style>
 {% endblock %}
 
@@ -260,12 +237,11 @@
                 <h1 class="exec-title">Yönetici Özeti ve Canlı Operasyon Merkezi</h1>
                 <p class="exec-subtitle">
                     {{ user.get_full_name|default:user.username }} için son 30 günlük reklam performansı, bütçe sağlığı,
-                    rakip hareketleri, kritik uyarılar ve Octo AI aksiyon önerileri tek ekranda izlenir.
+                    kritik uyarılar ve Octo AI aksiyon önerileri tek ekranda izlenir.
                 </p>
                 <div class="exec-actions">
                     <a class="exec-btn ghost" href="{{ urls.campaign_center }}"><i class="fas fa-rocket"></i> Kampanya Merkezi</a>
                     <a class="exec-btn ghost" href="{{ urls.budget }}"><i class="fas fa-coins"></i> Bütçe Optimizasyonu</a>
-                    <a class="exec-btn ghost" href="{{ urls.rakip_ekle }}"><i class="fas fa-user-secret"></i> Rakip Ekle</a>
                     <a class="exec-btn ghost" href="{{ urls.sync }}"><i class="fas fa-rotate"></i> Senkronizasyon</a>
                 </div>
             </div>
@@ -285,7 +261,7 @@
                 </div>
                 <div class="health-note">
                     Tarih aralığı: <strong>{{ date_range_label }}</strong><br>
-                    {{ summary.critical_alerts }} kritik uyarı &middot; {{ summary.unread_notifications }} okunmamış bildirim &middot; {{ summary.competitors }} aktif rakip
+                    {{ summary.critical_alerts }} kritik uyarı &middot; {{ summary.unread_notifications }} okunmamış bildirim
                 </div>
             </div>
         </section>
@@ -422,85 +398,6 @@
         </section>
 
         <section class="exec-grid">
-            <div class="exec-card">
-                <div class="exec-card-title">
-                    <h3><i class="fas fa-user-secret"></i> Rekabet Nabzı</h3>
-                    <small>{{ summary.competitors }} rakip &middot; {{ summary.competitor_ads }} reklam</small>
-                </div>
-                <div class="ops-grid">
-                    <div class="ops-box"><div class="ops-label">Aktif Rakip</div><div class="ops-value">{{ summary.competitors }}</div><div class="ops-sub">İzlenen hesap</div></div>
-                    <div class="ops-box"><div class="ops-label">Rakip Reklamı</div><div class="ops-value">{{ summary.competitor_ads }}</div><div class="ops-sub">Toplam kayıt</div></div>
-                    <div class="ops-box"><div class="ops-label">Yeni Hareket</div><div class="ops-value">{{ summary.competitor_activity }}</div><div class="ops-sub">Son 30 gün</div></div>
-                    <div class="ops-box"><div class="ops-label">Bildirim</div><div class="ops-value">{{ summary.unread_notifications }}</div><div class="ops-sub">Okunmamış</div></div>
-                </div>
-                {% if competitor_pulse %}
-                <div class="competitor-pulse" data-competitor-pulse>
-                    <div class="competitor-tabs" aria-label="Rakip seçimi">
-                        {% for rival in competitor_pulse %}
-                        <button type="button" class="competitor-tab {% if rival.is_active_tab %}active{% endif %}" data-competitor-tab="{{ rival.id }}">
-                            <strong>{{ rival.name }}</strong>
-                            <span>{{ rival.platform }} &middot; {{ rival.ads_count }} reklam &middot; skor {{ rival.efficiency_score }}</span>
-                        </button>
-                        {% endfor %}
-                    </div>
-                    <div>
-                        {% for rival in competitor_pulse %}
-                        <div class="competitor-panel {% if rival.is_active_tab %}active{% endif %}" data-competitor-panel="{{ rival.id }}">
-                            <div class="competitor-summary-grid">
-                                <div class="competitor-mini"><span>Verimlilik</span><strong>{{ rival.efficiency_score }}/100</strong></div>
-                                <div class="competitor-mini"><span>ROAS</span><strong>{{ rival.roas }}x</strong></div>
-                                <div class="competitor-mini"><span>CTR</span><strong>%{{ rival.ctr }}</strong></div>
-                                <div class="competitor-mini"><span>Harcama</span><strong>{{ rival.spend }}</strong></div>
-                                <div class="competitor-mini"><span>Gelir</span><strong>{{ rival.revenue }}</strong></div>
-                                <div class="competitor-mini"><span>Dönüşüm</span><strong>{{ rival.conversions }}</strong></div>
-                                <div class="competitor-mini"><span>Aktif Reklam</span><strong>{{ rival.active_ads_count }}</strong></div>
-                                <div class="competitor-mini"><span>Yeni Hareket</span><strong>{{ rival.new_ads_count }}</strong></div>
-                            </div>
-                            {% if rival.campaign_rows %}
-                            <div class="competitor-campaign-wrap">
-                                <table class="competitor-campaign-table">
-                                    <thead>
-                                        <tr><th>Kampanya / Reklam</th><th>Durum</th><th>Harcama</th><th>Gelir</th><th>CTR</th><th>ROAS</th><th>Dönüşüm</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for row in rival.campaign_rows %}
-                                        <tr>
-                                            <td><span class="competitor-campaign-name">{{ row.name }}</span><span class="competitor-campaign-sub">{{ row.ad_name }}</span></td>
-                                            <td>{{ row.status }}</td>
-                                            <td>{{ row.spend }}</td>
-                                            <td>{{ row.revenue }}</td>
-                                            <td>%{{ row.ctr }}</td>
-                                            <td>{{ row.roas }}x</td>
-                                            <td>{{ row.conversions }}</td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {% else %}
-                            <div class="empty-state">
-                                <div class="empty-icon">0</div>
-                                <h4>0 kampanya</h4>
-                                <p>Rakip reklamları senkronize edildiğinde kampanya performansı burada listelenir.</p>
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="exec-actions" style="margin-top:14px;">
-                    <a class="exec-btn ghost" href="{{ urls.competitor_intelligence }}">Rekabet Merkezini Aç</a>
-                    <a class="exec-btn ghost" href="{{ urls.rakip_ekle }}">Rakip Ekle</a>
-                </div>
-                {% else %}
-                <div class="empty-state">
-                    <div class="empty-icon">0</div>
-                    <h4>0 rakip</h4>
-                    <p>Rakip eklendiğinde rekabet nabzı ve kampanya hareketleri burada görünür.</p>
-                </div>
-                {% endif %}
-            </div>
-
             <div class="exec-card" id="criticalAlertsCard" tabindex="-1">
                 <div class="exec-card-title">
                     <h3><i class="fas fa-triangle-exclamation"></i> Kritik Uyarılar</h3>
@@ -531,10 +428,9 @@
             <div class="empty-state">
                 <div class="empty-icon"><i class="fas fa-rocket"></i></div>
                 <h4>Yönetici paneli canlı çalışmaya hazır</h4>
-                <p>Platform bağlantıları, kampanya senkronizasyonu ve rakip ekleme tamamlandığında bu ekran otomatik olarak canlı operasyon merkezine dönüşür.</p>
+                <p>Platform bağlantıları, kampanya senkronizasyonu tamamlandığında bu ekran otomatik olarak canlı operasyon merkezine dönüşür.</p>
                 <div class="exec-actions" style="justify-content:center;">
                     <a class="exec-btn primary" href="{{ urls.sync }}">Platform Bağla</a>
-                    <a class="exec-btn ghost" href="{{ urls.rakip_ekle }}">Rakip Ekle</a>
                     <a class="exec-btn ghost" href="{{ urls.campaign_center }}">Kampanya Merkezi</a>
                 </div>
             </div>
@@ -559,21 +455,6 @@
         });
     }
 
-    document.querySelectorAll('[data-competitor-pulse]').forEach(function(root){
-        const tabs = root.querySelectorAll('[data-competitor-tab]');
-        const panels = root.querySelectorAll('[data-competitor-panel]');
-        tabs.forEach(function(tab){
-            tab.addEventListener('click', function(){
-                const id = tab.getAttribute('data-competitor-tab');
-                tabs.forEach(function(item){
-                    item.classList.toggle('active', item === tab);
-                });
-                panels.forEach(function(panel){
-                    panel.classList.toggle('active', panel.getAttribute('data-competitor-panel') === id);
-                });
-            });
-        });
-    });
 })();
 </script>
 {% endblock %}
