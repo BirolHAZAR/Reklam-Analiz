@@ -14,7 +14,7 @@ from decouple import config
 from celery.schedules import crontab
 from kombu import Queue
 
-import sentry_sdk
+from config.sentry import initialize_sentry
 from django.utils.translation import gettext_lazy as _
 
 
@@ -24,6 +24,8 @@ from django.utils.translation import gettext_lazy as _
 
 SENTRY_DSN = os.getenv('SENTRY_DSN', '')
 DJANGO_ENV = os.getenv('DJANGO_ENV', 'development')
+SENTRY_RELEASE = os.getenv('SENTRY_RELEASE') or os.getenv('SOURCE_COMMIT')
+SENTRY_DASHBOARD_URL = os.getenv('SENTRY_DASHBOARD_URL', 'https://sentry.io/')
 SENTRY_STARTUP_LOG = os.getenv(
     'SENTRY_STARTUP_LOG',
     'false'
@@ -38,10 +40,7 @@ def _is_runserver_reloader_parent():
 
 
 if SENTRY_DSN and not _is_runserver_reloader_parent():
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        environment=DJANGO_ENV,
-    )
+    initialize_sentry(SENTRY_DSN, DJANGO_ENV, release=SENTRY_RELEASE)
 
     if SENTRY_STARTUP_LOG:
         print(

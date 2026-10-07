@@ -1,10 +1,8 @@
 # core/views/main.py
 from core.ai_agents.error_manager import capture_errors
-from django.http import HttpResponse
 from datetime import timedelta
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
@@ -115,14 +113,6 @@ def dashboard(request):
     }
     
     return render(request, 'dashboard.html', context)
-@staff_member_required
-@capture_errors
-def sentry_test_view(request):
-    """Sentry test view'i"""
-    # Kasıtlı hata
-    x = 1 / 0
-    return HttpResponse("Buraya asla gelemez!")
-
 def bad_request_view(request, exception=None):
     return render(request, "400.html", status=400)
 

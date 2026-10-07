@@ -5,6 +5,7 @@ from datetime import datetime
 
 import sentry_sdk
 from django.conf import settings
+from config.sentry import EXPECTED_REQUEST_ERRORS
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class ErrorManager:
     def capture_exception(self, exception, level='error', tags=None, extra=None):
         # 1. Logla - DÜZELTİLDİ
         log_func = getattr(logger, level.lower(), logger.error)
-        log_func(f"Hata yakalandı: {str(exception)}", exc_info=True)
+        log_func(f"Hata yakalandı: {str(exception)}", exc_info=(type(exception), exception, exception.__traceback__))
 
         # 2. Veritabanına kaydet (hatayı bastır)
         try:
@@ -33,7 +34,7 @@ class ErrorManager:
                 message=str(exception)[:500],
                 severity=level,
                 status='new',
-                traceback=traceback.format_exc(),
+                traceback=''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)),
                 tags=tags or {},
                 extra_data=extra or {},
                 user=self.user,
@@ -47,24 +48,25 @@ class ErrorManager:
 
         # 3. Sentry
         if self.sentry_enabled:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.new_scope() as scope:
                 if self.user:
-                    sentry_sdk.set_user({'id': self.user.id, 'username': self.user.username})
+                    scope.set_user({'id': self.user.id})
                 if tags:
                     for k, v in tags.items():
                         scope.set_tag(k, v)
                 if extra:
                     for k, v in extra.items():
                         scope.set_extra(k, v)
+                scope.set_level(level)
                 sentry_sdk.capture_exception(exception)
 
     def capture_message(self, message, level='info', tags=None, extra=None):
         log_func = getattr(logger, level.lower(), logger.info)
         log_func(message)
         if self.sentry_enabled:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.new_scope() as scope:
                 if self.user:
-                    sentry_sdk.set_user({'id': self.user.id, 'username': self.user.username})
+                    scope.set_user({'id': self.user.id})
                 if tags:
                     for k, v in tags.items():
                         scope.set_tag(k, v)
@@ -91,6 +93,8 @@ def capture_errors(func):
     def wrapper(request, *args, **kwargs):
         try:
             return func(request, *args, **kwargs)
+        except EXPECTED_REQUEST_ERRORS:
+            raise
         except Exception as e:
             error_manager = ErrorManager(
                 user=request.user if request.user.is_authenticated else None,

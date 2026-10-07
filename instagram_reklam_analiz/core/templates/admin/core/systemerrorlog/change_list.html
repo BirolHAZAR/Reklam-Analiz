@@ -1,0 +1,5 @@
+{% extends "admin/change_list.html" %}
+{% block object-tools-items %}
+<li><a href="{{ sentry_url }}" target="_blank" rel="noopener noreferrer">Sentry hata takibi</a></li>
+{{ block.super }}
+{% endblock %}

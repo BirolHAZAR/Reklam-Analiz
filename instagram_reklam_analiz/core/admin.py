@@ -3224,6 +3224,15 @@ class OctoRuleEngineRunAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
 
 @admin.register(SystemErrorLog)
 class SystemErrorLogAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
+    change_list_template = "admin/core/systemerrorlog/change_list.html"
+
+    def changelist_view(self, request, extra_context=None):
+        from django.conf import settings
+
+        context = dict(extra_context or {})
+        context["sentry_url"] = settings.SENTRY_DASHBOARD_URL
+        return super().changelist_view(request, extra_context=context)
+
     list_display = ("error_id", "short_message", "severity", "status_badge", "user", "file_name", "line_number", "created_at")
     list_filter = ("severity", "status", "method", "created_at")
     search_fields = ("error_id", "message", "traceback", "file_name", "function_name", "url", "user__email", "user__username")

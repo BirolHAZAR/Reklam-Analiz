@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Keep the existing production Celery services on the running web release.
 
-Run on the Docker Swarm manager. No credentials or application settings change.
+Run on the Docker Swarm manager. Only the Sentry monitoring environment is synchronized from the web service.
 """
 import fcntl
 import json
@@ -13,11 +13,34 @@ WEB = "reklam-analiz-analiz-8dzpai"
 WORKER = "reklam-analiz-worker-j2xrq4"
 BEAT = "reklam-analiz-beats-hcni7b"
 STATE_DIR = Path("/var/lib/reklamanaliz")
+MONITORING_ENV_KEYS = ("SENTRY_DSN", "DJANGO_ENV", "SENTRY_RELEASE", "SENTRY_DASHBOARD_URL", "SENTRY_STARTUP_LOG")
+
+
+def monitoring_env_changes(web_env, service_env):
+    source = dict(item.split("=", 1) for item in web_env if "=" in item)
+    target = dict(item.split("=", 1) for item in service_env if "=" in item)
+    changes = []
+    for key in MONITORING_ENV_KEYS:
+        if source.get(key) == target.get(key):
+            continue
+        if key in source:
+            changes.extend(["--env-add", key + "=" + source[key]])
+        elif key in target:
+            changes.extend(["--env-rm", key])
+    return changes
+
+
 BEAT_PATH = "/app/instagram_reklam_analiz/runtime/celerybeat"
 
 
 def docker(*args):
-    result = subprocess.run(["docker", *args], check=True, capture_output=True, text=True, timeout=120)
+    try:
+        result = subprocess.run(["docker", *args], check=False, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("Docker operation timed out.") from None
+    if result.returncode:
+        # Arguments may contain DSN values; do not include them in errors.
+        raise RuntimeError("Docker operation failed (exit %s)." % result.returncode)
     return result.stdout.strip()
 
 
@@ -56,7 +79,8 @@ def main():
             container = spec["Spec"]["TaskTemplate"]["ContainerSpec"]
             mounts = container.get("Mounts", [])
             needs_mount = service == BEAT and not any(m.get("Target") == BEAT_PATH for m in mounts)
-            if container["Image"] == image and not needs_mount:
+            env_changes = monitoring_env_changes(web["Spec"]["TaskTemplate"]["ContainerSpec"].get("Env", []), container.get("Env", []))
+            if container["Image"] == image and not needs_mount and not env_changes:
                 continue
             if state == "rollback_completed" and attempts.get(service) == image:
                 raise RuntimeError(f"{service} rolled back this image; manual investigation required.")
@@ -67,6 +91,7 @@ def main():
                 beat_dir = STATE_DIR / "celerybeat"
                 beat_dir.mkdir(mode=0o750, parents=True, exist_ok=True)
                 cmd += ["--mount-add", f"type=bind,source={beat_dir},target={BEAT_PATH}"]
+            cmd += env_changes
             docker(*cmd, service)
             attempts[service] = image
             state_file.write_text(json.dumps({"web_image": image, "requested": attempts,

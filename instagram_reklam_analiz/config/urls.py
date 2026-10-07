@@ -3,7 +3,6 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from core.views.main import sentry_test_view
 from django.contrib import admin
 from django.views.generic import RedirectView
 from core.seo import robots_txt, sitemap_xml
@@ -20,7 +19,7 @@ urlpatterns = [
     path('', include('core.urls')),
     path('confirm-email/', RedirectView.as_view(pattern_name='account_email_verification_sent', permanent=False)),
     path('accounts/', include('allauth.urls')),  # Allauth URL'leri
-    path('sentry-test/', sentry_test_view, name='sentry_test'),
+
     path("i18n/", include("django.conf.urls.i18n")),
 ]
 
