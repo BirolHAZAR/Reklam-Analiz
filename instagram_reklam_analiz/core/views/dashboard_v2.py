@@ -263,13 +263,13 @@ def executive_dashboard(request):
             "title": "Performans verisi bekleniyor",
             "text": "Son 30 gün için reklam performans verisi yok. Platform senkronizasyonunu kontrol edin.",
             "reason": "Operasyon sağlığı hesaplamak için ölçüm verisi gerekiyor.",
-            "tag": "VERİ YOK",
-            "tone": "info",
-            "priority": "P3",
-            "owner": "Operasyon",
+            "level": "info",
+            "icon_class": "fa-clock",
+            "priority": "Veri yok",
+            "impact": "Ölçüm bekleniyor",
             "group": "own",
             "url": _safe_url("sync_center", "/sync-center/"),
-            "cta": "Senkronizasyonu Aç",
+            "button": "Senkronizasyonu Aç",
         })
     elif not ai_actions:
         ai_actions.append({
