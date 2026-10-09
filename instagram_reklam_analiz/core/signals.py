@@ -94,6 +94,13 @@ def release_active_session(sender, request, user, **kwargs):
     ).update(active_session_key="", active_session_last_seen=None)
 
 
+@receiver(user_logged_in)
+def replace_previous_login_session(sender, request, user, **kwargs):
+    from core.middleware.concurrent_sessions import claim_login_session
+
+    claim_login_session(request, user)
+
+
 def _safe_name(obj, fallback="Kayıt"):
     return (
         getattr(obj, "name", None)
