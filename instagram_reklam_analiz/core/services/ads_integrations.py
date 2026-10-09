@@ -90,6 +90,40 @@ def authorization_url(provider, state):
     return url + "?" + urlencode(params)
 
 
+def _google_error_codes(error):
+    """Return structured error enums only; never provider messages or metadata."""
+    details = error.get("details", [])
+    if not isinstance(details, list):
+        return []
+    codes = []
+    for detail in details[:20]:
+        if not isinstance(detail, dict):
+            continue
+        kind = detail.get("@type", "")
+        if isinstance(kind, str) and re.fullmatch(
+            r"type\.googleapis\.com/google\.ads\.googleads\.v[0-9]+\.errors\.GoogleAdsFailure", kind
+        ):
+            errors = detail.get("errors", [])
+            if not isinstance(errors, list):
+                continue
+            for item in errors[:20]:
+                code_map = item.get("errorCode", {}) if isinstance(item, dict) else {}
+                if not isinstance(code_map, dict):
+                    continue
+                for group, value in code_map.items():
+                    if group in {"authorizationError", "authenticationError", "requestError", "quotaError", "internalError"} and isinstance(value, str) and re.fullmatch(r"[A-Z][A-Z_]{1,79}", value):
+                        code = f"{group}.{value}"
+                        if code not in codes:
+                            codes.append(code)
+        elif kind == "type.googleapis.com/google.rpc.ErrorInfo":
+            reason = detail.get("reason", "")
+            if isinstance(reason, str) and re.fullmatch(r"[A-Z][A-Z_]{1,79}", reason):
+                code = f"ErrorInfo.{reason}"
+                if code not in codes:
+                    codes.append(code)
+    return codes[:5]
+
+
 def _request(method, url, *, operation="", **kwargs):
     # Never expose requests exceptions (URLs may contain authorization codes),
     # response bodies or provider-echoed credentials to notifications/logs.
@@ -123,6 +157,12 @@ def _request(method, url, *, operation="", **kwargs):
             "OAuth provider request rejected operation=%s status=%s error_type=%s error_code=%s error_subcode=%s",
             operation or "unspecified", response.status_code, error_type or "unknown", code or "unknown", subcode or "none",
         )
+        if urlsplit(url).hostname == "googleads.googleapis.com":
+            google_codes = _google_error_codes(error)
+            if google_codes:
+                logger.warning("Google Ads request rejected operation=%s status=%s structured_codes=%s",
+                               operation or "unspecified", response.status_code, ", ".join(google_codes))
+                raise IntegrationError(f"{prefix}Google Ads isteği reddedildi (HTTP {response.status_code}, {', '.join(google_codes)}).")
         if any(marker in message for marker in ("client secret", "client_secret", "app secret", "invalid platform app")):
             raise IntegrationError(
                 f"{prefix}Uygulama kimliği ile gizli anahtar eşleşmiyor. Yönetici platform ayarındaki güncel App Secret değerini kaydetmeli."
@@ -253,7 +293,7 @@ def google_search(token, customer_id, query, manager_id=""):
         body = {"query": query}
         if page_token:
             body["pageToken"] = page_token
-        data = _request("POST", url, headers=_google_headers(token, manager_id), json=body)
+        data = _request("POST", url, operation="Google Ads kampanya verilerini okuma", headers=_google_headers(token, manager_id), json=body)
         rows.extend(data.get("results", []))
         next_token = data.get("nextPageToken")
         if not next_token:
