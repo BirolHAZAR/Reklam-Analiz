@@ -30,7 +30,9 @@ class FacebookAPI(BasePlatformAPI):
         # ads must remain discoverable even when there are no Insights rows.
         return meta_rows(account_token(self.account), f"{self.account.account_id}/campaigns", {
             "fields": "id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time",
-            "effective_status": json.dumps(["ACTIVE", "PAUSED", "ARCHIVED", "DELETED", "IN_PROCESS", "WITH_ISSUES"]),
+            # Graph v25 rejects DELETED as an inventory filter (1815001).
+            # Deleted entities already in history remain in the database.
+            "effective_status": json.dumps(["ACTIVE", "PAUSED", "ARCHIVED", "IN_PROCESS", "WITH_ISSUES"]),
         })
 
     def get_ads(self, since_days=30):
@@ -39,7 +41,7 @@ class FacebookAPI(BasePlatformAPI):
         token = account_token(self.account)
         metadata = {row["id"]: row for row in meta_rows(token, f"{self.account.account_id}/ads", {
             "fields": "id,name,effective_status,campaign{id,name,status,objective},adset{id,name,status,daily_budget,lifetime_budget,start_time,end_time},creative{id,name,title,body,thumbnail_url,object_url,call_to_action_type,image_url}",
-            "effective_status": json.dumps(["ACTIVE", "PAUSED", "ARCHIVED", "DELETED", "PENDING_REVIEW", "DISAPPROVED", "PREAPPROVED", "PENDING_BILLING_INFO", "CAMPAIGN_PAUSED", "ADSET_PAUSED", "IN_PROCESS", "WITH_ISSUES"]),
+            "effective_status": json.dumps(["ACTIVE", "PAUSED", "ARCHIVED", "PENDING_REVIEW", "DISAPPROVED", "PREAPPROVED", "PENDING_BILLING_INFO", "CAMPAIGN_PAUSED", "ADSET_PAUSED", "IN_PROCESS", "WITH_ISSUES"]),
         })}
         rows = meta_rows(token, f"{self.account.account_id}/insights", {
             "level": "ad", "time_increment": 1,

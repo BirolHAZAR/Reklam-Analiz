@@ -36,12 +36,16 @@ class MetaCampaignInventoryTests(TestCase):
         if path.endswith("/ads"):
             self.assertNotIn("filtering", params)
             self.assertNotIn("time_range", params)
-            self.assertTrue({"PAUSED", "ARCHIVED", "DELETED", "IN_PROCESS"}.issubset(json.loads(params["effective_status"])))
+            statuses = json.loads(params["effective_status"])
+            self.assertTrue({"PAUSED", "ARCHIVED", "IN_PROCESS"}.issubset(statuses))
+            self.assertNotIn("DELETED", statuses)
             return self.ads
         if path.endswith("/campaigns"):
             self.assertNotIn("filtering", params)
             self.assertNotIn("time_range", params)
-            self.assertTrue({"PAUSED", "ARCHIVED", "DELETED"}.issubset(json.loads(params["effective_status"])))
+            statuses = json.loads(params["effective_status"])
+            self.assertTrue({"PAUSED", "ARCHIVED"}.issubset(statuses))
+            self.assertNotIn("DELETED", statuses)
             return self.campaigns
         self.assertEqual(path, "act_123/insights")
         self.assertEqual(params["time_increment"], 1)
