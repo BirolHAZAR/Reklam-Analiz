@@ -260,6 +260,7 @@
                     </div>
                 </div>
                 <div class="health-note">
+                    <strong>{{ health_state_label }}</strong>{% if not has_performance_data %} — Son 30 gün için ölçüm verisi bekleniyor.{% endif %}<br>
                     Tarih aralığı: <strong>{{ date_range_label }}</strong><br>
                     {{ summary.critical_alerts }} kritik uyarı &middot; {{ summary.unread_notifications }} okunmamış bildirim
                 </div>

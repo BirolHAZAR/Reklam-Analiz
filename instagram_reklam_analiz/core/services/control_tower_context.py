@@ -153,6 +153,8 @@ def _safe_aware_datetime(value):
         return None
 
 def _score_from_roas_ctr(roas, ctr):
+    if _num(roas) <= 0 and _num(ctr) <= 0:
+        return 0
     score = 50
     score += min(_num(roas) * 8, 30)
     score += min(_num(ctr) * 4, 20)

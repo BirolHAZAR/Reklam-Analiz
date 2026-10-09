@@ -81,6 +81,38 @@ class AgencyScopeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(rendered.call_args.args[2]['opportunities'], [])
 
+    def executive_context(self, data=None):
+        from django.core.cache import cache
+        from core.views.dashboard_v2 import executive_dashboard
+        cache.clear()
+        with patch("core.views.dashboard_v2.render") as rendered:
+            executive_dashboard(self.request(self.owner, data))
+        return rendered.call_args.args[2]
+
+    def test_executive_health_is_zero_with_connected_accounts_without_metrics(self):
+        context = self.executive_context()
+        self.assertEqual(context["health_score"], 0)
+        self.assertEqual(context["health_state_label"], "Veri yok")
+        self.assertFalse(context["has_performance_data"])
+        self.assertNotIn("Operasyon stabil görünüyor", [a["title"] for a in context["ai_actions"]])
+
+    def test_executive_health_uses_only_current_selected_client_performance(self):
+        from datetime import timedelta
+        campaign = Campaign.objects.create(user=self.owner, platform_account=self.account_a,
+            platform_campaign_id="score-campaign", name="Score campaign")
+        ad = Ad.objects.create(user=self.owner, source_type="OWN", platform_account=self.account_a,
+            campaign=campaign, platform_ad_id="score-ad", name="Score ad")
+        metric = AdMetricHistory.objects.create(ad=ad, date=timezone.localdate()-timedelta(days=40),
+            impressions=1000, clicks=50, spend="100.00", conversions="5", conversion_value="400.00")
+        self.assertEqual(self.executive_context()["health_score"], 0)
+        metric.date = timezone.localdate()
+        metric.save(update_fields=["date"])
+        self.assertGreater(self.executive_context({"agency_client":str(self.client_a.pk)})["health_score"], 0)
+        self.assertEqual(self.executive_context({"agency_client":str(self.client_b.pk)})["health_score"], 0)
+        metric.impressions = metric.clicks = metric.spend = metric.conversions = metric.conversion_value = 0
+        metric.save()
+        self.assertEqual(self.executive_context()["health_score"], 0)
+
     def test_owner_can_select_client_and_scope_accounts(self):
         request = self.request(self.owner, {"agency_client": str(self.client_a.id)})
         scope = get_agency_scope(request)

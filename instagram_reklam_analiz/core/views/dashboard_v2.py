@@ -229,6 +229,8 @@ def executive_dashboard(request):
         else OpportunityWindow.objects.filter(user=user, is_taken=False).order_by("-confidence_score", "-detected_at")[:4]
     )
 
+    has_performance_data = any(value > 0 for value in (spend, impressions, clicks, conversions, revenue))
+
     ai_actions = []
     if critical_alerts:
         ai_actions.append({
@@ -256,7 +258,20 @@ def executive_dashboard(request):
             "url": _safe_url("budget_optimization", "/budget-optimization/"),
             "button": "Bütçeyi İncele",
         })
-    if not ai_actions:
+    if not ai_actions and not has_performance_data:
+        ai_actions.append({
+            "title": "Performans verisi bekleniyor",
+            "text": "Son 30 gün için reklam performans verisi yok. Platform senkronizasyonunu kontrol edin.",
+            "reason": "Operasyon sağlığı hesaplamak için ölçüm verisi gerekiyor.",
+            "level": "info",
+            "icon_class": "fa-clock",
+            "priority": "Veri yok",
+            "impact": "Ölçüm bekleniyor",
+            "group": "own",
+            "url": _safe_url("sync_center", "/sync-center/"),
+            "button": "Senkronizasyonu Aç",
+        })
+    elif not ai_actions:
         ai_actions.append({
             "group": "own",
             "level": "success",
@@ -287,7 +302,7 @@ def executive_dashboard(request):
         or current_qs.exists()
     )
 
-    if has_data:
+    if has_performance_data:
         # Executive Dashboard ve Control Tower aynı Octo sağlık motorunu kullanır.
         # Böylece yalnızca varlıkların mevcut olmasına puan veren eski 50 tabanlı
         # "hazırlık" skoru müşteriye performans sağlığı gibi sunulmaz.
@@ -325,7 +340,7 @@ def executive_dashboard(request):
         date_range_label = f"{start_30.strftime('%d.%m.%Y')} - {today.strftime('%d.%m.%Y')}"
     else:
         health_score = 0
-        health_state_label = "Hazır"
+        health_state_label = "Veri yok"
         date_range_label = "0 kayıt"
 
     context = {
@@ -373,6 +388,7 @@ def executive_dashboard(request):
         "ai_action_groups": ai_action_groups,
         "has_data": True,
         "has_operational_data": has_data,
+        "has_performance_data": has_performance_data,
         "urls": {
             "campaign_center": _safe_url("campaign_center", "/campaign-center/"),
             "adgroup_center": _safe_url("adgroup_center", "/adgroup-center/"),
