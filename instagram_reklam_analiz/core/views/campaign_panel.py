@@ -168,6 +168,9 @@ def api_campaigns_by_account(request):
         return JsonResponse({"success": False, "error": "account_id gerekli"}, status=400)
 
     account = get_object_or_404(platform_accounts_for_request(request, active_only=True), id=account_id)
+    status = request.GET.get("campaign_status", "").upper()
+    if status not in {"", "ACTIVE", "INACTIVE", "UNKNOWN"}:
+        return JsonResponse({"success": False, "error": "Geçersiz kampanya durumu"}, status=400)
     start_date, end_date = normalize_date_range(request)
     version = CacheService.get_version("campaign_panel_account", request.user.id, account.id)
     cache_key_parts = (
@@ -179,12 +182,13 @@ def api_campaigns_by_account(request):
         start_date.isoformat() if start_date else "all",
         "to",
         end_date.isoformat() if end_date else "all",
+        "status", status or "all",
     )
     cached = CacheService.get("campaign_panel_campaigns", *cache_key_parts, version=version)
     if cached is not None:
         return JsonResponse(cached)
 
-    campaigns = build_campaign_list(request.user, account, start_date=start_date, end_date=end_date)
+    campaigns = build_campaign_list(request.user, account, start_date=start_date, end_date=end_date, status=status)
 
     payload = {
         "success": True,

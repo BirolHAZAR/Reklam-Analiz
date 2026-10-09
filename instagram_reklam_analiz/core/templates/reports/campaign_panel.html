@@ -66,6 +66,12 @@ body:has(.cp-shell)>main{padding-left:0!important;padding-right:8px!important}.c
           <small id="accountLabel" style="color:var(--cp-soft);font-weight:800">Bir hesap seçin</small>
         </div>
         <div class="cp-datebar">
+          <select id="campaignStatus" aria-label="Kampanya durumu" onchange="reloadCampaigns()">
+            <option value="">Tüm kampanyalar</option>
+            <option value="ACTIVE">Aktif</option>
+            <option value="INACTIVE">Pasif / arşivlenmiş</option>
+            <option value="UNKNOWN">Durumu bilinmeyen</option>
+          </select>
           <select id="daysBack">
             <option value="">Tüm geçmiş</option>
             <option value="30">Son 30 gün</option>
@@ -128,7 +134,7 @@ function getCookie(name){let cookieValue=null;if(document.cookie&&document.cooki
 function escapeHtml(value){return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));}
 function platformIcon(code){code=(code||'').toLowerCase();return {'facebook':'fab fa-facebook-f','meta':'fab fa-meta','instagram':'fab fa-instagram','google_ads':'fab fa-google','google':'fab fa-google','tiktok':'fab fa-tiktok','linkedin':'fab fa-linkedin-in','x':'fab fa-x-twitter','youtube':'fab fa-youtube'}[code] || 'fas fa-plug';}
 function statusClass(status){return String(status || 'unknown').toLowerCase();}
-function queryParams(){const params=new URLSearchParams();if(agencyClientScope)params.set('agency_client',agencyClientScope);if(currentAccountId)params.set('account_id',currentAccountId);const days=document.getElementById('daysBack').value;if(days)params.set('days_back',days);const dateFrom=document.getElementById('dateFrom').value;const dateTo=document.getElementById('dateTo').value;if(dateFrom)params.set('date_from',dateFrom);if(dateTo)params.set('date_to',dateTo);return params.toString();}
+function queryParams(){const params=new URLSearchParams();if(agencyClientScope)params.set('agency_client',agencyClientScope);if(currentAccountId)params.set('account_id',currentAccountId);const status=document.getElementById('campaignStatus').value;if(status)params.set('campaign_status',status);const days=document.getElementById('daysBack').value;if(days)params.set('days_back',days);const dateFrom=document.getElementById('dateFrom').value;const dateTo=document.getElementById('dateTo').value;if(dateFrom)params.set('date_from',dateFrom);if(dateTo)params.set('date_to',dateTo);return params.toString();}
 
 async function loadPlatforms(){
   const container=document.getElementById('platformList');

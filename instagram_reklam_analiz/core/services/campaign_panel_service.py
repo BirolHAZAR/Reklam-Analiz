@@ -860,7 +860,7 @@ def build_platform_account_payload(user, platform_code="", accounts_queryset=Non
     return data
 
 
-def build_campaign_list(user, account, start_date=None, end_date=None):
+def build_campaign_list(user, account, start_date=None, end_date=None, status=""):
     campaigns = (
         Campaign.objects
         .filter(platform_account=account)
@@ -868,6 +868,12 @@ def build_campaign_list(user, account, start_date=None, end_date=None):
         .prefetch_related("ad_groups", "ads")
         .order_by("-updated_at", "-created_at")
     )
+    if status == "ACTIVE":
+        campaigns = campaigns.filter(status="ACTIVE")
+    elif status == "INACTIVE":
+        campaigns = campaigns.filter(status__in=["PAUSED", "ARCHIVED", "DELETED", "ENDED"])
+    elif status == "UNKNOWN":
+        campaigns = campaigns.filter(status="UNKNOWN")
     return [campaign_card_payload(campaign, start_date, end_date) for campaign in campaigns]
 
 

@@ -173,6 +173,11 @@ def upsert_v2_ad_snapshot(*, user, platform_account, payload: Dict[str, Any], so
         },
     )
 
+    # Entity discovery is independent of delivery. Do not fabricate a zero
+    # metric or overwrite today's real metrics when Insights returned no row.
+    if payload.get("metrics_available") is False:
+        return {"campaign": campaign, "ad_group": ad_group, "creative": creative, "ad": ad, "metric": None}
+
     snapshot_date = get_metric_date(payload)
     md = metric_defaults(payload)
     ad_metric, _ = AdMetricHistory.objects.update_or_create(ad=ad, date=snapshot_date, defaults=md)

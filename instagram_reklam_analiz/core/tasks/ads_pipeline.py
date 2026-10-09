@@ -60,19 +60,13 @@ def sync_platform_account_ads(self, job_id):
 
         update_job(job, 15, "Kampanyalar inceleniyor...")
 
-        """
-        BURASI GERÇEK API BAĞLANTI NOKTASI
-
-        Sonraki adımda platforma göre şu fonksiyonları dolduracağız:
-
-        Meta:
-        - campaigns = fetch_meta_campaigns(connection, account, start_date, end_date)
-        - adsets = fetch_meta_adsets(...)
-        - ads = fetch_meta_ads(...)
-        - insights = fetch_meta_insights(...)
-
-        Şimdilik mevcut V2 verilerini okuyarak pipeline sonucunu güncelliyoruz.
-        """
+        # Complete the actual provider pull before reporting job success.
+        from core.tasks.v2_platform_sync import sync_v2_platform_account_ads
+        sync_result = sync_v2_platform_account_ads.apply(
+            args=(account.id, "OWN", job.days_back), throw=True,
+        ).get(propagate=True, disable_sync_subtasks=False)
+        if sync_result.get("skipped") or sync_result.get("failed"):
+            raise ValueError(sync_result.get("error") or sync_result.get("reason") or "Platform senkronizasyonu tamamlanamadı.")
 
         campaigns_qs = Campaign.objects.filter(
             user=user,
@@ -173,25 +167,7 @@ def sync_platform_account_ads(self, job_id):
         }
         job.save()
 
-        try:
-            from core.tasks.admin_ops import generate_octo_tasks
-
-            rule_task = generate_octo_tasks.apply_async(
-                kwargs={
-                    "user_id": user.id,
-                    "account_id": account.id,
-                    "trigger": "ad_sync",
-                    "days": min(max(job.days_back, 7), 30),
-                },
-                countdown=5,
-                queue="ai",
-            )
-            job.result["rule_engine"] = {"status": "queued", "task_id": rule_task.id}
-        except Exception as exc:
-            job.result["rule_engine"] = {
-                "status": "periodic_fallback",
-                "error": str(exc),
-            }
+        job.result["rule_engine"] = sync_result.get("rule_engine", {})
         job.save(update_fields=["result", "updated_at"])
 
         return job.result

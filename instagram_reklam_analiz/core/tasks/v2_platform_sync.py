@@ -243,11 +243,17 @@ def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=
             api = api_class(account)
             ads_data = api.get_ads(since_days=days_back)
 
+        campaign_inventory = api.get_campaigns() if platform_code == "facebook" and hasattr(api, "get_campaigns") else []
+
         created_or_updated = 0
         if platform_code in {"google_ads", "facebook"} and len(ads_data or []) > policy.max_records:
             return _skip_result(account, platform_code, source_type, "record_limit_exceeded", failed=True,
                                 error="Veri aralığı planın kayıt sınırını aşıyor; daha kısa bir tarih aralığı seçin.")
         synced_dates = set()
+
+        if len(campaign_inventory) > policy.max_records:
+            return _skip_result(account, platform_code, source_type, "record_limit_exceeded", failed=True,
+                                error="Kampanya sayısı planın kayıt sınırını aşıyor.")
 
         for item in (ads_data or [])[:policy.max_records]:
             item = _normalize_item(platform_code, item)
@@ -257,9 +263,13 @@ def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=
                 payload=item,
                 source_type=source_type,
             )
-            if platform_code in {"google_ads", "facebook"}:
+            if platform_code in {"google_ads", "facebook"} and snapshot["metric"] is not None:
                 synced_dates.add(snapshot["metric"].date)
             created_or_updated += 1
+
+        if campaign_inventory:
+            from core.platforms.facebook import save_campaign_inventory
+            save_campaign_inventory(account, campaign_inventory)
 
         if synced_dates:
             from core.services.v2_ad_sync import rebuild_ad_metric_rollups

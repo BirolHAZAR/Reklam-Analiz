@@ -29,3 +29,6 @@ __pycache__/
 /GOOGLE_ANALYTICS_IPTAL_DURUMU.md
 /GOOGLE_ANALYTICS_KALDIRMA_20261005.md
 /GOOGLE_GA4_EK_INCELEME_20261005.md
+
+# Temporary dependencies and linked working copies stay local.
+/runtime/
