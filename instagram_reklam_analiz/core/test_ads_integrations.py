@@ -237,6 +237,32 @@ class AdsIntegrationTests(TestCase):
         self.assertNotIn("private-token", str(error.exception))
 
     @patch("core.services.ads_integrations.requests.request")
+    def test_google_structured_error_is_visible_without_sensitive_response(self, request):
+        request.return_value = Mock(ok=False, status_code=403)
+        request.return_value.json.return_value = {"error": {"code": 403, "message": "private-token", "details": [
+            {"@type": "type.googleapis.com/google.ads.googleads.v25.errors.GoogleAdsFailure", "errors": [
+                {"errorCode": {"authorizationError": "CUSTOMER_NOT_ENABLED"}, "message": "private-refresh", "trigger": "private-customer"}
+            ], "requestId": "private-request"}
+        ]}}
+        with self.assertLogs("core.services.ads_integrations", level="WARNING") as logs:
+            with self.assertRaises(api.IntegrationError) as error:
+                api._request("POST", "https://googleads.googleapis.com/v25/customers/123/googleAds:search")
+        output = str(error.exception) + " ".join(logs.output)
+        self.assertIn("authorizationError.CUSTOMER_NOT_ENABLED", output)
+        for secret in ("private-token", "private-refresh", "private-customer", "private-request"):
+            self.assertNotIn(secret, output)
+
+    def test_google_error_parser_handles_malformed_and_untrusted_details(self):
+        self.assertEqual(api._google_error_codes({"details": "not-a-list"}), [])
+        self.assertEqual(api._google_error_codes({"details": [None, {"@type": "untrusted", "reason": "SECRET"}]}), [])
+        self.assertEqual(api._google_error_codes({"details": [{
+            "@type": "type.googleapis.com/google.ads.googleads.v25.errors.GoogleAdsFailure", "errors": [
+                None, {"errorCode": "not-a-map"}, {"errorCode": {"authorizationError": "private-token"}}
+            ]}]}), [])
+        self.assertEqual(api._google_error_codes({"details": [{"@type": "type.googleapis.com/google.rpc.ErrorInfo",
+            "reason": "SERVICE_DISABLED", "metadata": {"secret": "private-key"}}]}), ["ErrorInfo.SERVICE_DISABLED"])
+
+    @patch("core.services.ads_integrations.requests.request")
     def test_provider_error_identifies_secret_mismatch_without_leaking_detail(self, request):
         request.return_value = Mock(ok=False, status_code=400)
         request.return_value.json.return_value = {
