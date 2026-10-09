@@ -309,7 +309,7 @@
                                 <div class="account-list-item d-flex justify-content-between align-items-center">
                                     <div>
                                         <div class="small fw-semibold">{{ acc.display_name }}</div>
-                                        <a class="small" href="{% url 'local_name_update' 'account' acc.pk %}">Adı düzenle</a>
+                                        {% if acc.user_id == request.user.id %}<a class="small" href="{% url 'local_name_update' 'account' acc.pk %}">Adı düzenle</a>{% endif %}
                                         <div class="small text-muted">
                                             <i class="fas fa-key me-1"></i> Token: {% if acc.access_token %}••••••••{% else %}Yok{% endif %}
                                         </div>
@@ -318,12 +318,14 @@
                                         </div>
                                     </div>
                                     <div>
+                                        {% if acc.user_id == request.user.id %}
                                         <form method="post" action="{% url 'hesap_sil' acc.id %}" onsubmit="return confirm('Bu hesabı silmek istediğinize emin misiniz?');" class="d-inline">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </form>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 {% endfor %}

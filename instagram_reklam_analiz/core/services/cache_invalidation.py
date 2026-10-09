@@ -55,7 +55,9 @@ def schedule_instance_cache_invalidation(sender, instance, **kwargs):
     organization_id = getattr(client, "organization_id", None)
     for user_id in user_ids:
         guard = CacheService.make_key("invalidate_guard", "user", user_id)
-        if not cache.add(guard, 1, timeout=2):
+        # Account additions/removals must be visible immediately even when a
+        # previous save already triggered the high-volume metrics guard.
+        if instance._meta.model_name != "platformaccount" and not cache.add(guard, 1, timeout=2):
             continue
 
         def invalidate(uid=user_id, aid=account_id, oid=organization_id):

@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import IntegrityError
+from django.db.models import Q
 from django.views.decorators.http import require_POST
 
 from core.models import PlatformAccount, Platform
@@ -27,6 +28,8 @@ def platform_connections(request):
     from core.views.ads_integrations import account_connection_context
     integration_context = account_connection_context(request)
     ads_accounts = {account.pk: account for account in integration_context["accounts"]}
+    from core.services.agency_scope import platform_accounts_for_request
+    visible_accounts = platform_accounts_for_request(request)
 
     platforms = Platform.objects.filter(is_active=True).order_by("name")
     platform_data = []
@@ -38,14 +41,15 @@ def platform_connections(request):
     for platform in platforms:
         connections = list(
             PlatformConnection.objects
-            .filter(user=user, platform=platform)
+            .filter(platform=platform)
+            .filter(Q(user=user) | Q(accounts__in=visible_accounts))
             .prefetch_related("accounts")
+            .distinct()
             .order_by("-created_at")
         )
 
         accounts = list(
-            PlatformAccount.objects
-            .filter(user=user, platform=platform)
+            visible_accounts.filter(platform=platform)
             .select_related("connection")
             .order_by("account_name", "account_id")
         )

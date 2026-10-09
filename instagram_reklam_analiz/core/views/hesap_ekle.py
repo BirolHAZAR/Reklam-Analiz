@@ -335,9 +335,9 @@ def hesap_ekle_view(request):
         messages.success(request, f"{platform.name} hesabi {status}.")
         return redirect("hesap_ekle")
 
+    from core.services.agency_scope import platform_accounts_for_request
     platform_accounts = (
-        PlatformAccount.objects
-        .filter(user=request.user)
+        platform_accounts_for_request(request)
         .select_related("platform", "agency_client")
         .order_by("platform__name", "account_name", "account_id")
     )

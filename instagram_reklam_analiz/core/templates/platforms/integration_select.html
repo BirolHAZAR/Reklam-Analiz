@@ -1,10 +1,16 @@
 {% extends 'base.html' %}
 {% block title %}Hesap seç · ReklamAnaliz{% endblock %}
 {% block content %}<div class="container py-4" style="max-width:760px">
-<h1>{{ provider_name }} hesapları</h1><p>Bağlamak istediğiniz hesapları seçin.</p>
+<h1>{{ provider_name }} hesapları</h1><p>Bir veya birden fazla hesap seçebilirsiniz. Yeni hesap eklemek, önceden bağladığınız hesapları kaldırmaz.</p>
+{% if connected_accounts %}
+<section class="mb-4" aria-label="Önceden bağlı hesaplar">
+<h2 class="h5">Önceden bağlı hesaplar</h2>
+<ul>{% for account in connected_accounts %}<li>{{ account.display_name }} · {{ account.account_id }}{% if not account.is_active %} · Pasif{% endif %}</li>{% endfor %}</ul>
+</section>
+{% endif %}
 {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
 <form method="post">{% csrf_token %}
-{% for choice in choices %}<label class="card p-3 mb-2 d-block"><input type="checkbox" name="accounts" value="{{ choice.id }}"> <strong>{{ choice.name }}</strong> · {{ choice.id }} · {{ choice.currency }}</label>{% endfor %}
+{% for choice in choices %}<label class="card p-3 mb-2 d-block"><input type="checkbox" name="accounts" value="{{ choice.id }}"{% if choice.selected %} checked{% endif %}> <strong>{{ choice.name }}</strong> · {{ choice.id }} · {{ choice.currency }}{% if choice.already_connected %}<span class="badge bg-success ms-2">Zaten bağlı · yetkiyi yenile</span>{% endif %}</label>{% endfor %}
 <button type="submit" class="btn btn-primary mt-3">Seçilen hesapları bağla</button>
 <a class="btn btn-link" href="{% url 'platform_connections' %}">İptal</a>
 </form></div>{% endblock %}

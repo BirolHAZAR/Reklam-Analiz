@@ -139,13 +139,21 @@ def select_accounts(request, provider):
     if not connection.extra_data.get("pending") or connection.created_at < timezone.now() - timedelta(minutes=15):
         messages.error(request, "Hesap seçiminin süresi doldu. Bağlantıyı yeniden başlatın.")
         return redirect("platform_connections")
-    choices = connection.extra_data.get("choices", [])
+    choices = [dict(row) for row in connection.extra_data.get("choices", [])]
+    existing_ids = set(platform_accounts_for_request(request).filter(
+        platform=connection.platform,
+    ).values_list("account_id", flat=True))
+    selected_ids = set(request.POST.getlist("accounts")) if request.method == "POST" else set()
+    for choice in choices:
+        choice["already_connected"] = str(choice["id"]) in existing_ids
+        choice["selected"] = str(choice["id"]) in selected_ids
+    connected_accounts = platform_accounts_for_request(request).filter(platform=connection.platform)
     error = ""
     if request.method == "POST":
         try:
             client = _client(request, connection.extra_data.get("agency_client"))
             selected = set(request.POST.getlist("accounts"))
-            allowed = {str(row["id"]): row for row in choices}
+            allowed = {str(row["id"]): row for row in connection.extra_data.get("choices", [])}
             if not selected or not selected <= allowed.keys():
                 raise api.IntegrationError("Listeden en az bir hesap seçin.")
             from core.services.plan_limits import ensure_platform_account_capacity
@@ -185,7 +193,10 @@ def select_accounts(request, provider):
             return redirect("platform_connections")
         except (api.IntegrationError, ValueError) as exc:
             error = str(exc)
-    return render(request, "platforms/integration_select.html", {"provider_name": api.CONNECTION_PROVIDERS.get(provider), "choices": choices, "error": error})
+    return render(request, "platforms/integration_select.html", {
+        "provider_name": api.CONNECTION_PROVIDERS.get(provider), "choices": choices,
+        "connected_accounts": connected_accounts, "error": error,
+    })
 
 
 @login_required

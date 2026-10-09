@@ -97,7 +97,7 @@
                                     <div class="pc-account">
                                         <div class="pc-account-avatar">{{ account.display_name|default:account.account_id|first|upper }}</div>
                                         <div>
-                                            <strong>{{ account.display_name|default:account.account_id }}</strong><a href="{% url 'local_name_update' 'account' account.pk %}" class="pc-muted">Adı düzenle</a>
+                                            <strong>{{ account.display_name|default:account.account_id }}</strong>{% if account.user_id == request.user.id %}<a href="{% url 'local_name_update' 'account' account.pk %}" class="pc-muted">Adı düzenle</a>{% endif %}
                                             <div class="pc-muted">{{ account.currency|default:"TRY" }} · {{ account.timezone|default:"-" }}</div>
                                         </div>
                                     </div>
@@ -149,12 +149,15 @@
                                         {% if account.ads_authorized %}<a class="pc-btn secondary" href="{% url 'integration_campaigns' account.pk %}">Kampanyalar</a>
                                         {% else %}<a class="pc-btn secondary" href="{% url 'hesap_ekle' %}">Yeniden bağla</a>{% endif %}
                                         {% endif %}
+                                        {% if account.user_id == request.user.id %}
                                         <button class="pc-action" type="button" title="Düzenle" data-edit-dialog="account-edit-{{ account.id }}"><i class="fas fa-pen"></i></button>
                                         <form method="post" action="{% url 'platform_account_delete' account.id %}" onsubmit="return confirm('{{ account.display_name|default:account.account_id|escapejs }} hesabını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');">
                                             {% csrf_token %}
                                             <button class="pc-action danger" type="submit" title="Sil"><i class="fas fa-trash"></i></button>
                                         </form>
+                                        {% endif %}
                                     </div>
+                                    {% if account.user_id == request.user.id %}
                                     <dialog class="pc-edit-dialog" id="account-edit-{{ account.id }}">
                                         <form method="post" action="{% url 'platform_account_update' account.id %}">
                                             {% csrf_token %}
@@ -168,6 +171,7 @@
                                             </div>
                                         </form>
                                     </dialog>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
