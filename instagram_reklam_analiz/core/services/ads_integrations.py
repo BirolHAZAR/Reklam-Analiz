@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 class IntegrationError(ValueError):
-    pass
+    def __init__(self, message, *, google_codes=()):
+        self.google_codes = tuple(google_codes)
+        super().__init__(message)
 
 
 class IntegrationRateLimitError(IntegrationError):
@@ -162,7 +164,7 @@ def _request(method, url, *, operation="", **kwargs):
             if google_codes:
                 logger.warning("Google Ads request rejected operation=%s status=%s structured_codes=%s",
                                operation or "unspecified", response.status_code, ", ".join(google_codes))
-                raise IntegrationError(f"{prefix}Google Ads isteği reddedildi (HTTP {response.status_code}, {', '.join(google_codes)}).")
+                raise IntegrationError(f"{prefix}Google Ads isteği reddedildi (HTTP {response.status_code}, {', '.join(google_codes)}).", google_codes=google_codes)
         if any(marker in message for marker in ("client secret", "client_secret", "app secret", "invalid platform app")):
             raise IntegrationError(
                 f"{prefix}Uygulama kimliği ile gizli anahtar eşleşmiyor. Yönetici platform ayarındaki güncel App Secret değerini kaydetmeli."
@@ -337,23 +339,41 @@ def discover_accounts(provider, token):
     data = _request("GET", f"https://googleads.googleapis.com/{settings.GOOGLE_ADS_API_VERSION}/customers:listAccessibleCustomers",
                     headers=_google_headers(token))
     accounts = {}
+    unavailable = False
     for resource in data.get("resourceNames", []):
         root = resource.split("/")[-1]
-        info = google_search(token, root, "SELECT customer.id, customer.descriptive_name, customer.manager, customer.currency_code, customer.time_zone FROM customer")
+        try:
+            info = google_search(token, root, "SELECT customer.id, customer.descriptive_name, customer.manager, customer.currency_code, customer.time_zone, customer.status FROM customer")
+        except IntegrationError as exc:
+            if set(exc.google_codes) == {"authorizationError.CUSTOMER_NOT_ENABLED"}:
+                unavailable = True
+                continue
+            raise
         if not info:
             continue
         customer = info[0]["customer"]
+        if customer.get("status") and customer["status"] != "ENABLED":
+            unavailable = True
+            continue
         if not customer.get("manager"):
             accounts[root] = {"id": root, "name": customer.get("descriptiveName") or root,
                               "currency": customer.get("currencyCode", ""), "timezone": customer.get("timeZone", ""), "kind": "ad_account"}
             continue
-        children = google_search(token, root, "SELECT customer_client.id, customer_client.descriptive_name, customer_client.manager, customer_client.currency_code, customer_client.time_zone, customer_client.status FROM customer_client WHERE customer_client.manager = FALSE AND customer_client.status = 'ENABLED'", root)
+        try:
+            children = google_search(token, root, "SELECT customer_client.id, customer_client.descriptive_name, customer_client.manager, customer_client.currency_code, customer_client.time_zone, customer_client.status FROM customer_client WHERE customer_client.manager = FALSE AND customer_client.status = 'ENABLED'", root)
+        except IntegrationError as exc:
+            if set(exc.google_codes) == {"authorizationError.CUSTOMER_NOT_ENABLED"}:
+                unavailable = True
+                continue
+            raise
         for row in children:
             c = row["customerClient"]
             cid = str(c["id"])
             accounts.setdefault(cid, {"id": cid, "name": c.get("descriptiveName") or cid,
                                      "currency": c.get("currencyCode", ""), "timezone": c.get("timeZone", ""),
                                      "login_customer_id": root, "kind": "ad_account"})
+    if not accounts and unavailable:
+        raise IntegrationError("Bu Google kullanıcısının erişebildiği reklam hesapları etkin değil. Google Ads'te etkin bir reklam hesabına erişimi olan Google kullanıcısıyla bağlanın. OAuth izin onayı reklam hesabını etkinleştirmez.")
     return list(accounts.values())
 
 

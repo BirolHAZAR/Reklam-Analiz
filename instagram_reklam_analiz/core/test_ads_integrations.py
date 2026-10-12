@@ -207,6 +207,57 @@ class AdsIntegrationTests(TestCase):
         self.assertEqual(accounts[0]["id"], "222")
         self.assertEqual(accounts[0]["login_customer_id"], "111")
 
+    @patch("core.services.ads_integrations.google_search")
+    @patch("core.services.ads_integrations._request")
+    def test_disabled_root_does_not_block_oauth_account_selection(self, request, search):
+        request.return_value = {"resourceNames": ["customers/111", "customers/222"]}
+        search.side_effect = [
+            api.IntegrationError("Rejected", google_codes=["authorizationError.CUSTOMER_NOT_ENABLED"]),
+            [{"customer": {"id": "222", "manager": False, "status": "ENABLED"}}],
+        ]
+        self.flow()
+        with patch("core.services.ads_integrations.exchange_code", return_value={"access_token": "private-token"}):
+            response = self.client.get(reverse("google_ads_callback"), {"state": "nonce", "code": "code"})
+        self.assertRedirects(response, reverse("integration_select", args=["google_ads"]))
+        connection = PlatformConnection.objects.get(user=self.user)
+        self.assertEqual([row["id"] for row in connection.extra_data["choices"]], ["222"])
+        self.assertFalse(connection.is_active)
+
+    @patch("core.services.ads_integrations.google_search")
+    @patch("core.services.ads_integrations._request")
+    def test_disabled_manager_does_not_block_other_accounts(self, request, search):
+        request.return_value = {"resourceNames": ["customers/111", "customers/222"]}
+        search.side_effect = [
+            [{"customer": {"manager": True, "status": "ENABLED"}}],
+            api.IntegrationError("Rejected", google_codes=["authorizationError.CUSTOMER_NOT_ENABLED"]),
+            [{"customer": {"manager": False, "status": "ENABLED"}}],
+        ]
+        self.assertEqual([row["id"] for row in api.discover_accounts("google_ads", "token")], ["222"])
+
+    @patch("core.services.ads_integrations.google_search")
+    @patch("core.services.ads_integrations._request")
+    def test_only_disabled_accounts_give_actionable_error(self, request, search):
+        request.return_value = {"resourceNames": ["customers/111", "customers/222"]}
+        search.side_effect = [
+            api.IntegrationError("Rejected", google_codes=["authorizationError.CUSTOMER_NOT_ENABLED"]),
+            [{"customer": {"manager": False, "status": "CANCELED"}}],
+        ]
+        with self.assertRaisesMessage(api.IntegrationError, "etkin bir reklam hesabına erişimi olan"):
+            api.discover_accounts("google_ads", "token")
+
+    @patch("core.services.ads_integrations.google_search")
+    @patch("core.services.ads_integrations._request")
+    def test_discovery_does_not_hide_global_or_unknown_errors(self, request, search):
+        request.return_value = {"resourceNames": ["customers/111", "customers/222"]}
+        for codes in ((), ("authorizationError.CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION",),
+                      ("authorizationError.CUSTOMER_NOT_ENABLED", "authenticationError.OAUTH_TOKEN_INVALID")):
+            with self.subTest(codes=codes):
+                search.reset_mock()
+                search.side_effect = api.IntegrationError("Rejected", google_codes=codes)
+                with self.assertRaisesMessage(api.IntegrationError, "Rejected"):
+                    api.discover_accounts("google_ads", "token")
+                self.assertEqual(search.call_count, 1)
+
     @patch("core.services.ads_integrations._request")
     def test_google_pagination_and_manager_header(self, request):
         request.side_effect = [{"results": [{"id": 1}], "nextPageToken": "next"}, {"results": [{"id": 2}]}]
