@@ -258,6 +258,22 @@ class AdsIntegrationTests(TestCase):
                     api.discover_accounts("google_ads", "token")
                 self.assertEqual(search.call_count, 1)
 
+    @patch("core.services.ads_integrations.google_search")
+    @patch("core.services.ads_integrations._request")
+    def test_canceled_test_hierarchy_is_allowed_but_canceled_production_is_not(self, request, search):
+        request.return_value = {"resourceNames": ["customers/111", "customers/444"]}
+        search.side_effect = [
+            [{"customer": {"manager": True, "status": "CANCELED", "testAccount": True}}],
+            [{"customerClient": {"id": "222", "status": "CANCELED", "testAccount": True}},
+             {"customerClient": {"id": "333", "status": "CANCELED", "testAccount": False}}],
+            [{"customer": {"manager": False, "status": "CANCELED", "testAccount": True}}],
+        ]
+        accounts = api.discover_accounts("google_ads", "token")
+        self.assertEqual([row["id"] for row in accounts], ["222", "444"])
+        self.assertEqual(accounts[0]["login_customer_id"], "111")
+        self.assertTrue(all(row["test_account"] for row in accounts))
+        self.assertTrue(all("Google Ads test" in row["name"] for row in accounts))
+
     @patch("core.services.ads_integrations._request")
     def test_google_pagination_and_manager_header(self, request):
         request.side_effect = [{"results": [{"id": 1}], "nextPageToken": "next"}, {"results": [{"id": 2}]}]

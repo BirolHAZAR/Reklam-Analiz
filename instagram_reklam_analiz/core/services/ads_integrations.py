@@ -343,7 +343,7 @@ def discover_accounts(provider, token):
     for resource in data.get("resourceNames", []):
         root = resource.split("/")[-1]
         try:
-            info = google_search(token, root, "SELECT customer.id, customer.descriptive_name, customer.manager, customer.currency_code, customer.time_zone, customer.status FROM customer")
+            info = google_search(token, root, "SELECT customer.id, customer.descriptive_name, customer.manager, customer.currency_code, customer.time_zone, customer.status, customer.test_account FROM customer")
         except IntegrationError as exc:
             if set(exc.google_codes) == {"authorizationError.CUSTOMER_NOT_ENABLED"}:
                 unavailable = True
@@ -352,15 +352,17 @@ def discover_accounts(provider, token):
         if not info:
             continue
         customer = info[0]["customer"]
-        if customer.get("status") and customer["status"] != "ENABLED":
+        if customer.get("status") and customer["status"] != "ENABLED" and not (customer.get("testAccount") is True and customer["status"] == "CANCELED"):
             unavailable = True
             continue
         if not customer.get("manager"):
-            accounts[root] = {"id": root, "name": customer.get("descriptiveName") or root,
+            name = customer.get("descriptiveName") or root
+            accounts[root] = {"id": root, "name": f"{name} (Google Ads test)" if customer.get("testAccount") else name,
+                              "test_account": customer.get("testAccount") is True,
                               "currency": customer.get("currencyCode", ""), "timezone": customer.get("timeZone", ""), "kind": "ad_account"}
             continue
         try:
-            children = google_search(token, root, "SELECT customer_client.id, customer_client.descriptive_name, customer_client.manager, customer_client.currency_code, customer_client.time_zone, customer_client.status FROM customer_client WHERE customer_client.manager = FALSE AND customer_client.status = 'ENABLED'", root)
+            children = google_search(token, root, "SELECT customer_client.id, customer_client.descriptive_name, customer_client.manager, customer_client.currency_code, customer_client.time_zone, customer_client.status, customer_client.test_account FROM customer_client WHERE customer_client.manager = FALSE", root)
         except IntegrationError as exc:
             if set(exc.google_codes) == {"authorizationError.CUSTOMER_NOT_ENABLED"}:
                 unavailable = True
@@ -368,8 +370,13 @@ def discover_accounts(provider, token):
             raise
         for row in children:
             c = row["customerClient"]
+            if c.get("status") and c["status"] != "ENABLED" and not (c.get("testAccount") is True and c["status"] == "CANCELED"):
+                unavailable = True
+                continue
             cid = str(c["id"])
-            accounts.setdefault(cid, {"id": cid, "name": c.get("descriptiveName") or cid,
+            name = c.get("descriptiveName") or cid
+            accounts.setdefault(cid, {"id": cid, "name": f"{name} (Google Ads test)" if c.get("testAccount") else name,
+                                     "test_account": c.get("testAccount") is True,
                                      "currency": c.get("currencyCode", ""), "timezone": c.get("timeZone", ""),
                                      "login_customer_id": root, "kind": "ad_account"})
     if not accounts and unavailable:
