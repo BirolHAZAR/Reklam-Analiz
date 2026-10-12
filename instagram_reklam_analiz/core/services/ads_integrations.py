@@ -374,9 +374,25 @@ def account_today(account):
 def campaigns(account):
     token = account_token(account)
     if account.platform.code == "google_ads":
-        rows = google_search(token, account.account_id, "SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type FROM campaign WHERE campaign.status != 'REMOVED'", account.extra_data.get("login_customer_id", ""))
-        return [{"id": str(r["campaign"]["id"]), "name": r["campaign"]["name"], "status": r["campaign"]["status"], "channel": r["campaign"].get("advertisingChannelType", "")} for r in rows]
-    return meta_rows(token, f"{account.account_id}/campaigns", {"fields": "id,name,status,objective"})
+        rows = google_search(token, account.account_id, "SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date, campaign.end_date FROM campaign WHERE campaign.status != 'REMOVED'", account.extra_data.get("login_customer_id", ""))
+        return [{"id": str(r["campaign"]["id"]), "name": r["campaign"]["name"], "status": r["campaign"]["status"], "channel": r["campaign"].get("advertisingChannelType", ""), "start_date": r["campaign"].get("startDate"), "end_date": r["campaign"].get("endDate")} for r in rows]
+    return meta_rows(token, f"{account.account_id}/campaigns", {"fields": "id,name,status,objective,start_time,stop_time",
+        "effective_status": json.dumps(["ACTIVE", "PAUSED", "ARCHIVED", "IN_PROCESS", "WITH_ISSUES"])})
+
+
+def campaign_summaries(account, start, end):
+    """One account-level request, rather than one Insights call per campaign."""
+    token = account_token(account)
+    if account.platform.code == "google_ads":
+        query = f"SELECT campaign.id, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM campaign WHERE campaign.status != 'REMOVED' AND segments.date BETWEEN '{start.isoformat()}' AND '{end.isoformat()}'"
+        return {str(row["campaign"]["id"]): google_metrics(row["metrics"])
+                for row in google_search(token, account.account_id, query, account.extra_data.get("login_customer_id", ""))}
+    return {str(row["campaign_id"]): {"impressions": int(row.get("impressions", 0)),
+             "clicks": int(row.get("clicks", 0)), "spend": Decimal(row.get("spend", "0"))}
+            for row in meta_rows(token, f"{account.account_id}/insights", {
+                "level": "campaign", "fields": "campaign_id,impressions,clicks,spend",
+                "time_range": json.dumps({"since": start.isoformat(), "until": end.isoformat()}),
+            })}
 
 
 def campaign_performance(account, campaign_id, start, end):

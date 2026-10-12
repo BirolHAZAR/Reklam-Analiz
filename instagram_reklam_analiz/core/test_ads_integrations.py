@@ -171,8 +171,9 @@ class AdsIntegrationTests(TestCase):
         response = self.client.get(reverse("integration_campaign_detail", args=[account.pk, "100"]))
         self.assertEqual(response.status_code, 404)
         performance.assert_not_called()
-        response = self.client.get(reverse("integration_campaigns", args=[account.pk]))
-        self.assertContains(response, "SEARCH")
+        with patch("core.services.ads_integrations.campaign_summaries", return_value={}):
+            response = self.client.get(reverse("integration_campaigns", args=[account.pk]))
+        self.assertContains(response, "Arama ağı")
         performance.return_value = [{"date": "2026-09-28", "impressions": 100, "clicks": 4, "spend": Decimal("2.5"), "conversions": 1, "conversion_value": 3}]
         response = self.client.get(reverse("integration_campaign_detail", args=[account.pk, "99"]))
         self.assertContains(response, "Search")

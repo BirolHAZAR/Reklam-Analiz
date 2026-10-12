@@ -10,6 +10,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
@@ -202,23 +203,69 @@ def select_accounts(request, provider):
 @login_required
 @require_GET
 @never_cache
-def account_campaigns(request, account_id, campaign_id=None):
-    account = get_object_or_404(platform_accounts_for_request(request).select_related("platform", "connection"), pk=account_id, is_active=True, platform__code__in=api.PROVIDERS)
-    context = {"account": account, "campaigns": [], "metrics": [], "campaign": None}
+def account_campaigns(request, account_id=None, campaign_id=None):
+    from urllib.parse import urlencode
+    from core.services.campaign_reporting import decorate_campaign, summarize_metrics
+    accounts = platform_accounts_for_request(request).select_related("platform", "connection").filter(
+        is_active=True, platform__code__in=api.PROVIDERS,
+    ).order_by("platform__name", "account_name", "pk")
+    selected_id = account_id if account_id is not None else request.GET.get("account")
+    account = get_object_or_404(accounts, pk=selected_id) if str(selected_id or "").isdigit() else None
+    if selected_id and account is None:
+        raise Http404
+    end = api.account_today(account) if account else timezone.localdate()
+    start = end - timedelta(days=29)
+    scope = get_agency_scope(request)
+    selected_status = request.GET.get("status", "")
+    if selected_status not in {"", "active", "inactive", "other"}:
+        selected_status = ""
+    search = request.GET.get("q", "").strip()[:100]
+    context = {"account": account, "accounts": accounts, "campaigns": [], "metrics": [], "campaign": None,
+               "agency_scope": scope, "selected_status": selected_status, "search": search,
+               "currency": (account.extra_data or {}).get("currency") if account else "",
+               "start": start, "end": end, "summary": None, "total_campaigns": 0,
+               "active_campaigns": 0, "inactive_campaigns": 0}
+    if not account:
+        return render(request, "platforms/integration_campaigns.html", context)
+    if request.GET.get("start") or request.GET.get("end"):
+        try:
+            start = parse_date(request.GET.get("start", ""))
+            end = parse_date(request.GET.get("end", ""))
+        except ValueError:
+            start = end = None
+        if not start or not end or start > end or (end - start).days > 365:
+            context["error"] = "Başlangıç ve bitiş tarihini kontrol edin. En fazla 366 günlük bir dönem seçebilirsiniz."
+            return render(request, "platforms/integration_campaigns.html", context)
+    params = {"start": start.isoformat(), "end": end.isoformat()}
+    if scope.selected_client:
+        params["agency_client"] = scope.selected_client.pk
+    context.update(start=start, end=end, report_query=urlencode(params))
     try:
-        rows = api.campaigns(account)
+        rows = [decorate_campaign(row, today=api.account_today(account)) for row in api.campaigns(account)]
         aliases = (account.extra_data or {}).get("campaign_names", {})
         for row in rows:
             row["name"] = aliases.get(str(row["id"])) or row["name"]
-        context["campaigns"] = rows
+        context.update(total_campaigns=len(rows), active_campaigns=sum(row["status_group"] == "active" for row in rows),
+                       inactive_campaigns=sum(row["status_group"] == "inactive" for row in rows))
         if campaign_id:
             campaign = next((r for r in rows if str(r["id"]) == str(campaign_id)), None)
             if not campaign:
                 from django.http import Http404
                 raise Http404
-            end = api.account_today(account)
-            start = end - timedelta(days=29)
-            context.update(campaign=campaign, start=start, end=end, metrics=api.campaign_performance(account, campaign_id, start, end))
+            metrics = api.campaign_performance(account, campaign_id, start, end)
+            context.update(campaign=campaign, metrics=[{**row, **summarize_metrics([row])} for row in metrics],
+                           summary=summarize_metrics(metrics))
+        else:
+            visible = [row for row in rows if (not selected_status or row["status_group"] == selected_status)
+                       and (not search or search.casefold() in row["name"].casefold() or search in str(row["id"]))]
+            context["campaigns"] = visible
+            try:
+                summaries = api.campaign_summaries(account, start, end) if visible else {}
+                for row in visible:
+                    row["performance"] = summarize_metrics([summaries[str(row["id"])]]) if str(row["id"]) in summaries else None
+                context["summary"] = summarize_metrics([summaries[str(row["id"])] for row in visible if str(row["id"]) in summaries])
+            except api.IntegrationError as exc:
+                context["metrics_error"] = str(exc)
     except api.IntegrationError as exc:
         context["error"] = str(exc)
     return render(request, "platforms/integration_campaigns.html", context)

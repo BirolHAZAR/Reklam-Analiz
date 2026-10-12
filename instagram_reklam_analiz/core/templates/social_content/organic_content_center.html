@@ -1,5 +1,5 @@
 ﻿{% extends "base.html" %}
-{% load humanize %}
+{% load humanize organic_metrics %}
 {% block title %}{{ labels.organic_content_center }} | ReklamAnaliz.net{% endblock %}
 {% block extra_css %}
 <style>
@@ -44,16 +44,18 @@
 
     <div class="metric-grid">
         <div class="metric-card"><div class="metric-label">{{ labels.total_content }}</div><div class="metric-value">{{ stats.total_posts|tr_int }}</div></div>
-        <div class="metric-card"><div class="metric-label">{{ labels.impressions }}</div><div class="metric-value">{{ stats.impressions|tr_int }}</div></div>
-        <div class="metric-card"><div class="metric-label">{{ labels.reach }}</div><div class="metric-value">{{ stats.reach|tr_int }}</div></div>
+        <div class="metric-card"><div class="metric-label">Görüntülemeler</div><div class="metric-value">{% if stats.views != None %}{{ stats.views|tr_int }}{% else %}Veri yok{% endif %}</div></div>
+        <div class="metric-card"><div class="metric-label">{{ labels.reach }}</div><div class="metric-value">{% if stats.reach != None %}{{ stats.reach|organic_metric }}{% else %}Veri yok{% endif %}</div></div>
         <div class="metric-card"><div class="metric-label">{{ labels.engagement }}</div><div class="metric-value">{{ stats.engagement|tr_int }}</div></div>
     </div>
     <div class="metric-grid">
         <div class="metric-card"><div class="metric-label">{{ labels.published }}</div><div class="metric-value">{{ stats.published_posts|tr_int }}</div></div>
         <div class="metric-card"><div class="metric-label">{{ labels.draft }}</div><div class="metric-value">{{ stats.draft_posts|tr_int }}</div></div>
-        <div class="metric-card"><div class="metric-label">{{ labels.avg_engagement }}</div><div class="metric-value">%{{ stats.avg_engagement_rate|tr_decimal }}</div></div>
-        <div class="metric-card"><div class="metric-label">{{ labels.profile_visits }}</div><div class="metric-value">{{ stats.profile_visits|tr_int }}</div></div>
+        <div class="metric-card" title="Etkileşim / erişim × 100. Seçili dönemde her içeriğin son ölçümü kullanılır."><div class="metric-label">{{ labels.avg_engagement }}</div><div class="metric-value">{% if stats.avg_engagement_rate != None %}%{{ stats.avg_engagement_rate|tr_decimal }}{% else %}Veri yok{% endif %}</div></div>
+        <div class="metric-card"><div class="metric-label">{{ labels.profile_visits }}</div><div class="metric-value">{% if stats.profile_visits != None %}{{ stats.profile_visits|organic_metric }}{% else %}Veri yok{% endif %}</div></div>
     </div>
+
+    <p class="post-meta">Seçili dönemde her içeriğin son toplam ölçümü gösterilir. {% if not stats.insights_available %}Instagram istatistikleri eksik veya henüz alınamadı; beğeni ve yorumlar medya verilerinden gösterilebilir.{% endif %}</p>
 
     <div class="row g-3">
         <div class="col-lg-8">
@@ -86,7 +88,7 @@
                             <div class="post-title">{{ post.caption|default:labels.unnamed_organic_content|truncatechars:90 }}</div>
                             <div class="post-meta">{% if post.platform_account %}{% if post.platform_account.agency_client %}{{ post.platform_account.agency_client.name }} · {% endif %}{{ post.platform_account.platform.name }} · {{ post.platform_account.account_name|default:post.platform_account.account_id }}{% else %}{{ post.platform_connection.platform.name|default:labels.platform_not_selected }}{% endif %} · {{ post.get_post_type_display }} · {% if post.posted_at %}{{ post.posted_at|date:"d.m.Y H:i" }}{% else %}{{ labels.draft }}{% endif %}</div>
                             <div class="post-metrics">
-                                <span class="post-metric"><i class="fas fa-eye"></i>{{ labels.reach }}: {{ post.organic_metrics.reach|tr_int }}</span>
+                                <span class="post-metric"><i class="fas fa-eye"></i>{{ labels.reach }}: {{ post.organic_metrics.reach|organic_metric }}</span>
                                 <span class="post-metric"><i class="fas fa-heart"></i>{{ labels.likes }}: {{ post.organic_metrics.likes|tr_int }}</span>
                                 <span class="post-metric"><i class="fas fa-comment"></i>{{ labels.comments }}: {{ post.organic_metrics.comments|tr_int }}</span>
                                 <span class="post-metric"><i class="fas fa-chart-line"></i>{{ labels.engagement }}: {{ post.organic_metrics.engagement|tr_int }}</span>
@@ -114,16 +116,16 @@
                             <div class="detail-caption">{{ post.caption|default:labels.unnamed_organic_content }}</div>
                             <div class="post-meta mt-2">{{ post.get_post_type_display }} · {% if post.posted_at %}{{ post.posted_at|date:"d.m.Y H:i" }}{% else %}{{ labels.draft }}{% endif %}</div>
                             <div class="detail-metrics">
-                                <div class="detail-metric"><span>{{ labels.impressions }}</span><strong>{{ post.organic_metrics.impressions|tr_int }}</strong></div>
-                                <div class="detail-metric"><span>{{ labels.reach }}</span><strong>{{ post.organic_metrics.reach|tr_int }}</strong></div>
+                                <div class="detail-metric"><span>G?r?nt?lemeler</span><strong>{{ post.organic_metrics.views|organic_metric }}</strong></div>
+                                <div class="detail-metric"><span>{{ labels.reach }}</span><strong>{{ post.organic_metrics.reach|organic_metric }}</strong></div>
                                 <div class="detail-metric"><span>{{ labels.engagement }}</span><strong>{{ post.organic_metrics.engagement|tr_int }}</strong></div>
                                 <div class="detail-metric"><span>{{ labels.likes }}</span><strong>{{ post.organic_metrics.likes|tr_int }}</strong></div>
                                 <div class="detail-metric"><span>{{ labels.comments }}</span><strong>{{ post.organic_metrics.comments|tr_int }}</strong></div>
-                                <div class="detail-metric"><span>{{ labels.shares }}</span><strong>{{ post.organic_metrics.shares|tr_int }}</strong></div>
-                                <div class="detail-metric"><span>{{ labels.saves }}</span><strong>{{ post.organic_metrics.saves|tr_int }}</strong></div>
-                                <div class="detail-metric"><span>{{ labels.video_views }}</span><strong>{{ post.organic_metrics.video_views|tr_int }}</strong></div>
-                                <div class="detail-metric"><span>{{ labels.profile_visits }}</span><strong>{{ post.organic_metrics.profile_visits|tr_int }}</strong></div>
-                                <div class="detail-metric"><span>Web sitesi tıklaması</span><strong>{{ post.organic_metrics.website_clicks|tr_int }}</strong></div>
+                                <div class="detail-metric"><span>{{ labels.shares }}</span><strong>{{ post.organic_metrics.shares|organic_metric }}</strong></div>
+                                <div class="detail-metric"><span>{{ labels.saves }}</span><strong>{{ post.organic_metrics.saves|organic_metric }}</strong></div>
+                                <div class="detail-metric"><span>{{ labels.video_views }}</span><strong>{{ post.organic_metrics.video_views|organic_metric }}</strong></div>
+                                <div class="detail-metric"><span>{{ labels.profile_visits }}</span><strong>{{ post.organic_metrics.profile_visits|organic_metric }}</strong></div>
+                                <div class="detail-metric"><span>Web sitesi tıklaması</span><strong>{{ post.organic_metrics.website_clicks|organic_metric }}</strong></div>
                             </div>
                             {% if post.permalink %}<a class="btn btn-outline-light" href="{{ post.permalink }}" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square me-2"></i>Instagram'da aç</a>{% endif %}
                         </template>
@@ -140,9 +142,9 @@
                 <p class="post-meta mb-3">{{ labels.organic_performance_summary }}</p>
                 <div class="d-flex justify-content-between mb-2"><span>{{ labels.likes }}</span><strong>{{ stats.likes|tr_int }}</strong></div>
                 <div class="d-flex justify-content-between mb-2"><span>{{ labels.comments }}</span><strong>{{ stats.comments|tr_int }}</strong></div>
-                <div class="d-flex justify-content-between mb-2"><span>{{ labels.shares }}</span><strong>{{ stats.shares|tr_int }}</strong></div>
-                <div class="d-flex justify-content-between mb-2"><span>{{ labels.saves }}</span><strong>{{ stats.saves|tr_int }}</strong></div>
-                <div class="d-flex justify-content-between"><span>{{ labels.video_views }}</span><strong>{{ stats.video_views|tr_int }}</strong></div>
+                <div class="d-flex justify-content-between mb-2"><span>{{ labels.shares }}</span><strong>{{ stats.shares|organic_metric }}</strong></div>
+                <div class="d-flex justify-content-between mb-2"><span>{{ labels.saves }}</span><strong>{{ stats.saves|organic_metric }}</strong></div>
+                <div class="d-flex justify-content-between"><span>{{ labels.video_views }}</span><strong>{{ stats.video_views|organic_metric }}</strong></div>
             </div>
         </div>
     </div>

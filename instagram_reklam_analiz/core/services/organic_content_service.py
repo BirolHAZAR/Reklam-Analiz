@@ -205,7 +205,7 @@ def sync_instagram_organic_content(account: PlatformAccount, *, limit: int = 50)
     response = api._request(
         f"{api.graph_url}/{instagram_business_id}/media",
         {
-            "fields": "id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count",
+            "fields": "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count",
             "limit": int(limit or 50),
         },
     )
@@ -215,6 +215,7 @@ def sync_instagram_organic_content(account: PlatformAccount, *, limit: int = 50)
     created = 0
     updated = 0
     metrics = 0
+    insights_count = 0
     now = timezone.now()
     for media in (response or {}).get("data", []):
         media_id = str(media.get("id") or "").strip()
@@ -255,10 +256,13 @@ def sync_instagram_organic_content(account: PlatformAccount, *, limit: int = 50)
 
         # Metrik geçmişi paylaşım tarihini değil snapshot tarihini tutar. Böylece
         # eski bir gönderinin bugün güncellenen beğenisi seçili dönemde görünür.
-        metric_date = now.date()
+        metric_date = timezone.localdate(now)
         likes = int(media.get("like_count") or 0)
         comments = int(media.get("comments_count") or 0)
-        engagement = likes + comments
+        from core.services.organic_insights import fetch_media_insights
+        insights, insights_status = fetch_media_insights(api, media)
+        insights_count += int(insights_status == "available")
+        engagement = insights.get("total_interactions", likes + comments)
         SocialPostMetricHistory.objects.update_or_create(
             social_post=post,
             date=metric_date,
@@ -266,12 +270,18 @@ def sync_instagram_organic_content(account: PlatformAccount, *, limit: int = 50)
                 "likes": likes,
                 "comments": comments,
                 "engagement": engagement,
-                "engagement_rate": Decimal("0"),
+                "reach": insights.get("reach", 0),
+                "shares": insights.get("shares", 0),
+                "saves": insights.get("saved", 0),
+                "engagement_rate": (Decimal(engagement) / Decimal(insights["reach"]) * 100
+                                    if insights.get("reach") else Decimal("0")),
                 "raw_metrics": {
                     "provider": "instagram_graph",
                     "like_count": likes,
                     "comments_count": comments,
                     "synced_at": now.isoformat(),
+                    "insights": insights,
+                    "insights_status": insights_status,
                 },
             },
         )
@@ -280,5 +290,7 @@ def sync_instagram_organic_content(account: PlatformAccount, *, limit: int = 50)
     account.last_sync = now
     account.extra_data = {**(account.extra_data or {}), "organic_last_sync_at": now.isoformat()}
     account.save(update_fields=["last_sync", "extra_data", "updated_at"])
-    return {"success": True, "created": created, "updated": updated, "metrics": metrics, "fetched": created + updated}
+    return {"success": True, "created": created, "updated": updated, "metrics": metrics,
+            "fetched": created + updated, "insights_available": insights_count,
+            "insights_unavailable": metrics - insights_count}
 

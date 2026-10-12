@@ -14,6 +14,7 @@ urlpatterns = [
     path('names/<str:kind>/<int:object_id>/', local_names.rename, name='local_name_update'),
     path('names/accounts/<int:account_id>/campaigns/<str:campaign_id>/', local_names.rename_remote_campaign, name='remote_campaign_name_update'),
     path('integrations/', ads_integrations.integrations, name='integrations'),
+    path('campaign-reporting/', ads_integrations.account_campaigns, name='integration_campaign_browser'),
     path('integrations/<str:provider>/connect/', ads_integrations.connect, name='integration_connect'),
     path('integrations/<str:provider>/accounts/', ads_integrations.select_accounts, name='integration_select'),
     path('integrations/accounts/<int:account_id>/campaigns/', ads_integrations.account_campaigns, name='integration_campaigns'),

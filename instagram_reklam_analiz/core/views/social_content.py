@@ -6,7 +6,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Max, Q, Sum
+from django.db.models import Count, Max, OuterRef, Q, Subquery, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -21,6 +21,7 @@ from core.services.organic_content_service import (
     sync_instagram_organic_content,
 )
 from core.services.organic_publish import publish_post
+from core.services.organic_insights import summarize_snapshots
 from core.services.sync_policy import is_sync_due, manual_sync_allowed, policy_for_user
 from core.services.organic_platforms import ORGANIC_PUBLISH_PLATFORM_CODES, organic_publish_platform_rows
 from core.utils.translations import TRANSLATIONS, get_user_language
@@ -124,7 +125,7 @@ def organic_content_center(request):
     selected_platform = request.GET.get("platform", "").strip()
     selected_type = request.GET.get("type", "").strip()
     version = CacheService.get_version("organic_content", request.user.id)
-    cache_parts = ("user", request.user.id, "scope", agency_scope.cache_key, "source", "platform-sync-v1", "period", selected_period, "start", start_date.isoformat(), "end", end_date.isoformat(), "platform", selected_platform or "all", "type", selected_type or "all")
+    cache_parts = ("user", request.user.id, "scope", agency_scope.cache_key, "source", "platform-sync-v1", "metrics", "insights-v2", "period", selected_period, "start", start_date.isoformat(), "end", end_date.isoformat(), "platform", selected_platform or "all", "type", selected_type or "all")
     cached = CacheService.get("organic_content", *cache_parts, version=version)
     if cached is not None:
         cached = dict(cached)
@@ -165,31 +166,19 @@ def organic_content_center(request):
     metrics = SocialPostMetricHistory.objects.filter(
         social_post_id__in=post_ids, date__gte=start_date, date__lte=end_date
     )
-    totals = metrics.aggregate(
-        impressions=Sum("impressions"), reach=Sum("reach"), engagement=Sum("engagement"),
-        likes=Sum("likes"), comments=Sum("comments"), shares=Sum("shares"), saves=Sum("saves"),
-        video_views=Sum("video_views"), profile_visits=Sum("profile_visits"), website_clicks=Sum("website_clicks"), latest_date=Max("date")
-    )
+    # Provider media metrics are lifetime snapshots. Use the most recent
+    # snapshot per post in the selected period instead of adding each day.
+    latest = metrics.filter(social_post_id=OuterRef("social_post_id")).order_by("-date").values("pk")[:1]
+    snapshot_rows = list(metrics.filter(pk=Subquery(latest)))
+    totals = summarize_snapshots(snapshot_rows)
 
     post_type_breakdown = posts.values("post_type").annotate(total=Count("id")).order_by("-total")[:6]
     posts_list = decorate_posts(list(posts[:30]), labels=labels)
-    visible_post_ids = [post.id for post in posts_list]
-    per_post_metrics = {
-        row["social_post_id"]: row
-        for row in SocialPostMetricHistory.objects.filter(
-            social_post_id__in=visible_post_ids, date__gte=start_date, date__lte=end_date
-        ).values("social_post_id").annotate(
-            impressions=Sum("impressions"), reach=Sum("reach"),
-            engagement=Sum("engagement"), likes=Sum("likes"),
-            comments=Sum("comments"), shares=Sum("shares"), saves=Sum("saves"),
-            video_views=Sum("video_views"), profile_visits=Sum("profile_visits"),
-            website_clicks=Sum("website_clicks"), latest_date=Max("date"),
-        )
-    }
+    per_post_metrics = {row.social_post_id: summarize_snapshots([row]) for row in snapshot_rows}
     metric_defaults = {
-        "impressions": 0, "reach": 0, "engagement": 0, "likes": 0,
-        "comments": 0, "shares": 0, "saves": 0, "video_views": 0,
-        "profile_visits": 0, "website_clicks": 0, "latest_date": None,
+        "impressions": None, "views": None, "reach": None, "engagement": 0, "likes": 0,
+        "comments": 0, "shares": None, "saves": None, "video_views": None,
+        "profile_visits": None, "website_clicks": None, "latest_date": None,
     }
     for post in posts_list:
         post.organic_metrics = {**metric_defaults, **per_post_metrics.get(post.id, {})}
@@ -197,7 +186,7 @@ def organic_content_center(request):
     active_posts = posts.filter(is_active=True).count()
     published_posts = posts.filter(posted_at__isnull=False).count()
     draft_posts = total_posts - published_posts
-    avg_engagement_rate = round(((totals.get("engagement") or 0) / (totals.get("impressions") or 1)) * 100, 2)
+    avg_engagement_rate = totals["avg_engagement_rate"]
 
     context = {
         "posts": posts_list,
@@ -217,18 +206,20 @@ def organic_content_center(request):
             "active_posts": active_posts,
             "draft_posts": draft_posts,
             "published_posts": published_posts,
-            "impressions": totals.get("impressions") or 0,
-            "reach": totals.get("reach") or 0,
+            "impressions": totals["impressions"],
+            "views": totals["views"],
+            "reach": totals["reach"],
+            "insights_available": totals["insights_available"],
             "engagement": totals.get("engagement") or 0,
             "likes": totals.get("likes") or 0,
             "comments": totals.get("comments") or 0,
-            "shares": totals.get("shares") or 0,
-            "saves": totals.get("saves") or 0,
-            "video_views": totals.get("video_views") or 0,
+            "shares": totals["shares"],
+            "saves": totals["saves"],
+            "video_views": totals["video_views"],
             "latest_date": totals.get("latest_date"),
             "avg_engagement_rate": avg_engagement_rate,
-            "profile_visits": totals.get("profile_visits") or 0,
-            "website_clicks": totals.get("website_clicks") or 0,
+            "profile_visits": totals["profile_visits"],
+            "website_clicks": totals["website_clicks"],
         },
     }
     CacheService.set("organic_content", *cache_parts, value=context, timeout=120, version=version)
@@ -270,13 +261,16 @@ def organic_content_refresh(request):
     CacheService.bump_version("organic_content", request.user.id)
     successful = [row for row in results if row.get("success")]
     if successful:
+        missing_insights = sum(row.get("insights_unavailable", 0) for row in successful)
         return JsonResponse({
             "success": True,
-            "message": "Organik içerik verileri güncellendi.",
+            "message": ("Organik içerikler güncellendi; bazı Instagram istatistikleri alınamadı."
+                        if missing_insights else "Organik içerik verileri güncellendi."),
             "accounts": len(successful),
             "created": sum(row.get("created", 0) for row in successful),
             "updated": sum(row.get("updated", 0) for row in successful),
             "metrics": sum(row.get("metrics", 0) for row in successful),
+            "insights_unavailable": missing_insights,
         })
     error = next((row.get("error") for row in results if row.get("error")), "Senkronize edilecek gerçek Instagram hesabı bulunamadı.")
     return JsonResponse({"success": False, "message": error}, status=400)

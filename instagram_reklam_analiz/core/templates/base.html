@@ -202,6 +202,7 @@
                     <div class="dropdown-menu-nav">
                         {% can_agency_menu user 'campaign_panel' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'campaign_panel' %}"><i class="fas fa-layer-group"></i> {{ labels.campaign_panel }}</a>{% endif %}
                         {% can_agency_menu user 'campaign_center' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'campaign_center' %}"><i class="fas fa-bullhorn"></i> {{ labels.campaign_center }}</a>{% endif %}
+                        {% can_agency_menu user 'campaign_center' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'integration_campaign_browser' %}"><i class="fas fa-chart-column"></i> Kampanya Performansı</a>{% endif %}
                         {% can_agency_menu user 'adgroup_center' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'adgroup_center' %}"><i class="fas fa-object-group"></i> {{ labels.adgroup_center }}</a>{% endif %}
                         {% can_agency_menu user 'reklam_panel' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'reklam_panel' %}"><i class="fas fa-rectangle-ad"></i> {{ labels.ads_panel }}</a>{% endif %}
                         {% can_agency_menu user 'reklam_hareketleri' as can_link %}{% if can_link %}<a class="dropdown-item-nav" href="{% url 'reklam_hareketleri' %}"><i class="fas fa-chart-line"></i> {{ labels.ad_movements }}</a>{% endif %}

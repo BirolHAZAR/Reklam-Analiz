@@ -13,6 +13,7 @@ URL_PERMISSION_ALIASES = {
     "google_ads_callback": "hesap_ekle",
     "facebook_callback": "hesap_ekle",
     "integration_campaigns": "campaign_center",
+    "integration_campaign_browser": "campaign_center",
     "integration_campaign_detail": "campaign_center",
     "agency_dashboard_org": "agency_dashboard",
     "agency_members": "agency_members",

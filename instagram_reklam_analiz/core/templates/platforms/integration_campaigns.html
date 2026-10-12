@@ -1,18 +1,56 @@
 {% extends 'base.html' %}
-{% block title %}Kampanya performansı · ReklamAnaliz{% endblock %}
-{% block content %}<div class="container py-4">
-<a href="{% url 'platform_connections' %}">Hesaplar</a> / <a href="{% url 'integration_campaigns' account.pk %}">{{ account.display_name }}</a>
-{% if error %}<div class="alert alert-danger mt-3" role="alert">{{ error }}</div>
-{% elif campaign %}
-<h1 class="mt-3">{{ campaign.name }}</h1><p>{{ campaign.status }} · {{ start }} – {{ end }} · {{ account.extra_data.currency }} · {{ account.extra_data.timezone }}</p>
-<h2 class="h4">Performans verileri</h2>
-<p class="text-muted">Platformdan alınan günlük değerler. Bugünün verileri henüz tamamlanmamış olabilir.</p>
-<div class="table-responsive"><table class="table"><thead><tr><th>Tarih</th><th>Gösterim</th><th>Tıklama</th><th>Harcama ({{ account.extra_data.currency }})</th>{% if account.platform.code == 'google_ads' %}<th>Dönüşüm</th><th>Dönüşüm değeri</th>{% endif %}</tr></thead><tbody>
-{% for row in metrics %}<tr><td>{{ row.date }}</td><td>{{ row.impressions }}</td><td>{{ row.clicks }}</td><td>{{ row.spend|floatformat:2 }}</td>{% if account.platform.code == 'google_ads' %}<td>{{ row.conversions|floatformat:2 }}</td><td>{{ row.conversion_value|floatformat:2 }}</td>{% endif %}</tr>
-{% empty %}<tr><td colspan="6">Bu tarih aralığında platformdan performans kaydı dönmedi.</td></tr>{% endfor %}
-</tbody></table></div>
-{% else %}<h1 class="mt-3">Kampanyalar</h1><p>{{ account.display_name }} · {{ account.account_id }}</p>
-<div class="table-responsive"><table class="table"><thead><tr><th>Kampanya</th><th>Durum</th><th>Kanal / Amaç</th></tr></thead><tbody>
-{% for row in campaigns %}<tr><td><a href="{% url 'integration_campaign_detail' account.pk row.id %}">{{ row.name }}</a> <a class="btn btn-sm btn-outline-secondary" href="{% url 'remote_campaign_name_update' account.pk row.id %}">Adı düzenle</a></td><td>{{ row.status }}</td><td>{% if row.channel %}{{ row.channel }}{% else %}{{ row.objective }}{% endif %}</td></tr>
-{% empty %}<tr><td colspan="3">Bu hesapta erişilebilir kampanya bulunamadı.</td></tr>{% endfor %}
-</tbody></table></div>{% endif %}</div>{% endblock %}
+{% load static campaign_metrics %}
+{% block title %}Kampanya Performansı · ReklamAnaliz{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/integration_campaigns.css' %}">{% endblock %}
+{% block content %}
+<div class="ic-shell">
+  <nav class="ic-breadcrumb" aria-label="Sayfa yolu"><a href="{% url 'platform_connections' %}">Platform bağlantıları</a><span aria-hidden="true">/</span>{% if account %}<a href="{% url 'integration_campaigns' account.pk %}?{{ report_query }}">{{ account.display_name }}</a>{% else %}<span>Kampanya performansı</span>{% endif %}{% if campaign %}<span aria-hidden="true">/</span><span>Kampanya detayı</span>{% endif %}</nav>
+  <header class="ic-hero">
+    <div><div class="ic-eyebrow"><i class="fas fa-chart-column" aria-hidden="true"></i> KAMPANYA PERFORMANSI</div>
+      <h1>{% if campaign %}{{ campaign.name }}{% else %}Kampanyaların performansı, tek bakışta.{% endif %}</h1>
+      <p>{% if campaign %}Kampanyanın günlük sonuçlarını ve seçtiğin dönemin toplam performansını incele.{% else %}Reklam hesabını seç, kampanya durumlarını ve platformdan alınan gerçek sonuçları karşılaştır.{% endif %}</p>
+      {% if account %}<div class="ic-account-meta"><span>{{ account.platform.name }}</span><span>{{ account.display_name }}</span><span>{{ account.account_id }}</span>{% if account.extra_data.timezone %}<span>{{ account.extra_data.timezone }}</span>{% endif %}</div>{% endif %}
+    </div><a class="ic-button ic-secondary" href="{% url 'platform_connections' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Hesaplara dön</a>
+  </header>
+  <section class="ic-controls" aria-label="Rapor filtreleri">
+    <form method="get" action="{% url 'integration_campaign_browser' %}" class="ic-account-form">
+      {% if agency_scope.selected_client %}<input type="hidden" name="agency_client" value="{{ agency_scope.selected_client.pk }}">{% endif %}
+      <input type="hidden" name="start" value="{{ start|date:'Y-m-d' }}"><input type="hidden" name="end" value="{{ end|date:'Y-m-d' }}">
+      <label for="ic-account">Reklam hesabı</label><div class="ic-input-action"><select id="ic-account" name="account" required><option value="">Bir hesap seç</option>{% for item in accounts %}<option value="{{ item.pk }}"{% if account.pk == item.pk %} selected{% endif %}>{{ item.platform.name }} · {{ item.display_name }} · {{ item.account_id }}</option>{% endfor %}</select><button class="ic-button ic-secondary" type="submit">Hesabı aç</button></div>
+    </form>
+    {% if account %}<form method="get" class="ic-report-form">
+      {% if agency_scope.selected_client %}<input type="hidden" name="agency_client" value="{{ agency_scope.selected_client.pk }}">{% endif %}<input type="hidden" name="account" value="{{ account.pk }}">
+      <div><label for="ic-start">Başlangıç</label><input id="ic-start" type="date" name="start" value="{{ start|date:'Y-m-d' }}" required></div><div><label for="ic-end">Bitiş</label><input id="ic-end" type="date" name="end" value="{{ end|date:'Y-m-d' }}" required></div>
+      {% if not campaign %}<div><label for="ic-status">Kampanya durumu</label><select id="ic-status" name="status"><option value="">Tüm durumlar</option><option value="active"{% if selected_status == 'active' %} selected{% endif %}>Aktif</option><option value="inactive"{% if selected_status == 'inactive' %} selected{% endif %}>Pasif / tamamlandı</option><option value="other"{% if selected_status == 'other' %} selected{% endif %}>Planlandı / diğer</option></select></div><div class="ic-search"><label for="ic-search">Kampanya ara</label><input id="ic-search" name="q" type="search" value="{{ search }}" placeholder="Kampanya adı veya ID"></div>{% endif %}
+      <button type="submit" class="ic-button ic-primary"><i class="fas fa-filter" aria-hidden="true"></i> Raporu göster</button>
+    </form>{% endif %}
+  </section>
+  {% if error %}<div class="ic-notice ic-error" role="alert"><i class="fas fa-circle-exclamation" aria-hidden="true"></i><div><strong>Veriler alınamadı</strong><p>{{ error }}</p><a href="{% url 'hesap_ekle' %}">Bağlantıyı kontrol et</a></div></div>
+  {% elif not account %}<section class="ic-empty"><i class="fas fa-chart-column" aria-hidden="true"></i><h2>{% if accounts %}Bir reklam hesabı seçerek başla{% else %}Henüz bağlı reklam hesabın yok{% endif %}</h2><p>{% if accounts %}Seçtiğin hesabın kampanyaları ve performans raporları burada görünecek.{% else %}Meta veya Google Ads hesabını bağladıktan sonra gerçek kampanya verilerini burada inceleyebilirsin.{% endif %}</p>{% if not accounts %}<a class="ic-button ic-primary" href="{% url 'hesap_ekle' %}">Hesap bağla</a>{% endif %}</section>
+  {% else %}
+    {% if metrics_error %}<div class="ic-notice ic-error" role="alert"><div><strong>Kampanyalar yüklendi, performans verileri alınamadı</strong><p>{{ metrics_error }}</p></div></div>{% endif %}
+    <div class="ic-section-head"><div><h2>{% if campaign %}Dönem özeti{% else %}Hesap özeti{% endif %}</h2><p>{{ start|date:'d.m.Y' }} – {{ end|date:'d.m.Y' }}{% if currency %} · {{ currency }}{% endif %}{% if not campaign %}{% if selected_status or search %} · Filtrelenen kampanyalar{% endif %}{% endif %}</p></div>{% if campaign %}<span class="ic-status ic-{{ campaign.status_tone }}">{{ campaign.status_label }}</span>{% else %}<div class="ic-counts"><span><b>{{ total_campaigns }}</b> kampanya</span><span><b>{{ active_campaigns }}</b> aktif</span><span><b>{{ inactive_campaigns }}</b> pasif / tamamlandı</span></div>{% endif %}</div>
+    <section class="ic-stats" aria-label="Performans özeti">
+      <article><span>Toplam harcama</span><strong>{{ summary.spend|report_number:2 }} <small>{{ currency }}</small></strong><p>Seçilen dönemdeki reklam harcaması</p></article>
+      <article><span>Gösterim</span><strong>{{ summary.impressions|report_number }}</strong><p>Reklamların görüntülenme sayısı</p></article>
+      <article><span>Tıklama</span><strong>{{ summary.clicks|report_number }}</strong><p>Platformun raporladığı tıklamalar</p></article>
+      <article><span>Tıklama oranı · CTR</span><strong>{{ summary.ctr|report_percent }}</strong><p>Ort. tıklama maliyeti: {{ summary.cpc|report_number:2 }} {{ currency }}</p></article>
+    </section>
+    <section class="ic-data">
+      <div class="ic-section-head"><div><h2>{% if campaign %}Günlük performans{% else %}Kampanyalar{% endif %}</h2><p>{% if campaign %}Amaç: {{ campaign.objective_label }} · Başlangıç: {{ campaign.start_label }} · Bitiş: {{ campaign.end_label }}{% else %}{{ campaigns|length }} kampanya listeleniyor. Detay için kampanya adına tıkla.{% endif %}</p></div>{% if campaign %}<a class="ic-button ic-secondary" href="{% url 'integration_campaigns' account.pk %}?{{ report_query }}">Tüm kampanyalar</a>{% endif %}</div>
+      <div class="ic-table-scroll" role="region" aria-label="Performans tablosu" tabindex="0"><table class="ic-table">
+      {% if campaign %}
+        <caption class="ic-sr-only">{{ campaign.name }} · {{ start|date:'d.m.Y' }} – {{ end|date:'d.m.Y' }} günlük performansı</caption>
+        <thead><tr><th scope="col">Tarih</th><th scope="col" class="ic-numeric">Gösterim</th><th scope="col" class="ic-numeric">Tıklama</th><th scope="col" class="ic-numeric">CTR</th><th scope="col" class="ic-numeric">Ort. tıklama maliyeti</th><th scope="col" class="ic-numeric">Harcama ({{ currency|default:'—' }})</th>{% if account.platform.code == 'google_ads' %}<th scope="col" class="ic-numeric">Dönüşüm</th><th scope="col" class="ic-numeric">Dönüşüm değeri ({{ currency }})</th>{% endif %}</tr></thead>
+        <tbody>{% for row in metrics %}<tr><th scope="row">{{ row.date }}</th><td class="ic-numeric">{{ row.impressions|report_number }}</td><td class="ic-numeric">{{ row.clicks|report_number }}</td><td class="ic-numeric">{{ row.ctr|report_percent }}</td><td class="ic-numeric">{{ row.cpc|report_number:2 }} {{ currency }}</td><td class="ic-numeric ic-emphasis">{{ row.spend|report_number:2 }}</td>{% if account.platform.code == 'google_ads' %}<td class="ic-numeric">{{ row.conversions|report_number:2 }}</td><td class="ic-numeric">{{ row.conversion_value|report_number:2 }}</td>{% endif %}</tr>{% empty %}<tr><td colspan="8" class="ic-table-empty">Bu dönemde platformdan performans kaydı dönmedi. Başka bir tarih aralığı seçebilirsin.</td></tr>{% endfor %}</tbody>
+        {% if summary %}<tfoot><tr><th scope="row">Dönem toplamı</th><td class="ic-numeric">{{ summary.impressions|report_number }}</td><td class="ic-numeric">{{ summary.clicks|report_number }}</td><td class="ic-numeric">{{ summary.ctr|report_percent }}</td><td class="ic-numeric">{{ summary.cpc|report_number:2 }} {{ currency }}</td><td class="ic-numeric">{{ summary.spend|report_number:2 }}</td>{% if account.platform.code == 'google_ads' %}<td class="ic-numeric">{{ summary.conversions|report_number:2 }}</td><td class="ic-numeric">{{ summary.conversion_value|report_number:2 }}</td>{% endif %}</tr></tfoot>{% endif %}
+      {% else %}
+        <caption class="ic-sr-only">{{ account.display_name }} kampanyaları ve seçili dönem performansı</caption>
+        <thead><tr><th scope="col">Kampanya</th><th scope="col">Durum</th><th scope="col">Amaç / kanal</th><th scope="col">Yayın dönemi</th><th scope="col" class="ic-numeric">Harcama ({{ currency|default:'—' }})</th><th scope="col" class="ic-numeric">Gösterim</th><th scope="col" class="ic-numeric">Tıklama</th><th scope="col" class="ic-numeric">CTR</th><th scope="col"><span class="ic-sr-only">İşlemler</span></th></tr></thead>
+        <tbody>{% for row in campaigns %}<tr><th scope="row" class="ic-campaign-name"><a href="{% url 'integration_campaign_detail' account.pk row.id %}?{{ report_query }}">{{ row.name }}</a><small>ID: {{ row.id }}</small></th><td><span class="ic-status ic-{{ row.status_tone }}">{{ row.status_label }}</span>{% if row.status_note %}<small>{{ row.status_note }}</small>{% endif %}</td><td>{{ row.objective_label }}</td><td class="ic-period">{{ row.start_label }}<small>– {{ row.end_label }}</small></td><td class="ic-numeric ic-emphasis">{{ row.performance.spend|report_number:2 }}</td><td class="ic-numeric">{{ row.performance.impressions|report_number }}</td><td class="ic-numeric">{{ row.performance.clicks|report_number }}</td><td class="ic-numeric">{{ row.performance.ctr|report_percent }}</td><td><a class="ic-icon-button" aria-label="{{ row.name }} adını düzenle" title="Adı düzenle" href="{% url 'remote_campaign_name_update' account.pk row.id %}"><i class="fas fa-pen" aria-hidden="true"></i></a></td></tr>{% empty %}<tr><td colspan="9" class="ic-table-empty">{% if search or selected_status %}Filtrelerle eşleşen kampanya yok. Aramayı veya durum filtresini değiştir.{% else %}Bu hesapta erişilebilir kampanya bulunamadı.{% endif %}</td></tr>{% endfor %}</tbody>
+      {% endif %}</table></div>
+      <div class="ic-table-note"><i class="fas fa-circle-info" aria-hidden="true"></i><p>Veriler doğrudan {{ account.platform.name }} üzerinden okunur. “—” veri olmadığı veya oranın hesaplanamadığı anlamına gelir; sıfır sonuç değildir. Tıklama tanımları platform panellerindeki bağlantı tıklamalarından farklı olabilir. Bugünün sonuçları henüz tamamlanmamış olabilir. Kampanya durumu güncel yayın ayarını ve varsa bitiş tarihini gösterir.</p></div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}
