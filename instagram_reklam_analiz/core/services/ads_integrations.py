@@ -164,7 +164,15 @@ def _request(method, url, *, operation="", **kwargs):
             if google_codes:
                 logger.warning("Google Ads request rejected operation=%s status=%s structured_codes=%s",
                                operation or "unspecified", response.status_code, ", ".join(google_codes))
-                raise IntegrationError(f"{prefix}Google Ads isteği reddedildi (HTTP {response.status_code}, {', '.join(google_codes)}).", google_codes=google_codes)
+                guidance = {
+                    "authorizationError.CUSTOMER_NOT_ENABLED": "Google Ads hesabı etkin değil. Google Ads panelinde hesap kurulumunu ve hesap durumunu kontrol edin.",
+                    "authorizationError.CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION": "Uygulamanın Google Cloud projesi gerçek reklam hesaplarına erişim için onaylı değil. Yönetici Google Ads API erişim seviyesini kontrol etmeli.",
+                    "authorizationError.USER_PERMISSION_DENIED": "Seçtiğiniz Google kullanıcısının bu reklam hesabına erişimi yok. Hesaba erişimi olan Google kullanıcısıyla yeniden bağlanın.",
+                    "authenticationError.OAUTH_TOKEN_INVALID": "Google erişim izni geçersiz. Google Ads hesabını yeniden bağlayın.",
+                    "ErrorInfo.SERVICE_DISABLED": "Uygulamanın Google Cloud projesinde Google Ads API kapalı. Yönetici API'yi etkinleştirmeli.",
+                }
+                hint = next((guidance[code] for code in google_codes if code in guidance), "")
+                raise IntegrationError(f"{prefix}{hint + ' ' if hint else ''}Google Ads isteği reddedildi (HTTP {response.status_code}, {', '.join(google_codes)}).", google_codes=google_codes)
         if any(marker in message for marker in ("client secret", "client_secret", "app secret", "invalid platform app")):
             raise IntegrationError(
                 f"{prefix}Uygulama kimliği ile gizli anahtar eşleşmiyor. Yönetici platform ayarındaki güncel App Secret değerini kaydetmeli."
@@ -352,7 +360,7 @@ def discover_accounts(provider, token):
         if not info:
             continue
         customer = info[0]["customer"]
-        if customer.get("status") and customer["status"] != "ENABLED" and not (customer.get("testAccount") is True and customer["status"] == "CANCELED"):
+        if customer.get("status") and customer["status"] != "ENABLED" and not (customer.get("testAccount") is True and customer["status"] in {"CANCELED", "CLOSED"}):
             unavailable = True
             continue
         if not customer.get("manager"):
@@ -370,7 +378,7 @@ def discover_accounts(provider, token):
             raise
         for row in children:
             c = row["customerClient"]
-            if c.get("status") and c["status"] != "ENABLED" and not (c.get("testAccount") is True and c["status"] == "CANCELED"):
+            if c.get("status") and c["status"] != "ENABLED" and not (c.get("testAccount") is True and c["status"] in {"CANCELED", "CLOSED"}):
                 unavailable = True
                 continue
             cid = str(c["id"])
@@ -380,7 +388,7 @@ def discover_accounts(provider, token):
                                      "currency": c.get("currencyCode", ""), "timezone": c.get("timeZone", ""),
                                      "login_customer_id": root, "kind": "ad_account"})
     if not accounts and unavailable:
-        raise IntegrationError("Bu Google kullanıcısının erişebildiği reklam hesapları etkin değil. Google Ads'te etkin bir reklam hesabına erişimi olan Google kullanıcısıyla bağlanın. OAuth izin onayı reklam hesabını etkinleştirmez.")
+        raise IntegrationError("Bu Google kullanıcısının erişebildiği reklam hesapları etkin değil. Yeni hesap açtıysanız Google Ads panelinde hesap kurulumunu tamamlayın ve hesap durumunu kontrol edin. Yönetici hesabı kullanıyorsanız altında etkin bir reklam hesabı bulunmalıdır. Google Ads'te etkin bir reklam hesabına erişimi olan Google kullanıcısıyla bağlanın. OAuth izin onayı reklam hesabını etkinleştirmez.")
     return list(accounts.values())
 
 

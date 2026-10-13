@@ -3052,8 +3052,33 @@ class RawDataSnapshotAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
     date_hierarchy = "fetched_at"
 
 
+class PlatformTokenAdminForm(forms.ModelForm):
+    """Keep stored OAuth credentials out of rendered admin forms."""
+    class Meta:
+        fields = "__all__"
+        widgets = {
+            name: forms.PasswordInput(render_value=False, attrs={"autocomplete": "new-password"})
+            for name in ("access_token", "refresh_token")
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name in ("access_token", "refresh_token"):
+            self.fields[name].required = name == "access_token" and not self.instance.pk
+            self.fields[name].help_text = "Kayıtlı erişim bilgisini korumak için boş bırakın. Yeni izin için hesabı OAuth ile yeniden bağlayın."
+
+    def clean(self):
+        data = super().clean()
+        if self.instance.pk:
+            for name in ("access_token", "refresh_token"):
+                if not data.get(name):
+                    data[name] = getattr(self.instance, name)
+        return data
+
+
 @admin.register(PlatformAccount)
 class PlatformAccountAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
+    form = PlatformTokenAdminForm
     list_display = ("platform", "account_name", "account_id", "user", "agency_client", "is_active", "last_sync", "updated_at")
     list_filter = ("platform", "is_active", "agency_client")
     search_fields = ("account_name", "account_id", "user__email", "user__username", "agency_client__name")
@@ -3083,6 +3108,7 @@ class PlatformConnectionActiveFilter(admin.SimpleListFilter):
 
 @admin.register(PlatformConnection)
 class PlatformConnectionAdmin(ProfessionalAdminMixin, admin.ModelAdmin):
+    form = PlatformTokenAdminForm
     list_display = ("platform", "name", "user", "status_badge", "active_status_badge", "token_expiry", "last_sync", "updated_at")
     list_filter = ("platform", "status", PlatformConnectionActiveFilter, "token_expiry", "last_sync")
     search_fields = ("name", "user__email", "user__username", "platform__name", "platform__code")

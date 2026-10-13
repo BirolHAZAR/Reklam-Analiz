@@ -74,6 +74,42 @@ class AdsIntegrationTests(TestCase):
         self.assertGreater(len(params["state"][0]), 30)
         self.assertNotIn("secret", result.url)
 
+    def test_admin_token_fields_are_hidden_and_preserved_on_account_edit(self):
+        from django.contrib import admin
+        from django.test import RequestFactory
+        connection = self.connection()
+        account = PlatformAccount.objects.create(
+            user=self.user, platform=self.platform, connection=connection,
+            account_id="123", access_token="private-access", refresh_token="private-refresh",
+        )
+        self.user.is_staff = self.user.is_superuser = True
+        self.user.save()
+        request = RequestFactory().get("/admin/")
+        request.user = self.user
+        for obj in (connection, account):
+            with self.subTest(model=type(obj).__name__):
+                form_class = admin.site._registry[type(obj)].get_form(request, obj)
+                form = form_class(instance=obj)
+                for name in ("access_token", "refresh_token"):
+                    rendered = str(form[name])
+                    self.assertIn('type="password"', rendered)
+                    self.assertNotIn("private-access", rendered)
+                    self.assertNotIn("private-refresh", rendered)
+                # Bound-field initial values are intentionally blank in the UI.
+                # Cleaning blank submissions must keep the existing grant.
+                from django.forms import modelform_factory
+                from core.admin import PlatformTokenAdminForm
+                token_form = modelform_factory(type(obj), form=PlatformTokenAdminForm,
+                                               fields=("access_token", "refresh_token"))
+                form = token_form(data={"access_token": "", "refresh_token": ""}, instance=obj)
+                self.assertTrue(form.is_valid(), form.errors)
+                self.assertEqual(form.cleaned_data["access_token"], "private-access")
+                self.assertEqual(form.cleaned_data["refresh_token"], "private-refresh")
+                form.save()
+                obj.refresh_from_db()
+                self.assertEqual(obj.access_token, "private-access")
+                self.assertEqual(obj.refresh_token, "private-refresh")
+
     @patch("core.views.ads_integrations._client", side_effect=api.IntegrationError("Önce hesabın bağlanacağı ajans müşterisini seçin."))
     def test_connect_error_is_visible_after_redirect(self, client_scope):
         response = self.client.post(reverse("integration_connect", args=["facebook"]), follow=True)
@@ -305,6 +341,24 @@ class AdsIntegrationTests(TestCase):
         self.assertTrue(all(row["test_account"] for row in accounts))
         self.assertTrue(all("Google Ads test" in row["name"] for row in accounts))
 
+    @patch("core.services.ads_integrations.google_search")
+    @patch("core.services.ads_integrations._request")
+    def test_closed_test_hierarchy_is_allowed_but_closed_production_is_not(self, request, search):
+        # Live Google test accounts return CLOSED even though the UI describes
+        # them as canceled. Never extend this exception to production accounts.
+        request.return_value = {"resourceNames": ["customers/111", "customers/444", "customers/555"]}
+        search.side_effect = [
+            [{"customer": {"manager": True, "status": "CLOSED", "testAccount": True}}],
+            [{"customerClient": {"id": "222", "status": "CLOSED", "testAccount": True}},
+             {"customerClient": {"id": "333", "status": "CLOSED", "testAccount": False}}],
+            [{"customer": {"manager": False, "status": "CLOSED", "testAccount": True}}],
+            [{"customer": {"manager": False, "status": "CLOSED", "testAccount": False}}],
+        ]
+        accounts = api.discover_accounts("google_ads", "token")
+        self.assertEqual([row["id"] for row in accounts], ["222", "444"])
+        self.assertEqual(accounts[0]["login_customer_id"], "111")
+        self.assertTrue(all(row["test_account"] for row in accounts))
+
     @patch("core.services.ads_integrations._request")
     def test_google_pagination_and_manager_header(self, request):
         request.side_effect = [{"results": [{"id": 1}], "nextPageToken": "next"}, {"results": [{"id": 2}]}]
@@ -348,8 +402,23 @@ class AdsIntegrationTests(TestCase):
                 api._request("POST", "https://googleads.googleapis.com/v25/customers/123/googleAds:search")
         output = str(error.exception) + " ".join(logs.output)
         self.assertIn("authorizationError.CUSTOMER_NOT_ENABLED", output)
+        self.assertIn("hesap kurulumunu", str(error.exception))
         for secret in ("private-token", "private-refresh", "private-customer", "private-request"):
             self.assertNotIn(secret, output)
+
+    @patch("core.services.ads_integrations.requests.request")
+    def test_google_production_access_error_explains_admin_action(self, request):
+        request.return_value = Mock(ok=False, status_code=403)
+        request.return_value.json.return_value = {"error": {"details": [{
+            "@type": "type.googleapis.com/google.ads.googleads.v25.errors.GoogleAdsFailure",
+            "errors": [{"errorCode": {"authorizationError": "CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION"},
+                        "message": "private-provider-detail"}],
+        }]}}
+        with self.assertRaises(api.IntegrationError) as error:
+            api._request("GET", "https://googleads.googleapis.com/v25/customers:listAccessibleCustomers")
+        self.assertIn("Yönetici Google Ads API erişim seviyesini kontrol etmeli", str(error.exception))
+        self.assertEqual(error.exception.google_codes, ("authorizationError.CLOUD_PROJECT_NOT_APPROVED_FOR_PRODUCTION",))
+        self.assertNotIn("private-provider-detail", str(error.exception))
 
     def test_google_error_parser_handles_malformed_and_untrusted_details(self):
         self.assertEqual(api._google_error_codes({"details": "not-a-list"}), [])
