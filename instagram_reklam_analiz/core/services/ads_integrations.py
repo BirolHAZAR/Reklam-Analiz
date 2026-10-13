@@ -113,7 +113,7 @@ def _google_error_codes(error):
                 if not isinstance(code_map, dict):
                     continue
                 for group, value in code_map.items():
-                    if group in {"authorizationError", "authenticationError", "requestError", "quotaError", "internalError"} and isinstance(value, str) and re.fullmatch(r"[A-Z][A-Z_]{1,79}", value):
+                    if group in {"authorizationError", "authenticationError", "requestError", "quotaError", "internalError", "queryError"} and isinstance(value, str) and re.fullmatch(r"[A-Z][A-Z_]{1,79}", value):
                         code = f"{group}.{value}"
                         if code not in codes:
                             codes.append(code)
@@ -409,8 +409,10 @@ def account_today(account):
 def campaigns(account):
     token = account_token(account)
     if account.platform.code == "google_ads":
-        rows = google_search(token, account.account_id, "SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date, campaign.end_date FROM campaign WHERE campaign.status != 'REMOVED'", account.extra_data.get("login_customer_id", ""))
-        return [{"id": str(r["campaign"]["id"]), "name": r["campaign"]["name"], "status": r["campaign"]["status"], "channel": r["campaign"].get("advertisingChannelType", ""), "start_date": r["campaign"].get("startDate"), "end_date": r["campaign"].get("endDate")} for r in rows]
+        rows = google_search(token, account.account_id, "SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date_time, campaign.end_date_time FROM campaign WHERE campaign.status != 'REMOVED'", account.extra_data.get("login_customer_id", ""))
+        # v23+ exposes customer-local datetimes. Keep the reporting interface's
+        # date-only values in the account's timezone, without converting to UTC.
+        return [{"id": str(r["campaign"]["id"]), "name": r["campaign"]["name"], "status": r["campaign"]["status"], "channel": r["campaign"].get("advertisingChannelType", ""), "start_date": (r["campaign"].get("startDateTime") or "")[:10] or None, "end_date": (r["campaign"].get("endDateTime") or "")[:10] or None} for r in rows]
     return meta_rows(token, f"{account.account_id}/campaigns", {"fields": "id,name,status,objective,start_time,stop_time",
         "effective_status": json.dumps(["ACTIVE", "PAUSED", "ARCHIVED", "IN_PROCESS", "WITH_ISSUES"])})
 

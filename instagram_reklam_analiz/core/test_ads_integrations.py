@@ -266,6 +266,26 @@ class AdsIntegrationTests(TestCase):
             api.exchange_code("google_ads", "code")
 
     @patch("core.services.ads_integrations.google_search")
+    def test_campaign_dates_use_current_api_fields_and_account_local_dates(self, search):
+        from core.services.campaign_reporting import decorate_campaign
+        from datetime import date
+        account = PlatformAccount.objects.create(
+            user=self.user, platform=self.platform, connection=self.connection(),
+            account_id="123", access_token="secret", extra_data={"login_customer_id": "111"},
+        )
+        search.return_value = [{"campaign": {
+            "id": "99", "name": "Scheduled", "status": "ENABLED", "advertisingChannelType": "SEARCH",
+            "startDateTime": "2026-10-15 00:00:00", "endDateTime": "2026-10-31 23:59:59",
+        }}]
+        row = api.campaigns(account)[0]
+        self.assertEqual(row["start_date"], "2026-10-15")
+        self.assertEqual(row["end_date"], "2026-10-31")
+        self.assertEqual(decorate_campaign(row, today=date(2026, 10, 13))["status_group"], "other")
+        self.assertIn("campaign.start_date_time, campaign.end_date_time", search.call_args.args[2])
+        self.assertNotIn("campaign.start_date,", search.call_args.args[2])
+        self.assertEqual(search.call_args.args[3], "111")
+
+    @patch("core.services.ads_integrations.google_search")
     @patch("core.services.ads_integrations._request")
     def test_manager_discovers_client_accounts(self, request, search):
         request.return_value = {"resourceNames": ["customers/111"]}
@@ -429,6 +449,10 @@ class AdsIntegrationTests(TestCase):
             ]}]}), [])
         self.assertEqual(api._google_error_codes({"details": [{"@type": "type.googleapis.com/google.rpc.ErrorInfo",
             "reason": "SERVICE_DISABLED", "metadata": {"secret": "private-key"}}]}), ["ErrorInfo.SERVICE_DISABLED"])
+        self.assertEqual(api._google_error_codes({"details": [{
+            "@type": "type.googleapis.com/google.ads.googleads.v25.errors.GoogleAdsFailure",
+            "errors": [{"errorCode": {"queryError": "UNRECOGNIZED_FIELD"}, "message": "private-detail"}],
+        }]}), ["queryError.UNRECOGNIZED_FIELD"])
 
     @patch("core.services.ads_integrations.requests.request")
     def test_provider_error_identifies_secret_mismatch_without_leaking_detail(self, request):
