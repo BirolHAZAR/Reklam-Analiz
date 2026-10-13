@@ -4,8 +4,9 @@ from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 import time
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -139,10 +140,16 @@ class AdsIntegrationTests(TestCase):
     @patch("core.services.ads_integrations.exchange_code")
     def test_callback_selects_only_verified_accounts_and_replay_is_rejected(self, exchange, discover, limit):
         exchange.return_value = {"access_token": "private-access", "refresh_token": "private-refresh", "scope": api.ADWORDS_SCOPE, "expires_in": 3600}
-        discover.return_value = [{"id": "1234567890", "name": "Real account", "currency": "USD", "kind": "ad_account"}]
+        discover.return_value = [{
+            "id": "1234567890", "name": "Real account",
+            "currency": "USD", "kind": "ad_account",
+        }]
         self.flow()
         response = self.client.get(reverse("google_ads_callback"), {"state": "nonce", "code": "code"})
-        self.assertRedirects(response, reverse("integration_select", args=["google_ads"]), fetch_redirect_response=False)
+        self.assertRedirects(
+            response, reverse("integration_select", args=["google_ads"]),
+            fetch_redirect_response=False,
+        )
         self.assertFalse(PlatformAccount.objects.exists())
         self.assertNotIn("private-access", str(dict(self.client.session)))
         self.client.get(reverse("google_ads_callback"), {"state": "nonce", "code": "code"})
@@ -157,6 +164,30 @@ class AdsIntegrationTests(TestCase):
         self.assertEqual(account.account_id, "1234567890")
         self.assertTrue(account.connection.is_active)
         self.assertNotContains(self.client.get(reverse("platform_connections")), "private-access")
+
+    @override_settings(SESSION_COOKIE_DOMAIN=".reklamanaliz.net")
+    @patch("core.services.ads_integrations.discover_accounts")
+    @patch("core.services.ads_integrations.exchange_code")
+    def test_google_callback_keeps_oauth_session_across_apex_and_www(self, exchange, discover):
+        exchange.return_value = {
+            "access_token": "private-access", "refresh_token": "private-refresh",
+            "scope": api.ADWORDS_SCOPE, "expires_in": 3600,
+        }
+        discover.return_value = [{"id": "1234567890", "name": "Real account", "currency": "USD", "kind": "ad_account"}]
+        browser = Client()
+        browser.force_login(self.user)
+        session = browser.session
+        session["ads_oauth:google_ads"] = {
+            "state": "nonce", "user": self.user.pk, "created": time.time(), "client": None,
+        }
+        session.save()
+        self.assertEqual(browser.cookies[settings.SESSION_COOKIE_NAME]["domain"], ".reklamanaliz.net")
+        response = browser.get(
+            reverse("google_ads_callback"), {"state": "nonce", "code": "code"},
+            HTTP_HOST="www.reklamanaliz.net", secure=True,
+        )
+        self.assertRedirects(response, reverse("integration_select", args=["google_ads"]), fetch_redirect_response=False)
+        exchange.assert_called_once_with("google_ads", "code")
 
     @patch("core.services.ads_integrations.campaigns")
     def test_other_users_account_is_inaccessible(self, campaigns):

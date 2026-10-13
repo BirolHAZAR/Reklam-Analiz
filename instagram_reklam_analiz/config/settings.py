@@ -129,11 +129,29 @@ SESSION_COOKIE_SECURE = config(
     cast=bool,
 )
 
+# OAuth providers may return to either the apex or ``www`` host.  Keep the
+# authenticated session and OAuth state available to both production hosts so
+# a configured callback cannot turn into an unexpected login page.
+_COOKIE_DOMAIN_DEFAULT = (
+    ".reklamanaliz.net"
+    if not DEBUG and "reklamanaliz.net" in ALLOWED_HOSTS and "localhost" not in ALLOWED_HOSTS
+    else None
+)
+SESSION_COOKIE_DOMAIN = config(
+    "SESSION_COOKIE_DOMAIN",
+    default=_COOKIE_DOMAIN_DEFAULT,
+) or None
+
 CSRF_COOKIE_SECURE = config(
     "CSRF_COOKIE_SECURE",
     default=not DEBUG,
     cast=bool,
 )
+
+CSRF_COOKIE_DOMAIN = config(
+    "CSRF_COOKIE_DOMAIN",
+    default=_COOKIE_DOMAIN_DEFAULT,
+) or None
 
 SECURE_PROXY_SSL_HEADER = (
     "HTTP_X_FORWARDED_PROTO",
