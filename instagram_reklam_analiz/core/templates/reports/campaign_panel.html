@@ -128,7 +128,9 @@ let currentAccountId = null;
 let currentAccountName = '';
 let currentCampaignId = null;
 const agencyClientScope = '{{ agency_scope.selected_client.id|default:""|escapejs }}';
-const csrftoken = getCookie('csrftoken');
+// Use the token rendered for this request. Host-only and shared-domain cookies
+// can coexist after a login; document.cookie may return an older token first.
+const csrftoken = '{{ csrf_token|escapejs }}';
 
 function getCookie(name){let cookieValue=null;if(document.cookie&&document.cookie!==''){const cookies=document.cookie.split(';');for(let i=0;i<cookies.length;i++){const cookie=cookies[i].trim();if(cookie.substring(0,name.length+1)===(name+'=')){cookieValue=decodeURIComponent(cookie.substring(name.length+1));break;}}}return cookieValue;}
 function escapeHtml(value){return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));}
@@ -359,12 +361,21 @@ document.addEventListener('click', function(event){
 });
 function closeCampaignModal(){document.getElementById('cpModalBackdrop').classList.remove('show');document.getElementById('cpModal').classList.remove('show');closeAiModal();}
 function setSyncStatus(title,message,visible=true){const el=document.getElementById('syncStatus');if(!el)return;el.style.display=visible?'block':'none';el.innerHTML=visible?`<strong style="display:block;color:#fff;margin-bottom:4px">${escapeHtml(title)}</strong>${escapeHtml(message||'')}`:'';}
+async function readSyncResponse(resp){
+  if(resp.redirected){throw new Error('Oturumunuz yenilenmeli. Sayfayı yenileyip tekrar giriş yapın.');}
+  if(!(resp.headers.get('Content-Type')||'').toLowerCase().includes('application/json')){
+    if(resp.status===403){throw new Error('Güvenlik doğrulaması yenilenmeli. Sayfayı yenileyip tekrar deneyin.');}
+    throw new Error(`Senkronizasyon yanıtı alınamadı (HTTP ${resp.status}). Lütfen tekrar deneyin.`);
+  }
+  const data=await resp.json();
+  if(!resp.ok||!data.success){throw new Error(data.message||data.error||'Senkronizasyon tamamlanamadı.');}
+  return data;
+}
 async function pollCampaignSync(jobId){
   for(let i=0;i<90;i++){
     await new Promise(resolve=>setTimeout(resolve,2000));
     const resp=await fetch(`/api/campaign-panel/sync-job/${jobId}/`,{headers:{'X-Requested-With':'XMLHttpRequest'}});
-    const data=await resp.json();
-    if(!data.success)continue;
+    const data=await readSyncResponse(resp);
     const job=data.job||{};
     const status=String(job.status||'').toLowerCase();
     setSyncStatus(`Senkronizasyon: ${job.status||'bekleniyor'}`, `${job.progress||0}% - ${job.message||''}`);
@@ -389,8 +400,7 @@ async function startCampaignSync(){
   setSyncStatus('Senkronizasyon baslatiliyor','Octo kampanya, reklam grubu, reklam, kreatif ve metrikleri cekecek.');
   try{
     const resp=await fetch(`/api/campaign-panel/sync/${currentAccountId}/`,{method:'POST',headers:{'X-CSRFToken':csrftoken,'X-Requested-With':'XMLHttpRequest'}});
-    const data=await resp.json();
-    if(!data.success){throw new Error(data.error||'Senkronizasyon baslatilamadi.');}
+    const data=await readSyncResponse(resp);
     setSyncStatus('Senkronizasyon basladi',data.message||'Veriler kuyruga alindi.');
     if(data.job_id){await pollCampaignSync(data.job_id);}else{await loadCampaigns();}
   }catch(e){
