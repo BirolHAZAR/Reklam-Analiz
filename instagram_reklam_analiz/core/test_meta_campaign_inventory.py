@@ -153,13 +153,31 @@ class MetaCampaignInventoryTests(TestCase):
                      patch.object(sync_platform_account_ads, "retry", side_effect=Retry()) as retry:
                     with self.assertRaises(Retry):
                         sync_platform_account_ads.run(job.pk)
-                retry.assert_called_once_with(exc=error, countdown=expected)
+                retry.assert_called_once_with(exc=error, countdown=expected, max_retries=48)
                 job.refresh_from_db()
                 self.assertEqual(job.status, "pending")
                 self.assertEqual(job.error_message, "")
                 self.assertIsNone(job.finished_at)
                 self.assertEqual(job.result["waiting_reason"], "meta_rate_limit")
                 self.assertEqual(job.result["retry_after"], expected)
+
+    def test_large_inventory_quota_wait_continues_after_three_attempts(self):
+        from celery.exceptions import Retry
+        from core.services.meta_rate_limit import MetaRateLimitError
+        from core.tasks.ads_pipeline import sync_platform_account_ads
+        job = PlatformSyncJob.objects.create(user=self.user, platform_account=self.account)
+        error = MetaRateLimitError(60)
+        sync_platform_account_ads.push_request(retries=3)
+        try:
+            with patch("core.tasks.v2_platform_sync.sync_v2_platform_account_ads.apply", side_effect=error), \
+                 patch.object(sync_platform_account_ads, "retry", side_effect=Retry()) as retry:
+                with self.assertRaises(Retry):
+                    sync_platform_account_ads.run(job.pk)
+        finally:
+            sync_platform_account_ads.pop_request()
+        retry.assert_called_once_with(exc=error, countdown=300, max_retries=48)
+        job.refresh_from_db()
+        self.assertEqual(job.status, "pending")
 
     def test_provider_error_propagates_without_inner_retry_when_pipeline_owns_retry(self):
         from core.services.meta_rate_limit import MetaRateLimitError

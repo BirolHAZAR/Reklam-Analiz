@@ -4,6 +4,7 @@ from decimal import Decimal
 from celery import shared_task
 from django.utils import timezone
 
+META_QUOTA_RETRIES = 48
 
 def update_job(job, progress, message=None, **counts):
     job.progress = progress
@@ -177,7 +178,7 @@ def sync_platform_account_ads(self, job_id):
 
     except Exception as exc:
         retry_after = getattr(exc, "retry_after", None)
-        if retry_after and self.request.retries < self.max_retries:
+        if retry_after and self.request.retries < META_QUOTA_RETRIES:
             countdown = max(300, int(retry_after))
             job.status = "pending"
             job.error_message = ""
@@ -186,7 +187,9 @@ def sync_platform_account_ads(self, job_id):
             job.result = {"waiting_reason": "meta_rate_limit", "retry_after": countdown,
                           "retry_at": (timezone.now()+timedelta(seconds=countdown)).isoformat()}
             job.save()
-            raise self.retry(exc=exc, countdown=countdown)
+            # Large inventories can span several quota windows. Keep the
+            # normal failure retry budget separate from this longer wait.
+            raise self.retry(exc=exc, countdown=countdown, max_retries=META_QUOTA_RETRIES)
         job.status = "failed"
         job.progress = 100
         job.message = "Senkronizasyon sırasında hata oluştu."
