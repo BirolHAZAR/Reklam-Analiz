@@ -124,7 +124,8 @@ class MetaCampaignInventoryTests(TestCase):
             return SimpleNamespace(get=lambda **kw: {"ads_synced": 0, "rule_engine": {"status": "queued"}})
         with patch("core.tasks.v2_platform_sync.sync_v2_platform_account_ads.apply", side_effect=pull) as request:
             result = sync_platform_account_ads.run(job.id)
-        request.assert_called_once_with(args=(self.account.id, "OWN", 30), kwargs={"retry_errors": False}, throw=True)
+        request.assert_called_once_with(args=(self.account.id, "OWN", 30),
+            kwargs={"retry_errors": False, "retry_context": f"manual:{job.id}"}, throw=True)
         self.assertEqual(result["campaigns_count"], 1)
         job.refresh_from_db()
         self.assertEqual(job.status, "completed")

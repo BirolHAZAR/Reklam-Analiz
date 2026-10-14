@@ -316,7 +316,13 @@ def google_search(token, customer_id, query, manager_id=""):
 def meta_rows(token, path, params):
     # Rebuild the fixed Graph endpoint with a cursor, never follow an arbitrary
     # pagination URL with an Authorization header.
-    rows, after = [], None
+    from django.core.cache import cache
+    from core.services.meta_sync_checkpoint import checkpoint_key, save_checkpoint
+    key = checkpoint_key(token, path, params)
+    saved = cache.get(key) if key else None
+    rows, after = (saved["rows"], saved["after"]) if saved else ([], None)
+    if saved and saved["complete"]:
+        return rows
     while True:
         query = {**params, "limit": 100}
         if after:
@@ -327,11 +333,13 @@ def meta_rows(token, path, params):
         rows.extend(data.get("data", []))
         paging = data.get("paging", {})
         if not paging.get("next"):
+            save_checkpoint(key, rows, None, True)
             return rows
         cursor = paging.get("cursors", {}).get("after")
         if not cursor or cursor == after:
             raise IntegrationError("Meta sayfalama tamamlanamadı.")
         after = cursor
+        save_checkpoint(key, rows, after, False)
 
 
 def discover_accounts(provider, token):

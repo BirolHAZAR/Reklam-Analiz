@@ -175,7 +175,7 @@ def _normalize_item(platform_code, item):
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)
-def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=None, retry_errors=True):
+def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=None, retry_errors=True, retry_context=None):
     from core.models import PlatformAccount
     from core.services.sync_policy import policy_for_user
 
@@ -202,6 +202,7 @@ def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=
         return _skip_result(account, platform_code, source_type, skip_reason)
 
     try:
+        campaign_inventory = []
         if platform_code == "instagram":
             from core.instagram_api import InstagramAPI
 
@@ -241,9 +242,11 @@ def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=
                 )
 
             api = api_class(account)
-            ads_data = api.get_ads(since_days=days_back)
-
-        campaign_inventory = api.get_campaigns() if platform_code == "facebook" and hasattr(api, "get_campaigns") else []
+            from core.services.meta_sync_checkpoint import meta_read_checkpoint
+            with meta_read_checkpoint((retry_context or self.request.id) if platform_code == "facebook" else None):
+                ads_data = api.get_ads(since_days=days_back)
+                if platform_code == "facebook" and hasattr(api, "get_campaigns"):
+                    campaign_inventory = api.get_campaigns()
 
         created_or_updated = 0
         if platform_code in {"google_ads", "facebook"} and len(ads_data or []) > policy.max_records:

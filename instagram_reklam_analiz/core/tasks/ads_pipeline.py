@@ -65,7 +65,8 @@ def sync_platform_account_ads(self, job_id):
         # Complete the actual provider pull before reporting job success.
         from core.tasks.v2_platform_sync import sync_v2_platform_account_ads
         sync_result = sync_v2_platform_account_ads.apply(
-            args=(account.id, "OWN", job.days_back), kwargs={"retry_errors": False}, throw=True,
+            args=(account.id, "OWN", job.days_back),
+            kwargs={"retry_errors": False, "retry_context": f"manual:{job.id}"}, throw=True,
         ).get(propagate=True, disable_sync_subtasks=False)
         if sync_result.get("skipped") or sync_result.get("failed"):
             raise ValueError(sync_result.get("error") or sync_result.get("reason") or "Platform senkronizasyonu tamamlanamadı.")
