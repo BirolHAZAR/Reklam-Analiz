@@ -378,7 +378,8 @@ async function pollCampaignSync(jobId){
     const data=await readSyncResponse(resp);
     const job=data.job||{};
     const status=String(job.status||'').toLowerCase();
-    setSyncStatus(`Senkronizasyon: ${job.status||'bekleniyor'}`, `${job.progress||0}% - ${job.message||''}`);
+    setSyncStatus(`Senkronizasyon: ${job.status_label||job.status||'bekleniyor'}`, `${job.progress||0}% - ${job.message||''}`);
+    if(status==='pending' && job.result?.waiting_reason==='meta_rate_limit'){return;}
     if(['completed','success','finished'].includes(status)){
       setSyncStatus('Senkronizasyon tamamlandi','Kampanya listesi yenileniyor...');
       await loadPlatforms();

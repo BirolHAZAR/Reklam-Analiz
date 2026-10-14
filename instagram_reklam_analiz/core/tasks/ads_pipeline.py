@@ -42,6 +42,8 @@ def sync_platform_account_ads(self, job_id):
 
     try:
         job.status = "running"
+        job.error_message = ""
+        job.finished_at = None
         job.started_at = timezone.now()
         job.message = "Octo reklam hesabını inceliyor..."
         job.progress = 5
@@ -63,7 +65,7 @@ def sync_platform_account_ads(self, job_id):
         # Complete the actual provider pull before reporting job success.
         from core.tasks.v2_platform_sync import sync_v2_platform_account_ads
         sync_result = sync_v2_platform_account_ads.apply(
-            args=(account.id, "OWN", job.days_back), throw=True,
+            args=(account.id, "OWN", job.days_back), kwargs={"retry_errors": False}, throw=True,
         ).get(propagate=True, disable_sync_subtasks=False)
         if sync_result.get("skipped") or sync_result.get("failed"):
             raise ValueError(sync_result.get("error") or sync_result.get("reason") or "Platform senkronizasyonu tamamlanamadı.")
@@ -173,6 +175,17 @@ def sync_platform_account_ads(self, job_id):
         return job.result
 
     except Exception as exc:
+        retry_after = getattr(exc, "retry_after", None)
+        if retry_after and self.request.retries < self.max_retries:
+            countdown = max(300, int(retry_after))
+            job.status = "pending"
+            job.error_message = ""
+            job.finished_at = None
+            job.message = f"Meta istek kotası nedeniyle bekleniyor. {countdown} saniye sonra otomatik yeniden denenecek."
+            job.result = {"waiting_reason": "meta_rate_limit", "retry_after": countdown,
+                          "retry_at": (timezone.now()+timedelta(seconds=countdown)).isoformat()}
+            job.save()
+            raise self.retry(exc=exc, countdown=countdown)
         job.status = "failed"
         job.progress = 100
         job.message = "Senkronizasyon sırasında hata oluştu."

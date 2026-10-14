@@ -52,3 +52,19 @@ class CampaignPanelCsrfTests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertFalse(PlatformSyncJob.objects.exists())
         task.delay.assert_not_called()
+
+    @patch("core.views.campaign_panel.sync_platform_account_ads")
+    def test_repeated_clicks_reuse_pending_and_running_jobs(self, task):
+        page = self.browser.get(reverse("campaign_panel"), HTTP_COOKIE=self.cookies)
+        token = re.search(r"const csrftoken = '([a-zA-Z0-9]+)'", page.content.decode()).group(1)
+        url = reverse("api_campaign_panel_sync_account", args=[self.account.pk])
+        def click():
+            return self.browser.post(url, HTTP_COOKIE=self.cookies, HTTP_X_CSRFTOKEN=token)
+        first = click().json()["job_id"]
+        self.assertEqual(click().json()["job_id"], first)
+        PlatformSyncJob.objects.filter(pk=first).update(status="running")
+        self.assertEqual(click().json()["job_id"], first)
+        task.delay.assert_called_once_with(first)
+        PlatformSyncJob.objects.filter(pk=first).update(status="failed")
+        self.assertNotEqual(click().json()["job_id"], first)
+        self.assertEqual(task.delay.call_count, 2)

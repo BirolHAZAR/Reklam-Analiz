@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
@@ -337,14 +338,24 @@ def api_campaign_panel_sync_account(request, account_id):
     except ValueError:
         days_back = 365
 
-    job = PlatformSyncJob.objects.create(
-        user=request.user,
-        platform_account=account,
-        days_back=days_back,
-        status="pending",
-        progress=0,
-        message="Octo kampanya, reklam grubu, reklam, kreatif ve metrikleri çekmeye hazırlanıyor...",
-    )
+    with transaction.atomic():
+        # Repeated clicks while a provider cooldown is pending should watch the
+        # same job, rather than enqueue more calls against the same account.
+        PlatformAccount.objects.select_for_update().get(pk=account.pk)
+        existing = PlatformSyncJob.objects.filter(
+            user=request.user, platform_account=account, status__in=("pending", "running"),
+        ).order_by("-id").first()
+        if existing:
+            return JsonResponse({"success": True, "job_id": existing.pk,
+                                 "message": existing.message or "Senkronizasyon zaten devam ediyor."})
+        job = PlatformSyncJob.objects.create(
+            user=request.user,
+            platform_account=account,
+            days_back=days_back,
+            status="pending",
+            progress=0,
+            message="Octo kampanya, reklam grubu, reklam, kreatif ve metrikleri çekmeye hazırlanıyor...",
+        )
 
     if sync_platform_account_ads is not None:
         CacheService.bump_version("campaign_panel_accounts", request.user.id)
@@ -381,6 +392,10 @@ def api_campaign_panel_sync_job_status(request, job_id):
         "job": {
             "id": job.id,
             "status": job.status,
+            "status_label": ("Meta kotası bekleniyor" if job.status == "pending" and
+                             (job.result or {}).get("waiting_reason") == "meta_rate_limit" else
+                             {"pending": "Kuyrukta", "running": "Çalışıyor", "completed": "Tamamlandı",
+                              "failed": "Tamamlanamadı"}.get(job.status, job.status)),
             "progress": job.progress,
             "message": job.message,
             "campaigns_count": job.campaigns_count,

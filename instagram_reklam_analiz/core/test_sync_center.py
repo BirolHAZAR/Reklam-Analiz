@@ -52,3 +52,12 @@ class SyncCenterAccessTests(TestCase):
         self.user.save(update_fields=["is_staff"])
         self.client.force_login(self.user)
         self.assertEqual(self.client.get(reverse("sync_center")).context["total_campaigns"], 1)
+
+    def test_rate_limit_wait_is_displayed_as_waiting_instead_of_error(self):
+        PlatformSyncJob.objects.create(user=self.user, platform_account=self.account,
+            status="pending", result={"waiting_reason": "meta_rate_limit", "retry_after": 300})
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("sync_center"))
+        platform = next(p for p in response.context["platforms"] if p["code"] == "facebook")
+        self.assertEqual(platform["status"], "running")
+        self.assertEqual(platform["status_label"], "Meta kotası bekleniyor")

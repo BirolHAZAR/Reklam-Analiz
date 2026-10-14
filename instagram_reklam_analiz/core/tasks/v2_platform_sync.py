@@ -175,7 +175,7 @@ def _normalize_item(platform_code, item):
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)
-def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=None):
+def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=None, retry_errors=True):
     from core.models import PlatformAccount
     from core.services.sync_policy import policy_for_user
 
@@ -311,6 +311,10 @@ def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=
         }
 
     except Exception as exc:
+        # The pipeline owns retries for its tracked PlatformSyncJob. Propagate
+        # the original error so one provider pull cannot schedule two tasks.
+        if not retry_errors:
+            raise
         logger.exception("V2 sync hatası account=%s platform=%s", account_id, platform_code)
         retry_after = getattr(exc, "retry_after", None)
         if retry_after:

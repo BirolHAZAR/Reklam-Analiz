@@ -124,7 +124,7 @@ class MetaCampaignInventoryTests(TestCase):
             return SimpleNamespace(get=lambda **kw: {"ads_synced": 0, "rule_engine": {"status": "queued"}})
         with patch("core.tasks.v2_platform_sync.sync_v2_platform_account_ads.apply", side_effect=pull) as request:
             result = sync_platform_account_ads.run(job.id)
-        request.assert_called_once_with(args=(self.account.id, "OWN", 30), throw=True)
+        request.assert_called_once_with(args=(self.account.id, "OWN", 30), kwargs={"retry_errors": False}, throw=True)
         self.assertEqual(result["campaigns_count"], 1)
         job.refresh_from_db()
         self.assertEqual(job.status, "completed")
@@ -139,3 +139,50 @@ class MetaCampaignInventoryTests(TestCase):
                 sync_platform_account_ads.run(job.id)
         job.refresh_from_db()
         self.assertEqual(job.status, "failed")
+
+    def test_rate_limit_has_one_retry_owner_and_keeps_job_pending(self):
+        from celery.exceptions import Retry
+        from core.services.meta_rate_limit import MetaRateLimitError
+        from core.tasks.ads_pipeline import sync_platform_account_ads
+        for delay, expected in [(54, 300), (600, 600)]:
+            with self.subTest(delay=delay):
+                job = PlatformSyncJob.objects.create(user=self.user, platform_account=self.account)
+                error = MetaRateLimitError(delay)
+                with patch("core.tasks.v2_platform_sync.sync_v2_platform_account_ads.apply", side_effect=error), \
+                     patch.object(sync_platform_account_ads, "retry", side_effect=Retry()) as retry:
+                    with self.assertRaises(Retry):
+                        sync_platform_account_ads.run(job.pk)
+                retry.assert_called_once_with(exc=error, countdown=expected)
+                job.refresh_from_db()
+                self.assertEqual(job.status, "pending")
+                self.assertEqual(job.error_message, "")
+                self.assertIsNone(job.finished_at)
+                self.assertEqual(job.result["waiting_reason"], "meta_rate_limit")
+                self.assertEqual(job.result["retry_after"], expected)
+
+    def test_provider_error_propagates_without_inner_retry_when_pipeline_owns_retry(self):
+        from core.services.meta_rate_limit import MetaRateLimitError
+        from core.tasks.v2_platform_sync import sync_v2_platform_account_ads
+        error = MetaRateLimitError(54)
+        with patch("core.services.sync_policy.policy_for_user", return_value=SimpleNamespace(history_days=30, max_records=100)), \
+             patch("core.tasks.v2_platform_sync._get_api_class") as api, \
+             patch.object(sync_v2_platform_account_ads, "retry") as retry:
+            api.return_value.return_value.get_ads.side_effect = error
+            with self.assertRaises(MetaRateLimitError):
+                sync_v2_platform_account_ads.run(self.account.pk, retry_errors=False)
+        retry.assert_not_called()
+
+    def test_instagram_rate_response_propagates_to_pipeline_without_inner_retry(self):
+        from core.services.meta_rate_limit import MetaRateLimitError
+        from core.tasks.v2_platform_sync import sync_v2_platform_account_ads
+        instagram, _ = Platform.objects.get_or_create(code="instagram", defaults={"name": "Instagram"})
+        self.account.platform = instagram
+        self.account.access_token = "fixture-instagram-access-token"
+        self.account.save(update_fields=["platform", "access_token"])
+        with patch("core.services.sync_policy.policy_for_user", return_value=SimpleNamespace(history_days=30, max_records=100)), \
+             patch("core.instagram_api.InstagramAPI.get_ads_insights", return_value={"error": "rate", "status_code": 429, "retry_after": 54}), \
+             patch.object(sync_v2_platform_account_ads, "retry") as retry:
+            with self.assertRaises(MetaRateLimitError) as error:
+                sync_v2_platform_account_ads.run(self.account.pk, retry_errors=False)
+        self.assertEqual(error.exception.retry_after, 54)
+        retry.assert_not_called()

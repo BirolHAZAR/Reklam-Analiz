@@ -208,7 +208,9 @@ def sync_center(request):
                 error_message = "Senkronizasyon tamamlanamadı. Hesap bağlantısını kontrol edip tekrar deneyin."
             elif raw_status in ["running", "processing", "started", "pending"]:
                 status = "running"
-                status_label = "İşleniyor"
+                status_label = ("Meta kotası bekleniyor" if raw_status == "pending" and
+                                (getattr(last_job, "result", None) or {}).get("waiting_reason") == "meta_rate_limit"
+                                else "İşleniyor")
             elif raw_status in ["completed", "success", "done"]:
                 status = "ok"
                 status_label = "Senkron tamam"
