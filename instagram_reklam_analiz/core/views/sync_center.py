@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.apps import apps
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import Max, Sum
 from django.views.decorators.http import require_GET
 from datetime import datetime, time
 
@@ -185,7 +185,13 @@ def sync_center(request):
                         source_ids = {source.pk for account in organic_accounts for source in instagram_ad_sources(account)}
                         job_filters.pop("platform_account__platform")
                         job_filters["platform_account_id__in"] = source_ids
-                last_job = PlatformSyncJob.objects.filter(**job_filters).order_by("-id").first()
+                jobs = PlatformSyncJob.objects.filter(**job_filters, platform_account__is_active=True)
+                latest_ids = jobs.order_by().values("platform_account_id").annotate(latest_id=Max("id")).values_list("latest_id", flat=True)
+                latest_jobs = list(jobs.filter(id__in=latest_ids).select_related("platform_account__platform").order_by("-id"))
+                # A newer successful account must not hide another account's
+                # pending cooldown or failed last attempt.
+                priority = {"pending": 0, "running": 0, "failed": 1, "completed": 2}
+                last_job = min(latest_jobs, key=lambda job: priority.get(job.status, 2), default=None)
             except Exception:
                 last_job = None
 

@@ -79,3 +79,24 @@ class SyncCenterAccessTests(TestCase):
         platform = next(p for p in response.context["platforms"] if p["code"] == "instagram")
         self.assertEqual(platform["status"], "running")
         self.assertEqual(platform["status_label"], "Reklam: Meta kotası bekleniyor")
+
+    def test_newer_success_does_not_hide_another_accounts_failure_or_wait(self):
+        second = PlatformAccount.objects.create(user=self.user, platform=self.meta,
+            account_id="second", access_token="test")
+        failure = PlatformSyncJob.objects.create(user=self.user, platform_account=self.account, status="failed")
+        PlatformSyncJob.objects.create(user=self.user, platform_account=second, status="completed")
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("sync_center"))
+        platform = next(p for p in response.context["platforms"] if p["code"] == "facebook")
+        self.assertEqual(platform["status"], "error")
+        failure.status = "pending"
+        failure.result = {"waiting_reason": "meta_rate_limit"}
+        failure.save(update_fields=["status", "result"])
+        response = self.client.get(reverse("sync_center"))
+        platform = next(p for p in response.context["platforms"] if p["code"] == "facebook")
+        self.assertEqual(platform["status_label"], "Meta kotası bekleniyor")
+        # The account recovers: historical failures must no longer dominate.
+        PlatformSyncJob.objects.create(user=self.user, platform_account=self.account, status="completed")
+        response = self.client.get(reverse("sync_center"))
+        platform = next(p for p in response.context["platforms"] if p["code"] == "facebook")
+        self.assertEqual(platform["status"], "ok")
