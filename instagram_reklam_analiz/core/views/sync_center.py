@@ -177,6 +177,14 @@ def sync_center(request):
                     "platform_account__user": request.user,
                     "platform_account__platform": platform,
                 }
+                if code == "instagram":
+                    from core.services.campaign_panel_service import instagram_ad_sources
+                    organic_accounts = PlatformAccount.objects.filter(user=request.user, platform=platform,
+                        is_active=True, extra_data__auth_type="instagram_login")
+                    if organic_accounts.exists():
+                        source_ids = {source.pk for account in organic_accounts for source in instagram_ad_sources(account)}
+                        job_filters.pop("platform_account__platform")
+                        job_filters["platform_account_id__in"] = source_ids
                 last_job = PlatformSyncJob.objects.filter(**job_filters).order_by("-id").first()
             except Exception:
                 last_job = None
@@ -214,6 +222,8 @@ def sync_center(request):
             elif raw_status in ["completed", "success", "done"]:
                 status = "ok"
                 status_label = "Senkron tamam"
+            if code == "instagram" and last_job.platform_account.platform_id != platform.pk:
+                status_label = "Reklam: " + status_label
 
         platforms.append({
             "code": code,

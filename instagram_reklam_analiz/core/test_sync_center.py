@@ -61,3 +61,21 @@ class SyncCenterAccessTests(TestCase):
         platform = next(p for p in response.context["platforms"] if p["code"] == "facebook")
         self.assertEqual(platform["status"], "running")
         self.assertEqual(platform["status_label"], "Meta kotası bekleniyor")
+
+    def test_instagram_ad_health_follows_its_meta_source_not_invalid_profile_job(self):
+        from core.models import PlatformConnection
+        instagram, _ = Platform.objects.get_or_create(code="instagram", defaults={"name": "Instagram"})
+        profile = PlatformAccount.objects.create(user=self.user, platform=instagram, account_id="profile",
+            access_token="test", extra_data={"auth_type": "instagram_login"})
+        connection = PlatformConnection.objects.create(user=self.user, platform=self.meta,
+            access_token="test", extra_data={"source": "ads_oauth"})
+        self.account.connection = connection
+        self.account.save(update_fields=["connection"])
+        PlatformSyncJob.objects.create(user=self.user, platform_account=self.account, status="pending",
+            result={"waiting_reason": "meta_rate_limit"})
+        PlatformSyncJob.objects.create(user=self.user, platform_account=profile, status="failed")
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("sync_center"))
+        platform = next(p for p in response.context["platforms"] if p["code"] == "instagram")
+        self.assertEqual(platform["status"], "running")
+        self.assertEqual(platform["status_label"], "Reklam: Meta kotası bekleniyor")

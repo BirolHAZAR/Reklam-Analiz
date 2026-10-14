@@ -125,6 +125,7 @@ body:has(.cp-shell)>main{padding-left:0!important;padding-right:8px!important}.c
 
 <script>
 let currentAccountId = null;
+let currentOrganicInstagram = false;
 let currentAccountName = '';
 let currentCampaignId = null;
 const agencyClientScope = '{{ agency_scope.selected_client.id|default:""|escapejs }}';
@@ -155,19 +156,25 @@ async function loadPlatforms(){
         </button>
         <div class="cp-accounts">
           ${(p.accounts||[]).length ? (p.accounts||[]).map(acc=>`
-            <button class="cp-account" type="button" data-id="${acc.id}" data-name="${escapeHtml(acc.account_name)}" onclick="selectAccount(this)">
+            <button class="cp-account" type="button" data-id="${acc.id}" data-organic="${acc.organic_instagram ? 'true' : 'false'}" data-name="${escapeHtml(acc.account_name)}" onclick="selectAccount(this)">
               <strong>${escapeHtml(acc.account_name)}</strong>
               <small>${escapeHtml(acc.platform_name)} · ${acc.campaign_count || 0} kampanya · ${acc.ad_count || 0} reklam</small>
-            </button>`).join('') : '<div style="color:#B8BED0;font-size:12px;padding:8px">Bu platformda bağlı hesap yok.</div>'}
+            </button>
+            ${(acc.ad_sources||[]).map(source=>`<button class="cp-account" type="button" data-id="${source.id}" data-name="${escapeHtml(source.name)} (Meta reklamları)" onclick="selectAccount(this)"><strong>${escapeHtml(source.name)}</strong><small>Meta reklamları · Facebook ve Instagram</small></button>`).join('')}`).join('') : '<div style="color:#B8BED0;font-size:12px;padding:8px">Bu platformda bağlı hesap yok.</div>'}
         </div>
       </div>`).join('');
   }catch(error){container.innerHTML='<div class="cp-empty">Platformlar yüklenirken hata oluştu.</div>';console.error(error);}
 }
 function togglePlatform(btn){const wrap=btn.closest('.cp-platform');const open=wrap.classList.contains('open');document.querySelectorAll('.cp-platform').forEach(x=>x.classList.remove('open'));document.querySelectorAll('.cp-platform-btn').forEach(x=>x.classList.remove('active'));if(!open){wrap.classList.add('open');btn.classList.add('active');}}
-function selectAccount(btn){document.querySelectorAll('.cp-account').forEach(x=>x.classList.remove('active'));btn.classList.add('active');currentAccountId=btn.dataset.id;currentAccountName=btn.dataset.name;document.getElementById('accountLabel').textContent=currentAccountName;document.getElementById('syncBtn').disabled=false;loadCampaigns();}
+function selectAccount(btn){document.querySelectorAll('.cp-account').forEach(x=>x.classList.remove('active'));btn.classList.add('active');currentAccountId=btn.dataset.id;currentAccountName=btn.dataset.name;currentOrganicInstagram=btn.dataset.organic==='true';document.getElementById('accountLabel').textContent=currentAccountName;document.getElementById('syncBtn').disabled=currentOrganicInstagram;setSyncStatus('','',false);loadCampaigns();}
 function reloadCampaigns(){if(currentAccountId)loadCampaigns();}
 async function loadCampaigns(){
   const container=document.getElementById('campaignContainer');
+  if(currentOrganicInstagram){
+    ['statCampaigns','statAdGroups','statAds','statCreatives'].forEach(id=>document.getElementById(id).textContent='0');
+    container.innerHTML='<div class="cp-empty"><i class="fab fa-instagram"></i><strong>Instagram içerikleri ve reklamları</strong><br>Organik paylaşımları Organik İçerik bölümünde inceleyin. Reklam kampanyalarını çekmek için soldaki Meta reklam hesaplarından birini seçin.<div style="margin-top:14px"><a class="cp-btn primary" href="/organic-content/">Organik İçerik</a></div></div>';
+    return;
+  }
   container.innerHTML='<div class="cp-loading" style="grid-column:1/-1"><div class="cp-spinner"></div></div>';
   try{
     const resp=await fetch(`/api/campaign-panel/campaigns/?${queryParams()}`,{headers:{'X-Requested-With':'XMLHttpRequest'}});
@@ -395,6 +402,7 @@ async function pollCampaignSync(jobId){
   setSyncStatus('Senkronizasyon devam ediyor','Veri cekme islemi arka planda suruyor. Biraz sonra sayfayi yenileyebilirsin.');
 }
 async function startCampaignSync(){
+  if(currentOrganicInstagram){setSyncStatus('Meta reklam hesabını seçin','Instagram reklamları soldaki Meta reklam hesaplarından çekilir.');return;}
   if(!currentAccountId){setSyncStatus('Once hesap secin','Soldaki platform listesinden bir hesap secmeden kampanya cekilemez.');return;}
   const btn=document.getElementById('syncBtn');
   if(btn){btn.disabled=true;btn.classList.add('is-syncing');btn.innerHTML='Cekiliyor...';}

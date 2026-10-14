@@ -332,6 +332,9 @@ def api_campaign_ai_pdf(request, campaign_id):
 @require_POST
 def api_campaign_panel_sync_account(request, account_id):
     account = get_object_or_404(platform_accounts_for_request(request, active_only=True), id=account_id)
+    if account.platform.code == "instagram" and (account.extra_data or {}).get("auth_type") == "instagram_login":
+        return JsonResponse({"success": False, "error": "meta_ad_account_required",
+            "message": "Instagram reklamları için Instagram bölümündeki Meta reklam hesabını seçin. Organik içerik bağlantınız korunur."}, status=400)
     days_back = request.POST.get("days_back") or request.GET.get("days_back") or 365
     try:
         days_back = max(1, min(int(days_back), 3650))

@@ -823,6 +823,14 @@ def _openai_campaign_text(report_type, campaign, metrics, findings, actions, cre
         raise RuntimeError(f"Gerçek kampanya AI raporu tamamlanamadı: {exc}") from exc
 
 
+def instagram_ad_sources(account, accounts_queryset=None):
+    accounts = accounts_queryset if accounts_queryset is not None else PlatformAccount.objects.all()
+    return accounts.filter(user_id=account.user_id, agency_client_id=account.agency_client_id,
+        is_active=True, platform__code__in=("facebook", "meta"), connection__is_active=True,
+        connection__user_id=account.user_id,
+        connection__extra_data__source="ads_oauth").select_related("platform", "connection")
+
+
 def build_platform_account_payload(user, platform_code="", accounts_queryset=None):
     platforms = Platform.objects.filter(is_active=True).order_by("name")
     data = []
@@ -849,6 +857,10 @@ def build_platform_account_payload(user, platform_code="", accounts_queryset=Non
                 "ad_group_count": AdGroup.objects.filter(campaign__platform_account=account).count(),
                 "ad_count": Ad.objects.filter(platform_account=account, source_type="OWN").count(),
                 "connection_status": account.connection.status if account.connection else "missing",
+                "organic_instagram": (account.extra_data or {}).get("auth_type") == "instagram_login",
+                "ad_sources": [{"id": source.pk, "name": source.account_name or source.account_id}
+                               for source in instagram_ad_sources(account, accounts_queryset)]
+                              if platform.code == "instagram" else [],
             })
         data.append({
             "id": platform.id,

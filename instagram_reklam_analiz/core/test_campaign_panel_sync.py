@@ -68,3 +68,37 @@ class CampaignPanelCsrfTests(TestCase):
         PlatformSyncJob.objects.filter(pk=first).update(status="failed")
         self.assertNotEqual(click().json()["job_id"], first)
         self.assertEqual(task.delay.call_count, 2)
+
+    @patch("core.views.campaign_panel.sync_platform_account_ads")
+    def test_organic_profile_does_not_enqueue_invalid_ad_account_request(self, task):
+        platform, _ = Platform.objects.get_or_create(code="instagram", defaults={"name": "Instagram"})
+        self.account.platform = platform
+        self.account.extra_data = {"auth_type": "instagram_login"}
+        self.account.save(update_fields=["platform", "extra_data"])
+        response = self.browser.post(reverse("api_campaign_panel_sync_account", args=[self.account.pk]),
+            HTTP_COOKIE=self.cookies, HTTP_X_CSRFTOKEN="b" * 32)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "meta_ad_account_required")
+        self.assertFalse(PlatformSyncJob.objects.exists())
+        task.delay.assert_not_called()
+
+    def test_instagram_sources_keep_canonical_ids_and_exclude_other_users(self):
+        from core.models import PlatformConnection
+        from core.services.campaign_panel_service import build_platform_account_payload
+        instagram, _ = Platform.objects.get_or_create(code="instagram", defaults={"name": "Instagram"})
+        meta, _ = Platform.objects.get_or_create(code="facebook", defaults={"name": "Facebook"})
+        profile = PlatformAccount.objects.create(user=self.user, platform=instagram, account_id="profile",
+            access_token="test-token", extra_data={"auth_type": "instagram_login"})
+        connection = PlatformConnection.objects.create(user=self.user, platform=meta, access_token="meta-token",
+            extra_data={"source": "ads_oauth"})
+        sources = [PlatformAccount.objects.create(user=self.user, platform=meta, connection=connection,
+            account_id=str(i), access_token="test-token") for i in range(2)]
+        other = get_user_model().objects.create_user(username="foreign-meta-owner")
+        PlatformAccount.objects.create(user=other, platform=meta, connection=connection,
+            account_id="foreign", access_token="test-token")
+        payload = build_platform_account_payload(self.user, platform_code="instagram")[0]["accounts"][0]
+        self.assertTrue(payload["organic_instagram"])
+        self.assertEqual({s["id"] for s in payload["ad_sources"]}, {s.pk for s in sources})
+        scoped = build_platform_account_payload(self.user, platform_code="instagram",
+            accounts_queryset=PlatformAccount.objects.filter(pk__in=[profile.pk, sources[0].pk]))
+        self.assertEqual([s["id"] for s in scoped[0]["accounts"][0]["ad_sources"]], [sources[0].pk])
