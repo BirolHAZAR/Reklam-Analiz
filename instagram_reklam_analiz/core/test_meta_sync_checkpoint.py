@@ -73,3 +73,16 @@ class MetaPaginationCheckpointTests(SimpleTestCase):
         with meta_read_checkpoint("manual:1"):
             self.assertEqual(meta_rows("token", "me/accounts", {}), [])
         request.assert_called_once()
+
+    @patch("core.services.ads_integrations.requests.request")
+    def test_transport_failure_is_retryable_without_logging_private_url(self, request):
+        import requests
+        from core.services.ads_integrations import _request, IntegrationTransportError
+        request.side_effect = requests.ReadTimeout("private-token-in-url")
+        with self.assertLogs("core.services.ads_integrations", level="WARNING") as logs:
+            with self.assertRaises(IntegrationTransportError) as caught:
+                _request("GET", "https://graph.facebook.com/v25.0/act_1/ads",
+                         headers={"Authorization": "Bearer private-token"})
+        self.assertNotIn("private-token", str(caught.exception))
+        self.assertNotIn("private-token", " ".join(logs.output))
+        self.assertIn("ReadTimeout", " ".join(logs.output))

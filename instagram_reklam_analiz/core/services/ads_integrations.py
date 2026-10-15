@@ -33,6 +33,14 @@ class IntegrationRateLimitError(IntegrationError):
         super().__init__(str(error))
 
 
+class IntegrationTransportError(IntegrationError):
+    """Temporary transport/response failure, safe to retry during a read job."""
+
+    def __init__(self, message, *, is_timeout=False):
+        self.is_timeout = is_timeout
+        super().__init__(message)
+
+
 def application_values(provider):
     if provider == "google_ads":
         names = ("GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_ADS_REDIRECT_URI", "GOOGLE_ADS_DEVELOPER_TOKEN")
@@ -137,9 +145,12 @@ def _request(method, url, *, operation="", **kwargs):
         after_response(url, kwargs, response, payload)
     except MetaRateLimitError as exc:
         raise IntegrationRateLimitError(exc) from None
-    except (requests.RequestException, ValueError):
+    except (requests.RequestException, ValueError) as exc:
         prefix = f"{operation}: " if operation else ""
-        raise IntegrationError(f"{prefix}Platforma ulaşılamadı. Lütfen tekrar deneyin.") from None
+        logger.warning("Provider transport failed operation=%s exception_type=%s",
+                       operation or "unspecified", type(exc).__name__)
+        raise IntegrationTransportError(f"{prefix}Platforma ulaşılamadı. Lütfen tekrar deneyin.",
+                                        is_timeout=isinstance(exc, requests.Timeout)) from None
     if not response.ok or (isinstance(payload, dict) and payload.get("error")):
         error = payload.get("error", {}) if isinstance(payload, dict) else {}
         if not isinstance(error, dict):

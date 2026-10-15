@@ -3,7 +3,7 @@ from datetime import timedelta
 import json
 from decimal import Decimal
 from django.utils import timezone
-from core.services.ads_integrations import account_token, account_today, meta_rows
+from core.services.ads_integrations import account_token, account_today, meta_rows, IntegrationTransportError
 
 
 def _distinct_actions(items):
@@ -43,11 +43,27 @@ class FacebookAPI(BasePlatformAPI):
             "fields": "id,name,effective_status,campaign{id,name,status,objective},adset{id,name,status,daily_budget,lifetime_budget,start_time,end_time},creative{id,name,title,body,thumbnail_url,object_url,call_to_action_type,image_url}",
             "effective_status": json.dumps(["ACTIVE", "PAUSED", "ARCHIVED", "PENDING_REVIEW", "DISAPPROVED", "PREAPPROVED", "PENDING_BILLING_INFO", "CAMPAIGN_PAUSED", "ADSET_PAUSED", "IN_PROCESS", "WITH_ISSUES"]),
         })}
-        rows = meta_rows(token, f"{self.account.account_id}/insights", {
-            "level": "ad", "time_increment": 1,
-            "fields": "ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,date_start,impressions,reach,clicks,spend,actions,action_values,account_currency",
-            "time_range": json.dumps({"since": start.isoformat(), "until": end.isoformat()}),
-        })
+        def insights_between(window_start, window_end):
+            try:
+                return meta_rows(token, f"{self.account.account_id}/insights", {
+                    "level": "ad", "time_increment": 1,
+                    "fields": "ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,date_start,impressions,reach,clicks,spend,actions,action_values,account_currency",
+                    "time_range": json.dumps({"since": window_start.isoformat(), "until": window_end.isoformat()}),
+                })
+            except IntegrationTransportError as exc:
+                if not exc.is_timeout or window_start == window_end:
+                    raise
+                midpoint = window_start + (window_end - window_start) // 2
+                return insights_between(window_start, midpoint) + insights_between(midpoint + timedelta(days=1), window_end)
+
+        rows = []
+        window_start = start
+        while window_start <= end:
+            # A year of daily ad-level insights can time out before its first
+            # page. Keep windows disjoint and checkpoint each independently.
+            window_end = min(window_start + timedelta(days=29), end)
+            rows.extend(insights_between(window_start, window_end))
+            window_start = window_end + timedelta(days=1)
         inventory = []
         for ad_id, ad in metadata.items():
             campaign = ad.get("campaign") or {}

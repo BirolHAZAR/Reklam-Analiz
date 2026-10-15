@@ -177,24 +177,44 @@ def sync_platform_account_ads(self, job_id):
         return job.result
 
     except Exception as exc:
+        from core.services.ads_integrations import IntegrationTransportError
+
+        transport_retries = (job.result or {}).get("transport_retries", 0)
         retry_after = getattr(exc, "retry_after", None)
-        if retry_after and self.request.retries < META_QUOTA_RETRIES:
+        if retry_after and self.request.retries - transport_retries < META_QUOTA_RETRIES:
             countdown = max(300, int(retry_after))
             job.status = "pending"
             job.error_message = ""
             job.finished_at = None
             job.message = f"Meta istek kotası nedeniyle bekleniyor. {countdown} saniye sonra otomatik yeniden denenecek."
             job.result = {"waiting_reason": "meta_rate_limit", "retry_after": countdown,
+                          "transport_retries": transport_retries,
                           "retry_at": (timezone.now()+timedelta(seconds=countdown)).isoformat()}
             job.save()
             # Large inventories can span several quota windows. Keep the
             # normal failure retry budget separate from this longer wait.
-            raise self.retry(exc=exc, countdown=countdown, max_retries=META_QUOTA_RETRIES)
+            raise self.retry(exc=exc, countdown=countdown, max_retries=META_QUOTA_RETRIES + transport_retries)
+        if isinstance(exc, IntegrationTransportError) and transport_retries < 3:
+            # Celery's retry count includes quota waits. A later timeout must
+            # still get its own bounded retry budget and retain its cursor.
+            job.status = "pending"
+            job.error_message = ""
+            job.finished_at = None
+            job.message = "Platforma geçici olarak ulaşılamadı. 60 saniye sonra otomatik yeniden denenecek."
+            job.result = {"waiting_reason": "provider_transport", "retry_after": 60,
+                          "transport_retries": transport_retries + 1,
+                          "retry_at": (timezone.now()+timedelta(seconds=60)).isoformat()}
+            job.save()
+            raise self.retry(exc=exc, countdown=60, max_retries=self.request.retries + 1)
         job.status = "failed"
         job.progress = 100
         job.message = "Senkronizasyon sırasında hata oluştu."
         job.error_message = str(exc)
         job.finished_at = timezone.now()
+        job.result = {key: value for key, value in (job.result or {}).items()
+                      if key not in {"waiting_reason", "retry_after", "retry_at"}}
         job.save()
 
+        if retry_after or isinstance(exc, IntegrationTransportError):
+            raise
         raise self.retry(exc=exc, countdown=60)

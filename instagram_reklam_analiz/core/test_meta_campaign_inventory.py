@@ -49,7 +49,8 @@ class MetaCampaignInventoryTests(TestCase):
             return self.campaigns
         self.assertEqual(path, "act_123/insights")
         self.assertEqual(params["time_increment"], 1)
-        return self.insights
+        period = json.loads(params["time_range"])
+        return [row for row in self.insights if period["since"] <= row["date_start"] <= period["until"]]
 
     def sync(self):
         from core.tasks.v2_platform_sync import sync_v2_platform_account_ads
@@ -71,6 +72,47 @@ class MetaCampaignInventoryTests(TestCase):
         # Dates select metrics; they must not hide paused/empty campaigns.
         cards = build_campaign_list(self.user, self.account, date(2020, 1, 1), date(2020, 1, 2))
         self.assertEqual({card["platform_campaign_id"] for card in cards}, {"c1", "c2", "c3"})
+
+    def test_yearly_insights_windows_cover_every_day_once(self):
+        from datetime import timedelta
+        with patch("core.platforms.facebook.meta_rows", side_effect=self.rows) as request, \
+             patch("core.platforms.facebook.account_today", return_value=date(2026, 10, 9)):
+            FacebookAPI(self.account).get_ads(since_days=365)
+        periods = [json.loads(call.args[2]["time_range"]) for call in request.call_args_list
+                   if call.args[1].endswith("/insights")]
+        self.assertEqual(len(periods), 13)
+        days = []
+        for period in periods:
+            start, end = date.fromisoformat(period["since"]), date.fromisoformat(period["until"])
+            self.assertLessEqual((end - start).days, 29)
+            days.extend(start + timedelta(days=offset) for offset in range((end - start).days + 1))
+        self.assertEqual(days, [date(2026, 10, 9) - timedelta(days=364-offset) for offset in range(365)])
+
+    def test_slow_insights_window_splits_without_losing_or_duplicating_dates(self):
+        from core.services.ads_integrations import IntegrationTransportError
+        periods = []
+        def read(token, path, params):
+            if path.endswith("/ads"):
+                return []
+            period = json.loads(params["time_range"])
+            start, end = date.fromisoformat(period["since"]), date.fromisoformat(period["until"])
+            if (end - start).days > 14:
+                raise IntegrationTransportError("slow", is_timeout=True)
+            periods.append((start, end))
+            return [{"ad_id": "historical", "campaign_id": "c", "adset_id": "s", "date_start": start.isoformat()}]
+        with patch("core.platforms.facebook.meta_rows", side_effect=read), \
+             patch("core.platforms.facebook.account_today", return_value=date(2026, 10, 9)):
+            rows = FacebookAPI(self.account).get_ads(since_days=30)
+        self.assertEqual(periods, [(date(2026, 9, 10), date(2026, 9, 24)),
+                                   (date(2026, 9, 25), date(2026, 10, 9))])
+        self.assertEqual(len(rows), 2)
+
+    def test_connection_failure_does_not_fan_out_into_smaller_requests(self):
+        from core.services.ads_integrations import IntegrationTransportError
+        with patch("core.platforms.facebook.meta_rows", side_effect=[[], IntegrationTransportError("offline")]) as request:
+            with self.assertRaises(IntegrationTransportError):
+                FacebookAPI(self.account).get_ads(since_days=30)
+        self.assertEqual(request.call_count, 2)
 
     def test_daily_history_is_idempotent_and_metadata_sync_does_not_erase_it(self):
         self.insights = [{"ad_id": "a2", "campaign_id": "c2", "adset_id": "s2", "ad_name": "Old ad",
@@ -190,6 +232,59 @@ class MetaCampaignInventoryTests(TestCase):
             with self.assertRaises(MetaRateLimitError):
                 sync_v2_platform_account_ads.run(self.account.pk, retry_errors=False)
         retry.assert_not_called()
+
+    def test_transport_failure_after_quota_waits_has_separate_bounded_retries(self):
+        from celery.exceptions import Retry
+        from core.services.ads_integrations import IntegrationTransportError
+        from core.tasks.ads_pipeline import sync_platform_account_ads
+        job = PlatformSyncJob.objects.create(user=self.user, platform_account=self.account,
+            result={"waiting_reason": "meta_rate_limit"})
+        error = IntegrationTransportError("Temporary provider failure")
+        for attempt in range(4):
+            sync_platform_account_ads.push_request(retries=5 + attempt)
+            try:
+                with patch("core.tasks.v2_platform_sync.sync_v2_platform_account_ads.apply", side_effect=error), \
+                     patch.object(sync_platform_account_ads, "retry", side_effect=Retry()) as retry:
+                    with self.assertRaises(IntegrationTransportError if attempt == 3 else Retry):
+                        sync_platform_account_ads.run(job.pk)
+            finally:
+                sync_platform_account_ads.pop_request()
+            job.refresh_from_db()
+            if attempt < 3:
+                retry.assert_called_once_with(exc=error, countdown=60, max_retries=6 + attempt)
+                self.assertEqual(job.status, "pending")
+                self.assertIsNone(job.finished_at)
+                self.assertEqual(job.error_message, "")
+                self.assertEqual(job.result["transport_retries"], attempt + 1)
+                self.assertEqual(job.result["waiting_reason"], "provider_transport")
+            else:
+                retry.assert_not_called()
+                self.assertEqual(job.status, "failed")
+                self.assertNotIn("waiting_reason", job.result)
+
+    def test_transport_retries_do_not_consume_meta_quota_budget(self):
+        from celery.exceptions import Retry
+        from core.services.meta_rate_limit import MetaRateLimitError
+        from core.tasks.ads_pipeline import sync_platform_account_ads
+        job = PlatformSyncJob.objects.create(user=self.user, platform_account=self.account,
+            result={"transport_retries": 3})
+        error = MetaRateLimitError(60)
+        for retries, expected_status in [(50, "pending"), (51, "failed")]:
+            sync_platform_account_ads.push_request(retries=retries)
+            try:
+                with patch("core.tasks.v2_platform_sync.sync_v2_platform_account_ads.apply", side_effect=error), \
+                     patch.object(sync_platform_account_ads, "retry", side_effect=Retry()) as retry:
+                    with self.assertRaises(Retry if retries == 50 else MetaRateLimitError):
+                        sync_platform_account_ads.run(job.pk)
+            finally:
+                sync_platform_account_ads.pop_request()
+            job.refresh_from_db()
+            self.assertEqual(job.status, expected_status)
+            if retries == 50:
+                retry.assert_called_once_with(exc=error, countdown=300, max_retries=51)
+            else:
+                retry.assert_not_called()
+                self.assertNotIn("waiting_reason", job.result)
 
     def test_instagram_rate_response_propagates_to_pipeline_without_inner_retry(self):
         from core.services.meta_rate_limit import MetaRateLimitError

@@ -7,7 +7,8 @@ import json
 from django.core.cache import cache
 
 _session = ContextVar("meta_sync_checkpoint", default=None)
-TTL = 3600
+# Large jobs can spend several hours in provider-enforced quota windows.
+TTL = 24 * 3600
 
 
 @contextmanager
