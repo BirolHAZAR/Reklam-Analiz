@@ -58,16 +58,18 @@ class MetaCooldownTests(SimpleTestCase):
         deadline = int(timezone.now().timestamp()) + 5000000
         request.side_effect = [{"access_token": "short"}, {"access_token": "long"},
             {"data": {"is_valid": True, "expires_at": deadline}},
-            {"data": [{"permission": "ads_read", "status": "granted"}]}]
+            {"data": [{"permission": "ads_read", "status": "granted"}]}, {"id": "123"}]
         token = ads.exchange_code("facebook", "code")
         self.assertGreater(token["expires_in"], 4999990)
+        self.assertEqual(token["meta_user_id"], "123")
+        self.assertEqual(token["meta_app_id"], "app")
 
     @patch("core.services.ads_integrations.configuration", return_value=("app", "secret", "https://example.com/callback"))
     @patch("core.services.ads_integrations._request")
     def test_explicit_zero_meta_expiry_does_not_invent_a_deadline(self, request, config):
         request.side_effect = [{"access_token": "short"}, {"access_token": "long"},
             {"data": {"is_valid": True, "expires_at": 0, "data_access_expires_at": 2000000000}},
-            {"data": [{"permission": "ads_read", "status": "granted"}]}]
+            {"data": [{"permission": "ads_read", "status": "granted"}]}, {"id": "123"}]
         self.assertIsNone(ads.exchange_code("facebook", "code")["expires_in"])
 
 

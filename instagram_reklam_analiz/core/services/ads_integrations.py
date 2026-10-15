@@ -249,6 +249,13 @@ def exchange_code(provider, code):
         if not {"ads_read", "ads_management"}.intersection(granted):
             raise IntegrationError("Meta reklam okuma izni verilmedi. Bağlantıyı yeniden başlatın.")
         data["scope"] = " ".join(granted)
+        identity = _request("GET", f"{settings.FACEBOOK_GRAPH_URL}/me",
+                            operation="Meta bağlantı kimliğini doğrulama",
+                            headers={"Authorization": f"Bearer {data['access_token']}"}, params={"fields": "id"})
+        subject = str(identity.get("id", "")) if isinstance(identity, dict) else ""
+        if not re.fullmatch(r"[0-9]{1,100}", subject):
+            raise IntegrationError("Meta bağlantı kimliği doğrulanamadı.")
+        data["meta_user_id"], data["meta_app_id"] = subject, str(client_id)
     if not data.get("access_token"):
         raise IntegrationError("Erişim bilgisi alınamadı.")
     return data

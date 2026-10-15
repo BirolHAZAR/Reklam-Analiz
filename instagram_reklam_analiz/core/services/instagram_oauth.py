@@ -67,4 +67,7 @@ def exchange_code(code):
     # already bound to the profile returned by ``/me``; comparing those two
     # provider-specific identifiers rejects valid Instagram logins.
     token["scope"] = list(SCOPES)
+    subject = str(short.get("user_id", ""))
+    token["meta_user_id"] = subject if subject.isascii() and subject.isdigit() else account["id"]
+    token["meta_app_id"] = str(client_id)
     return token, account

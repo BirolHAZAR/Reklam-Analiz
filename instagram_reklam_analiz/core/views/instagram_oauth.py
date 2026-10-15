@@ -52,6 +52,7 @@ def save_account(user, client, token, profile):
         raise IntegrationError("Bu hesap başka bir müşteriyle eşleştirilmiş. Önce mevcut eşleştirmeyi düzenleyin.")
     ensure_platform_account_capacity(user, [("instagram", profile["id"])], organization=client.organization if client else None)
     metadata = {"source": "instagram_oauth", "auth_type": "instagram_login",
+                **{key: token[key] for key in ("meta_user_id", "meta_app_id") if key in token},
                 "instagram_business_account_id": profile["id"], "username": profile["username"],
                 "agency_client": client.pk if client else None}
     expiry = timezone.now() + timedelta(seconds=token["expires_in"])

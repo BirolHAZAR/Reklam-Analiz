@@ -121,6 +121,7 @@ def callback(request, provider):
             token_expiry=None if provider == "facebook" and token.get("expires_in") is None else timezone.now() + timedelta(seconds=int(token.get("expires_in", 3600))),
             scopes=token.get("scope", "").split(), is_active=False, status="disconnected",
             extra_data={"source": "google_read_oauth" if provider in api.GOOGLE_READ_PROVIDERS else "ads_oauth", "pending": True, "choices": choices,
+                        **{key: token[key] for key in ("meta_user_id", "meta_app_id") if provider == "facebook" and key in token},
                         "agency_client": client.pk if client else None},
         )
         request.session[f"ads_pending:{provider}"] = connection.pk
@@ -173,7 +174,9 @@ def select_accounts(request, provider):
                 ensure_platform_account_capacity(request.user, [(provider, cid) for cid in selected], organization=client.organization if client else None)
                 connection.is_active, connection.status = True, "active"
                 source = "google_read_oauth" if provider in api.GOOGLE_READ_PROVIDERS else "ads_oauth"
-                connection.extra_data = {"source": source, "agency_client": client.pk if client else None}
+                connection.extra_data = {"source": source, "agency_client": client.pk if client else None,
+                    **{key: connection.extra_data[key] for key in ("meta_user_id", "meta_app_id")
+                       if provider == "facebook" and key in connection.extra_data}}
                 connection.save()
                 replaced_connections = set()
                 for cid in sorted(selected):

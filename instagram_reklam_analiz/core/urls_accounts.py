@@ -6,8 +6,10 @@ from core.views import platform_connect
 from core.views import ads_integrations
 from core.views import local_names
 from core.views import instagram_oauth
+from core.views.meta_deauthorization import deauthorize
 
 urlpatterns = [
+    path('connect/<str:provider>/deauthorize/', deauthorize, name='meta_deauthorize'),
     path('connect/youtube/callback/', ads_integrations.callback, {'provider': 'youtube'}, name='youtube_callback'),
     path('connect/instagram/', instagram_oauth.connect, name='instagram_connect'),
     path('connect/instagram/callback/', instagram_oauth.callback, name='instagram_oauth_callback'),

@@ -20,7 +20,8 @@ class InstagramOAuthTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(username="ig-owner")
         self.client.force_login(self.user)
-        self.token = {"access_token": "private-token", "expires_in": 5184000, "scope": list(api.SCOPES)}
+        self.token = {"access_token": "private-token", "expires_in": 5184000, "scope": list(api.SCOPES),
+                      "meta_user_id": "999", "meta_app_id": "ig-app"}
         self.profile = {"id": "123456", "username": "example"}
 
     def flow(self, **values):
@@ -91,6 +92,8 @@ class InstagramOAuthTests(TestCase):
         account = PlatformAccount.objects.get(account_id=self.profile["id"])
         self.assertEqual(account.account_name, "@example")
         self.assertEqual(account.connection.scopes, list(api.SCOPES))
+        self.assertEqual(account.connection.extra_data["meta_user_id"], "999")
+        self.assertEqual(account.connection.extra_data["meta_app_id"], "ig-app")
         account.local_name = "Local alias"
         account.save()
         old_connection = account.connection
@@ -135,6 +138,8 @@ class InstagramOAuthTests(TestCase):
         ]
         token, profile = api.exchange_code("code")
         self.assertEqual(token["access_token"], "long")
+        self.assertEqual(token["meta_user_id"], "123456")
+        self.assertEqual(token["meta_app_id"], "ig-app")
         self.assertEqual(profile, self.profile)
         self.assertEqual(request.call_args_list[0].args[:2], ("POST", "https://api.instagram.com/oauth/access_token"))
         self.assertIn("graph.instagram.com", request.call_args_list[2].args[1])
@@ -151,6 +156,7 @@ class InstagramOAuthTests(TestCase):
         ]
         token, profile = api.exchange_code("code")
         self.assertEqual(token["access_token"], "long")
+        self.assertEqual(token["meta_user_id"], "999")
         self.assertEqual(profile, self.profile)
 
     @patch("core.services.instagram_oauth.profile", return_value={"id": "123456", "username": "example"})
