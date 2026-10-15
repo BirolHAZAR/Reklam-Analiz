@@ -14,7 +14,7 @@ Kaynak: https://developers.facebook.com/documentation/development/create-an-app/
 
 ## Yetki kaldırma bildirimi
 
-Facebook Login for Business ayarlarındaki deauthorization alanı boş. Hazırlanan uçlar:
+Facebook Login for Business ve Instagram Business Login ayarlarındaki deauthorization adresleri kaydedildi ve form yeniden açılarak doğrulandı. Canlı uçlar:
 
 - `/connect/facebook/deauthorize/`
 - `/connect/instagram/deauthorize/`
@@ -23,6 +23,12 @@ Yalnız POST ve doğru uygulama gizli anahtarıyla HMAC-SHA256 imzası kabul edi
 
 Yeni OAuth bağlantıları Meta uygulama ve kullanıcı kimliğini saklar. Mevcut Facebook bağlantıları için `backfill_meta_callback_subjects` yönetim komutu, Meta debug_token yanıtındaki geçerlilik, app_id ve user_id doğrulamasından sonra yalnız `--apply` ile kimlik metadatasını kaydeder. Varsayılan çalışma salt okunurdur.
 
-Mevcut Instagram Login tokenını Facebook debug_token üzerinden doğrulama denemesi HTTP 400 / OAuthException 190 döndürdü; hiçbir eşleşme tahmin edilmedi veya yazılmadı. Mevcut Instagram bağlantısını yeni kimlik alanlarıyla yeniden yetkilendirme gerekebilir.
+Mevcut Instagram Login tokenını Facebook debug_token üzerinden doğrulama denemesi HTTP 400 / OAuthException 190 döndürdü; hiçbir eşleşme tahmin edilmedi veya yazılmadı. Ardından mevcut Instagram yetkisi normal OAuth akışıyla yenilendi. Hesap 73 korundu, yeni bağlantı 79 aktif; uygulama ve kullanıcı kimlik alanlarının kaydedildiği sunucuda doğrulandı.
 
-İlk birleşik test çalışması 113 testle başarılı. Ek kimlik testleri 36 testle, son hesap seçimi ve Instagram kimliği kontrolleri de 23 testle başarılı; Django sistem kontrolü temiz. Kullanıcının bu değişiklik için belirttiği commit adı **reklamanaliz V1.2.3**. Canlı kabul ve Meta panelinde callback kaydı dağıtım sonrasında doğrulanmalı.
+İlk birleşik test çalışması 113 testle başarılı. Ek kimlik testleri 36 testle, son hesap seçimi ve Instagram kimliği kontrolleri de 23 testle başarılı; Django sistem kontrolü temiz. Kullanıcının belirttiği **reklamanaliz V1.2.3** commit'i `f069c4dc34091720a012ca8e805316ed50ec1942`, main dalına gönderildi. Dokploy dağıtımı Done, süre 1 dakika 52 saniye; web ve worker konteynerlerinde commit doğrulandı. Worker ve Beat `ed100562da30` imajına otomatik geçti. Worker kontrol kanıtı: `artifacts/meta-20261015/worker-v123-dogrulandi.jpg`.
+
+Facebook mevcut bağlantıları önce salt okunur doğrulandı, ardından yalnız sağlayıcının doğruladığı kimlik metadatası kaydedildi. Tüm kullanıcılar kapsamında 7 bağlantı doğrulandı; demo/tokensız 27 ve 35 atlandı. Token veya uygulama gizli anahtarı yazdırılmadı.
+
+Canlı HTTPS kabulü: iki callback için GET 405; geçersiz imzalı POST 403. Gerçek bir hesabı kapatacak geçerli deauthorization bildirimi canlıya gönderilmedi; imzalı bildirimin token temizleme davranışı izole test veritabanında doğrulandı.
+
+Kanıtlar: `artifacts/meta-20261015/facebook-callback-kaydedildi.jpg`, `instagram-callback-kaydedildi.jpg`, `instagram-yeniden-baglandi.jpg`.
