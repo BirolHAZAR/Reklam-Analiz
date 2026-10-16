@@ -1,0 +1,13 @@
+<nav class="ic-breadcrumb" aria-label="Sayfa yolu">
+  <a href="{% url 'platform_connections' %}">Platform bağlantıları</a>
+  <span aria-hidden="true">/</span>
+  {% if campaign %}
+    <a href="{% url 'integration_campaigns' account.pk %}?{{ report_query }}">{{ account.display_name }}</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{{ campaign.name|default:'Kampanya detayı' }}</span>
+  {% elif account %}
+    <span aria-current="page">{{ account.display_name }}</span>
+  {% else %}
+    <span aria-current="page">Kampanya performansı</span>
+  {% endif %}
+</nav>

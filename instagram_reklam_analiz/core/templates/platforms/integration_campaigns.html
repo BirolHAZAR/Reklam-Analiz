@@ -4,7 +4,7 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/integration_campaigns.css' %}">{% endblock %}
 {% block content %}
 <div class="ic-shell">
-  <nav class="ic-breadcrumb" aria-label="Sayfa yolu"><a href="{% url 'platform_connections' %}">Platform bağlantıları</a><span aria-hidden="true">/</span>{% if account %}<a href="{% url 'integration_campaigns' account.pk %}?{{ report_query }}">{{ account.display_name }}</a>{% else %}<span>Kampanya performansı</span>{% endif %}{% if campaign %}<span aria-hidden="true">/</span><span>Kampanya detayı</span>{% endif %}</nav>
+  {% include 'platforms/report_breadcrumb.html' %}
   <header class="ic-hero">
     <div><div class="ic-eyebrow"><i class="fas fa-chart-column" aria-hidden="true"></i> KAMPANYA PERFORMANSI</div>
       <h1>{% if campaign %}{{ campaign.name }}{% else %}Kampanyaların performansı, tek bakışta.{% endif %}</h1>

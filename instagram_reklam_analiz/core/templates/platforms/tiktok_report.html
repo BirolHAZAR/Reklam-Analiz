@@ -4,7 +4,7 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/integration_campaigns.css' %}">{% endblock %}
 {% block content %}
 <div class="ic-shell">
-  <nav class="ic-breadcrumb" aria-label="Sayfa yolu"><a href="{% url 'platform_connections' %}">Platform bağlantıları</a><span aria-hidden="true">/</span><span>TikTok</span><span aria-hidden="true">/</span><span>{{ account.display_name }}</span></nav>
+  {% include 'platforms/report_breadcrumb.html' %}
   <header class="ic-hero">
     <div><div class="ic-eyebrow"><i class="fab fa-tiktok" aria-hidden="true"></i> TIKTOK ORGANİK PERFORMANS</div>
       <h1>Profilin ve videoların, tek bakışta.</h1>
