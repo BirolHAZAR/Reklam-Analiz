@@ -148,6 +148,14 @@ def _validate_connection(connection):
             if error.get("code") == 190:
                 return {"valid": False, "expires_at": connection.token_expiry}
             raise RuntimeError(error.get("message") or "Meta token canlı kontrolü tamamlanamadı.")
+    if connection.platform.code == "tiktok" and (connection.extra_data or {}).get("source") == "tiktok_oauth":
+        from core.services.tiktok_oauth import access_token, profile
+        account = connection.accounts.filter(user=connection.user, platform=connection.platform, is_active=True).first()
+        if account is None:
+            return {"valid": False, "expires_at": connection.token_expiry}
+        profile(access_token(account), account.account_id)
+        connection.refresh_from_db()
+        return {"valid": True, "expires_at": connection.token_expiry, "validation": "oauth_refresh"}
     if connection.platform.code in {"youtube", "tiktok", "linkedin", "x"}:
         from core.views.hesap_ekle import _resolve_token_platform_accounts
 

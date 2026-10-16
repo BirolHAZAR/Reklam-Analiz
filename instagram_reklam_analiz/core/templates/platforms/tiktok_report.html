@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <h1>TikTok — {{ account.display_name }}</h1>
+  <p><a href="{% url 'hesap_ekle' %}">Hesap bağlantıları</a></p>
+  {% if error %}<p class="alert alert-warning" role="alert">{{ error }}</p>{% else %}
+  <h2>{{ profile.display_name }} {% if profile.username %}(@{{ profile.username }}){% endif %}</h2>
+  <p>{{ profile.bio_description }}</p>
+  <dl class="row">
+    <dt class="col-sm-3">Takipçi</dt><dd class="col-sm-9">{{ profile.follower_count|default_if_none:'—' }}</dd>
+    <dt class="col-sm-3">Takip edilen</dt><dd class="col-sm-9">{{ profile.following_count|default_if_none:'—' }}</dd>
+    <dt class="col-sm-3">Profil beğenisi</dt><dd class="col-sm-9">{{ profile.likes_count|default_if_none:'—' }}</dd>
+    <dt class="col-sm-3">Video sayısı</dt><dd class="col-sm-9">{{ profile.video_count|default_if_none:'—' }}</dd>
+  </dl>
+  <h2>Herkese açık videolar</h2>
+  <p>Değerler TikTok'un mevcut toplam sayaçlarıdır; günlük performans veya reklam raporu değildir. Her sayfada en fazla 20 video gösterilir.</p>
+  <div class="table-responsive"><table class="table">
+    <thead><tr><th>Video</th><th>Görüntülenme</th><th>Beğeni</th><th>Yorum</th><th>Paylaşım</th></tr></thead>
+    <tbody>{% for video in videos %}<tr><td>{% if video.title %}{{ video.title }}{% else %}{{ video.video_description|default:'Başlıksız video' }}{% endif %}<br><small>{{ video.id }}</small></td><td>{{ video.view_count|default_if_none:'—' }}</td><td>{{ video.like_count|default_if_none:'—' }}</td><td>{{ video.comment_count|default_if_none:'—' }}</td><td>{{ video.share_count|default_if_none:'—' }}</td></tr>
+    {% empty %}<tr><td colspan="5">Bu hesapta gösterilebilen herkese açık video bulunmuyor.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if next_cursor != None %}<a href="?cursor={{ next_cursor }}">Sonraki videolar</a>{% endif %}
+  {% endif %}
+</div>
+{% endblock %}

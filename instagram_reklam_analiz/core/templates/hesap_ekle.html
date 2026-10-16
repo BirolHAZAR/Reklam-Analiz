@@ -223,12 +223,11 @@
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center mb-3">
                         <div class="platform-icon tiktok me-3"><i class="fab fa-tiktok"></i></div>
-                        <div><h5 class="card-title fw-bold mb-0">TikTok</h5><small class="text-muted">Profil doğrulaması</small></div>
+                        <div><h5 class="card-title fw-bold mb-0">TikTok</h5><small class="text-muted">Organik profil ve videolar</small></div>
                     </div>
-                    <p class="card-text small text-muted mb-3">Profil kimliğini doğrulayın. Reklam hesabı ve reklam performansı aktarımı henüz desteklenmiyor.</p>
-                    <button class="btn btn-outline-dark w-100 btn-connect" onclick="openOctoPopup('ModalTikTok')" type="button">
-                        <i class="fas fa-plus-circle me-2"></i> Hesap Bağla
-                    </button>
+                    <p class="card-text small text-muted mb-3">İzin ekranıyla profilinizi ve herkese açık videolarınızı bağlayın. Reklam hesapları ayrı TikTok for Business bağlantısı gerektirir.</p>
+                    {% include 'platforms/account_connect_form.html' with provider=tiktok_provider %}
+                    {% for account in platform_accounts %}{% if account.platform.code == 'tiktok' %}<p class="mt-2"><a href="{% url 'tiktok_report' account.pk %}">{{ account.display_name }} istatistikleri</a></p>{% endif %}{% endfor %}
                 </div>
             </div>
         </div>
@@ -360,30 +359,6 @@
                     {% include "platforms/connection_client_select.html" %}
                     <input type="hidden" name="platform" value="youtube">
                     <div class="mb-3"><label class="form-label">OAuth Access Token</label><input type="text" class="form-control" name="access_token" required><div class="form-text">Yetkili YouTube kanalı ve kanal ID’si otomatik bulunur.</div></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>
-                    <button type="submit" class="btn btn-modal-submit rounded-pill"{% if connection_is_agency and not clients %} disabled{% endif %}>Bağla</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- TikTok Modal -->
-<div class="octo-popup" id="ModalTikTok" aria-hidden="true">
-    <div class="octo-popup-dialog">
-        <div class="octo-popup-content">
-            <form method="post" action="{% url 'hesap_ekle' %}">
-                {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fab fa-tiktok me-2"></i> TikTok Hesabı Bağla</h5>
-                    <button type="button" class="btn-close" data-octo-close></button>
-                </div>
-                <div class="modal-body">
-                    {% include "platforms/connection_client_select.html" %}
-                    <input type="hidden" name="platform" value="tiktok">
-                    <div class="mb-3"><label class="form-label">OAuth Access Token</label><input type="text" class="form-control" name="access_token" required><div class="form-text">TikTok kullanıcı adı ve hesap kimliği otomatik doğrulanır.</div></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>

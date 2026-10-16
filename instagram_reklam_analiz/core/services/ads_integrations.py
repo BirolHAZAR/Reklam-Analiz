@@ -48,6 +48,8 @@ def application_values(provider):
         names = ("FACEBOOK_APP_ID", "FACEBOOK_APP_SECRET", "FACEBOOK_REDIRECT_URI")
     elif provider == "instagram":
         names = ("INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET", "INSTAGRAM_REDIRECT_URI")
+    elif provider == "tiktok":
+        names = ("TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET", "TIKTOK_REDIRECT_URI")
     elif provider in GOOGLE_READ_PROVIDERS:
         prefix = "YOUTUBE"
         names = (f"{prefix}_CLIENT_ID", f"{prefix}_CLIENT_SECRET", f"{prefix}_REDIRECT_URI")

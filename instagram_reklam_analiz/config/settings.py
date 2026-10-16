@@ -292,6 +292,10 @@ INSTAGRAM_API_VERSION = config(
     default='v25.0',
 )
 
+TIKTOK_CLIENT_KEY = config('TIKTOK_CLIENT_KEY', default='')
+TIKTOK_CLIENT_SECRET = config('TIKTOK_CLIENT_SECRET', default='')
+TIKTOK_REDIRECT_URI = config('TIKTOK_REDIRECT_URI', default='')
+
 INSTAGRAM_BASE_URL = config(
     'INSTAGRAM_BASE_URL',
     default='https://graph.instagram.com',

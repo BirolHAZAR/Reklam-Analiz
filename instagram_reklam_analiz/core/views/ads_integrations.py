@@ -43,7 +43,7 @@ def integrations(request):
 def account_connection_context(request):
     scope = get_agency_scope(request)
     providers = []
-    for code, name in {**api.CONNECTION_PROVIDERS, "instagram": "Instagram"}.items():
+    for code, name in {**api.CONNECTION_PROVIDERS, "instagram": "Instagram", "tiktok": "TikTok"}.items():
         setup_error = ""
         try:
             api.configuration(code)
@@ -69,8 +69,9 @@ def account_connection_context(request):
         )
     return {
         "connection_is_agency": scope.is_agency,
-        "providers": [p for p in providers if p["code"] != "instagram"],
+        "providers": [p for p in providers if p["code"] not in {"instagram", "tiktok"}],
         "instagram_provider": next(p for p in providers if p["code"] == "instagram"),
+        "tiktok_provider": next(p for p in providers if p["code"] == "tiktok"),
         "clients": scope.clients, "selected_client": scope.selected_client,
         "accounts": accounts,
     }
