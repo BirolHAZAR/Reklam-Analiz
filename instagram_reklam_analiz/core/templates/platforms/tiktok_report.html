@@ -1,25 +1,40 @@
 {% extends 'base.html' %}
+{% load static campaign_metrics %}
+{% block title %}TikTok Profil ve Videolar · ReklamAnaliz{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/integration_campaigns.css' %}">{% endblock %}
 {% block content %}
-<div class="container py-4">
-  <h1>TikTok — {{ account.display_name }}</h1>
-  <p><a href="{% url 'hesap_ekle' %}">Hesap bağlantıları</a></p>
-  {% if error %}<p class="alert alert-warning" role="alert">{{ error }}</p>{% else %}
-  <h2>{{ profile.display_name }} {% if profile.username %}(@{{ profile.username }}){% endif %}</h2>
-  <p>{{ profile.bio_description }}</p>
-  <dl class="row">
-    <dt class="col-sm-3">Takipçi</dt><dd class="col-sm-9">{{ profile.follower_count|default_if_none:'—' }}</dd>
-    <dt class="col-sm-3">Takip edilen</dt><dd class="col-sm-9">{{ profile.following_count|default_if_none:'—' }}</dd>
-    <dt class="col-sm-3">Profil beğenisi</dt><dd class="col-sm-9">{{ profile.likes_count|default_if_none:'—' }}</dd>
-    <dt class="col-sm-3">Video sayısı</dt><dd class="col-sm-9">{{ profile.video_count|default_if_none:'—' }}</dd>
-  </dl>
-  <h2>Herkese açık videolar</h2>
-  <p>Değerler TikTok'un mevcut toplam sayaçlarıdır; günlük performans veya reklam raporu değildir. Her sayfada en fazla 20 video gösterilir.</p>
-  <div class="table-responsive"><table class="table">
-    <thead><tr><th>Video</th><th>Görüntülenme</th><th>Beğeni</th><th>Yorum</th><th>Paylaşım</th></tr></thead>
-    <tbody>{% for video in videos %}<tr><td>{% if video.title %}{{ video.title }}{% else %}{{ video.video_description|default:'Başlıksız video' }}{% endif %}<br><small>{{ video.id }}</small></td><td>{{ video.view_count|default_if_none:'—' }}</td><td>{{ video.like_count|default_if_none:'—' }}</td><td>{{ video.comment_count|default_if_none:'—' }}</td><td>{{ video.share_count|default_if_none:'—' }}</td></tr>
-    {% empty %}<tr><td colspan="5">Bu hesapta gösterilebilen herkese açık video bulunmuyor.</td></tr>{% endfor %}</tbody>
-  </table></div>
-  {% if next_cursor != None %}<a href="?cursor={{ next_cursor }}">Sonraki videolar</a>{% endif %}
+<div class="ic-shell">
+  <nav class="ic-breadcrumb" aria-label="Sayfa yolu"><a href="{% url 'platform_connections' %}">Platform bağlantıları</a><span aria-hidden="true">/</span><span>TikTok</span><span aria-hidden="true">/</span><span>{{ account.display_name }}</span></nav>
+  <header class="ic-hero">
+    <div><div class="ic-eyebrow"><i class="fab fa-tiktok" aria-hidden="true"></i> TIKTOK ORGANİK PERFORMANS</div>
+      <h1>Profilin ve videoların, tek bakışta.</h1>
+      <p>TikTok hesabının güncel profil sayaçlarını ve herkese açık videolarının sonuçlarını incele.</p>
+      <div class="ic-account-meta"><span>TikTok</span><span>{{ account.display_name }}</span>{% if profile.username %}<span>@{{ profile.username }}</span>{% endif %}{% if account.agency_client %}<span>{{ account.agency_client.name }}</span>{% endif %}</div>
+    </div><a class="ic-button ic-secondary" href="{% url 'platform_connections' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Hesaplara dön</a>
+  </header>
+  {% if error %}<div class="ic-notice ic-error" role="alert"><i class="fas fa-circle-exclamation" aria-hidden="true"></i><div><strong>Veriler alınamadı</strong><p>{{ error }}</p><a href="{% url 'hesap_ekle' %}">Bağlantıyı kontrol et</a></div></div>
+  {% else %}
+    <section class="ic-controls" aria-label="TikTok hesap bilgileri">
+      <div class="ic-section-head"><div><h2>{{ profile.display_name|default:account.display_name }}</h2><p>{% if profile.username %}@{{ profile.username }} · {% endif %}Organik profil ve videolar</p></div><a class="ic-button ic-primary" href="{% url 'tiktok_report' account.pk %}"><i class="fas fa-rotate" aria-hidden="true"></i> Verileri yenile</a></div>
+      {% if profile.bio_description %}<p>{{ profile.bio_description }}</p>{% endif %}
+    </section>
+    <div class="ic-section-head"><div><h2>Hesap özeti</h2><p>TikTok'un bildirdiği güncel toplam sayaçlar</p></div><div class="ic-counts"><span><b>{{ videos|length }}</b> video bu sayfada</span></div></div>
+    <section class="ic-stats" aria-label="Profil özeti">
+      <article><span>Takipçi</span><strong>{{ profile.follower_count|report_number }}</strong><p>Hesabını takip eden kullanıcılar</p></article>
+      <article><span>Takip edilen</span><strong>{{ profile.following_count|report_number }}</strong><p>Hesabının takip ettiği kullanıcılar</p></article>
+      <article><span>Profil beğenisi</span><strong>{{ profile.likes_count|report_number }}</strong><p>Profilin toplam beğeni sayısı</p></article>
+      <article><span>Video sayısı</span><strong>{{ profile.video_count|report_number }}</strong><p>TikTok'un bildirdiği video toplamı</p></article>
+    </section>
+    <section class="ic-data">
+      <div class="ic-section-head"><div><h2>Herkese açık videolar</h2><p>Her sayfada en fazla 20 video gösterilir.</p></div>{% if next_cursor != None %}<a class="ic-button ic-secondary" href="?cursor={{ next_cursor }}">Sonraki videolar <i class="fas fa-arrow-right" aria-hidden="true"></i></a>{% endif %}</div>
+      <div class="ic-table-scroll" role="region" aria-label="TikTok video performansı" tabindex="0"><table class="ic-table">
+        <caption class="ic-sr-only">{{ account.display_name }} herkese açık videoları ve güncel toplam sayaçları</caption>
+        <thead><tr><th scope="col">Video</th><th scope="col" class="ic-numeric">Görüntülenme</th><th scope="col" class="ic-numeric">Beğeni</th><th scope="col" class="ic-numeric">Yorum</th><th scope="col" class="ic-numeric">Paylaşım</th></tr></thead>
+        <tbody>{% for video in videos %}<tr><th scope="row" class="ic-campaign-name">{% if video.title %}{{ video.title }}{% else %}{{ video.video_description|default:'Başlıksız video' }}{% endif %}<small>ID: {{ video.id }}</small></th><td class="ic-numeric ic-emphasis">{{ video.view_count|report_number }}</td><td class="ic-numeric">{{ video.like_count|report_number }}</td><td class="ic-numeric">{{ video.comment_count|report_number }}</td><td class="ic-numeric">{{ video.share_count|report_number }}</td></tr>
+        {% empty %}<tr><td colspan="5" class="ic-table-empty"><i class="fab fa-tiktok" aria-hidden="true"></i><br>Bu hesapta gösterilebilen herkese açık video bulunmuyor. Bir video yayınladıktan sonra verileri yenileyebilirsin.</td></tr>{% endfor %}</tbody>
+      </table></div>
+      <div class="ic-table-note"><i class="fas fa-circle-info" aria-hidden="true"></i><p>Veriler doğrudan TikTok üzerinden okunur. Değerler güncel toplam sayaçlardır; günlük performans veya reklam raporu değildir. “—” veri olmadığı anlamına gelir; sıfır sonuç değildir.</p></div>
+    </section>
   {% endif %}
 </div>
 {% endblock %}
