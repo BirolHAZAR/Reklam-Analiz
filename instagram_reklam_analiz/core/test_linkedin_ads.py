@@ -15,6 +15,37 @@ from core.services import linkedin_ads as li
 
 
 class LinkedInAnalyticsBoundaryTests(SimpleTestCase):
+    @override_settings(LINKEDIN_ADS_API_VERSION="202610")
+    @patch.object(li, "_request", return_value={"elements": []})
+    def test_prepared_request_preserves_restli_grammar_and_encodes_urns(self, request):
+        params = {"q": "analytics", "fields": "pivotValues,dateRange,impressions,clicks,costInLocalCurrency",
+                  "accounts": "List(urn:li:sponsoredAccount:123)",
+                  "campaigns": "List(urn:li:sponsoredCampaign:456)",
+                  "dateRange": "(start:(year:2026,month:10,day:1),end:(year:2026,month:10,day:19))"}
+        li.read("private-token", "adAnalytics", params)
+        args, kwargs = request.call_args
+        prepared = requests.Request(args[0], args[1], **kwargs).prepare()
+        query = urlparse(prepared.url).query
+        self.assertIn("fields=pivotValues,dateRange,impressions,clicks,costInLocalCurrency", query)
+        self.assertIn("accounts=List(urn%3Ali%3AsponsoredAccount%3A123)", query)
+        self.assertIn("campaigns=List(urn%3Ali%3AsponsoredCampaign%3A456)", query)
+        self.assertIn("dateRange=(start:(year:2026,month:10,day:1),end:(year:2026,month:10,day:19))", query)
+        self.assertEqual(parse_qs(query), {key: [str(value)] for key, value in params.items()})
+        self.assertNotIn("private-token", prepared.url)
+
+    @override_settings(LINKEDIN_ADS_API_VERSION="202610")
+    @patch.object(li, "_request", return_value={"elements": []})
+    def test_search_grammar_survives_and_cursor_cannot_add_query_parameters(self, request):
+        cursor = "a+b/:()&fields=secret%2Cmore"
+        search = "(status:(values:List(ACTIVE,PAUSED,ARCHIVED)))"
+        li.read("private-token", "adAccounts/123/adCampaigns",
+                {"q": "search", "search": search, "pageSize": 100, "pageToken": cursor})
+        args, kwargs = request.call_args
+        query = urlparse(requests.Request(args[0], args[1], **kwargs).prepare().url).query
+        self.assertIn("search=" + search, query)
+        self.assertEqual(parse_qs(query), {"q": ["search"], "search": [search],
+                                         "pageSize": ["100"], "pageToken": [cursor]})
+
     def test_linkedin_campaign_states_have_human_readable_labels(self):
         from core.services.campaign_reporting import decorate_campaign
         for state, group in (("COMPLETED", "inactive"), ("CANCELED", "inactive"),

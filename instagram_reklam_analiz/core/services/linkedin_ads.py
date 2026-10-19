@@ -6,7 +6,7 @@ Programmatic refresh is not assumed: expired tokens require authorization again.
 from datetime import date, datetime, timedelta, timezone as dt_timezone
 from decimal import Decimal, InvalidOperation
 import re
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import requests
 from django.conf import settings
@@ -88,12 +88,28 @@ def _id(value, kind=None):
     return value
 
 
+def _query(params):
+    # Rest.li grammar and projection commas must remain literal, while URNs
+    # inside lists are encoded as values. Encoding the whole expression makes
+    # LinkedIn reject searches and interpret all projected fields as one name.
+    result = []
+    for key, value in params.items():
+        if key in {"search", "dateRange", "accounts", "campaigns"}:
+            encoded = quote(str(value), safe="(),:")
+            encoded = re.sub(r"urn:li:[A-Za-z]+:[0-9]+",
+                             lambda match: quote(match.group(), safe=""), encoded)
+        else:
+            encoded = quote(str(value), safe="," if key == "fields" else "")
+        result.append(quote(key, safe="") + "=" + encoded)
+    return "&".join(result)
+
+
 def read(token, path, params=None):
     # Callers construct paths only from fixed endpoint names and numeric IDs.
     version = getattr(settings, "LINKEDIN_ADS_API_VERSION", "202610")
     if not re.fullmatch(r"20[0-9]{2}(0[1-9]|1[0-2])", version):
         raise IntegrationError("LinkedIn API sürüm ayarını kontrol edin.")
-    return _request("GET", API + path, params=params or {}, headers={
+    return _request("GET", API + path, params=_query(params or {}), headers={
         "Authorization": f"Bearer {token}", "LinkedIn-Version": version,
         "X-Restli-Protocol-Version": "2.0.0",
     })
