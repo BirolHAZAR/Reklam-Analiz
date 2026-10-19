@@ -3,7 +3,7 @@
 from datetime import timedelta
 from decimal import Decimal
 
-from django.db.models import Avg, Count, Max, Sum
+from django.db.models import Avg, Count, Max, Sum, OuterRef, Subquery
 from django.utils import timezone
 
 from core.instagram_api import InstagramAPI
@@ -107,20 +107,11 @@ def organic_summary_for_user(user, *, start_date=None, end_date=None, days: int 
         posts = SocialPost.objects.filter(platform_account__in=platform_accounts)
         metrics = SocialPostMetricHistory.objects.filter(social_post__platform_account__in=platform_accounts)
     metrics = metrics.filter(date__gte=start_date, date__lte=end_date)
-    totals = metrics.aggregate(
-        impressions=Sum("impressions"),
-        reach=Sum("reach"),
-        engagement=Sum("engagement"),
-        likes=Sum("likes"),
-        comments=Sum("comments"),
-        shares=Sum("shares"),
-        saves=Sum("saves"),
-        video_views=Sum("video_views"),
-        profile_visits=Sum("profile_visits"),
-        website_clicks=Sum("website_clicks"),
-        avg_engagement_rate=Avg("engagement_rate"),
-        latest_date=Max("date"),
-    )
+    # Instagram returns lifetime counters. The same post's counters on two
+    # dates are snapshots, not two additive days of engagement.
+    from core.services.organic_insights import summarize_snapshots
+    latest = metrics.filter(social_post_id=OuterRef("social_post_id")).order_by("-date").values("pk")[:1]
+    totals = summarize_snapshots(metrics.filter(pk=Subquery(latest)))
     status_counts = {"draft": 0, "scheduled": 0, "published": 0, "synced": 0}
     for status in posts.values_list("raw_data__status", flat=True):
         key = status or "draft"
@@ -140,17 +131,17 @@ def organic_summary_for_user(user, *, start_date=None, end_date=None, days: int 
         "scheduled_posts": status_counts.get("scheduled", 0),
         "published_posts": published_count,
         "synced_posts": status_counts.get("synced", 0),
-        "impressions": totals.get("impressions") or 0,
-        "reach": reach,
+        "impressions": totals.get("impressions"),
+        "reach": totals.get("reach"),
         "engagement": engagement,
         "likes": totals.get("likes") or 0,
         "comments": totals.get("comments") or 0,
-        "shares": totals.get("shares") or 0,
-        "saves": totals.get("saves") or 0,
-        "video_views": totals.get("video_views") or 0,
-        "profile_visits": totals.get("profile_visits") or 0,
-        "website_clicks": totals.get("website_clicks") or 0,
-        "avg_engagement_rate": round(totals.get("avg_engagement_rate") or 0, 2),
+        "shares": totals.get("shares"),
+        "saves": totals.get("saves"),
+        "video_views": totals.get("video_views"),
+        "profile_visits": totals.get("profile_visits"),
+        "website_clicks": totals.get("website_clicks"),
+        "avg_engagement_rate": totals.get("avg_engagement_rate"),
         "latest_date": totals.get("latest_date"),
         "engagement_per_post": round(engagement / total_posts, 2) if total_posts else 0,
         "reach_per_post": round(reach / published_count, 2) if published_count else 0,
@@ -189,7 +180,7 @@ def _post_type_from_media(media):
     return "UNKNOWN"
 
 
-def sync_instagram_organic_content(account: PlatformAccount, *, limit: int = 50) -> dict:
+def sync_instagram_organic_content(account: PlatformAccount, *, limit: int = 50, lookback_days: int = 15) -> dict:
     from core.services.demo_policy import is_demo_object, demo_skip_result
     if is_demo_object(account):
         return demo_skip_result()
@@ -202,22 +193,52 @@ def sync_instagram_organic_content(account: PlatformAccount, *, limit: int = 50)
         return {"success": False, "created": 0, "updated": 0, "metrics": 0, "error": "Instagram token veya business id eksik."}
 
     api = InstagramAPI(access_token=token, instagram_login=(account.extra_data or {}).get("auth_type") == "instagram_login")
-    response = api._request(
-        f"{api.graph_url}/{instagram_business_id}/media",
-        {
+    now = timezone.now()
+    cutoff = now - timedelta(days=max(1, int(lookback_days)))
+    page_size = min(100, max(1, int(limit or 50)))
+    params = {
             "fields": "id,caption,media_type,media_product_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count",
-            "limit": int(limit or 50),
-        },
-    )
-    if isinstance(response, dict) and response.get("error"):
-        return {"success": False, "created": 0, "updated": 0, "metrics": 0, "error": response.get("error")}
+            "limit": page_size,
+    }
+    media_rows, seen_ids, seen_cursors = [], set(), set()
+    # Fixed endpoint + opaque cursor: never follow a provider URL containing
+    # credentials. Old post metadata is ignored; only recent posts get Insights.
+    for _ in range(100):
+        response = api._request(f"{api.graph_url}/{instagram_business_id}/media", dict(params))
+        if not isinstance(response, dict) or response.get("error") or not isinstance(response.get("data"), list):
+            return {"success": False, "created": 0, "updated": 0, "metrics": 0,
+                    "error": "Instagram gönderileri eksiksiz okunamadı."}
+        dates = []
+        for media in response["data"]:
+            posted_at = _parse_instagram_timestamp(media.get("timestamp"))
+            if posted_at:
+                dates.append(posted_at)
+            media_id = str(media.get("id") or "")
+            if not posted_at or not cutoff <= posted_at <= now or not media_id or media_id in seen_ids:
+                continue
+            seen_ids.add(media_id)
+            media_rows.append(media)
+        paging = response.get("paging") or {}
+        if not paging.get("next") or (dates and max(dates) < cutoff):
+            break
+        cursor = (paging.get("cursors") or {}).get("after")
+        if not cursor or cursor in seen_cursors:
+            return {"success": False, "created": 0, "updated": 0, "metrics": 0,
+                    "error": "Instagram sayfalaması tamamlanamadı."}
+        seen_cursors.add(cursor)
+        params["after"] = cursor
+    else:
+        return {"success": False, "created": 0, "updated": 0, "metrics": 0,
+                "error": "Instagram gönderi taraması sınırı aşıldı."}
+    if len(media_rows) > max(1, int(limit or 50)):
+        return {"success": False, "created": 0, "updated": 0, "metrics": 0,
+                "error": "Son 15 gündeki gönderiler planın kayıt sınırını aşıyor."}
 
     created = 0
     updated = 0
     metrics = 0
     insights_count = 0
-    now = timezone.now()
-    for media in (response or {}).get("data", []):
+    for media in media_rows:
         media_id = str(media.get("id") or "").strip()
         if not media_id:
             continue
@@ -288,7 +309,8 @@ def sync_instagram_organic_content(account: PlatformAccount, *, limit: int = 50)
         metrics += 1
 
     account.last_sync = now
-    account.extra_data = {**(account.extra_data or {}), "organic_last_sync_at": now.isoformat()}
+    account.extra_data = {**(account.extra_data or {}), "organic_last_sync_at": now.isoformat(),
+        "organic_sync_window_days": lookback_days, "organic_synced_posts": created + updated}
     account.save(update_fields=["last_sync", "extra_data", "updated_at"])
     return {"success": True, "created": created, "updated": updated, "metrics": metrics,
             "fetched": created + updated, "insights_available": insights_count,

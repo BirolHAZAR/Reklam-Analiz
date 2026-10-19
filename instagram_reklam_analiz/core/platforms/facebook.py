@@ -4,6 +4,7 @@ import json
 from decimal import Decimal
 from django.utils import timezone
 from core.services.ads_integrations import account_token, account_today, meta_rows, IntegrationTransportError
+from core.services.ad_eligibility import is_current_campaign
 
 
 def _distinct_actions(items):
@@ -26,29 +27,37 @@ def _distinct_actions(items):
 
 class FacebookAPI(BasePlatformAPI):
     def get_campaigns(self):
-        # No date or ACTIVE-only filter: paused campaigns and campaigns without
-        # ads must remain discoverable even when there are no Insights rows.
-        return meta_rows(account_token(self.account), f"{self.account.account_id}/campaigns", {
-            "fields": "id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time",
-            # Graph v25 rejects DELETED as an inventory filter (1815001).
-            # Deleted entities already in history remain in the database.
-            "effective_status": json.dumps(["ACTIVE", "PAUSED", "ARCHIVED", "IN_PROCESS", "WITH_ISSUES"]),
+        rows = meta_rows(account_token(self.account), f"{self.account.account_id}/campaigns", {
+            "fields": "id,name,status,effective_status,objective,daily_budget,lifetime_budget,start_time,stop_time",
+            "effective_status": json.dumps(["ACTIVE"]),
         })
+        return [row for row in rows if is_current_campaign(row, today=account_today(self.account))]
 
-    def get_ads(self, since_days=30):
+    def get_ads(self, since_days=30, campaign_inventory=None):
         end = account_today(self.account)
         start = end - timedelta(days=max(1, min(int(since_days), 365)) - 1)
         token = account_token(self.account)
+        campaigns = self.get_campaigns() if campaign_inventory is None else campaign_inventory
+        campaign_ids = {str(row["id"]) for row in campaigns}
+        if not campaign_ids:
+            return []
         metadata = {row["id"]: row for row in meta_rows(token, f"{self.account.account_id}/ads", {
-            "fields": "id,name,effective_status,campaign{id,name,status,objective},adset{id,name,status,daily_budget,lifetime_budget,start_time,end_time},creative{id,name,title,body,thumbnail_url,object_url,call_to_action_type,image_url}",
-            "effective_status": json.dumps(["ACTIVE", "PAUSED", "ARCHIVED", "PENDING_REVIEW", "DISAPPROVED", "PREAPPROVED", "PENDING_BILLING_INFO", "CAMPAIGN_PAUSED", "ADSET_PAUSED", "IN_PROCESS", "WITH_ISSUES"]),
-        })}
+            "fields": "id,name,effective_status,campaign{id,name,status,objective,start_time,stop_time},adset{id,name,status,effective_status,daily_budget,lifetime_budget,start_time,end_time},creative{id,name,title,body,thumbnail_url,object_url,call_to_action_type,image_url}",
+            "effective_status": json.dumps(["ACTIVE"]),
+            "filtering": json.dumps([{"field": "campaign.id", "operator": "IN", "value": sorted(campaign_ids)}]),
+        }) if row.get("effective_status") == "ACTIVE"
+            and str((row.get("campaign") or {}).get("id")) in campaign_ids
+            and is_current_campaign(row.get("campaign") or {}, today=end)
+            and is_current_campaign(row.get("adset") or {}, today=end)}
+        if not metadata:
+            return []
         def insights_between(window_start, window_end):
             try:
                 return meta_rows(token, f"{self.account.account_id}/insights", {
                     "level": "ad", "time_increment": 1,
                     "fields": "ad_id,ad_name,campaign_id,campaign_name,adset_id,adset_name,date_start,impressions,reach,clicks,spend,actions,action_values,account_currency",
                     "time_range": json.dumps({"since": window_start.isoformat(), "until": window_end.isoformat()}),
+                    "filtering": json.dumps([{"field": "ad.id", "operator": "IN", "value": sorted(metadata)}]),
                 })
             except IntegrationTransportError as exc:
                 if not exc.is_timeout or window_start == window_end:
@@ -86,8 +95,8 @@ class FacebookAPI(BasePlatformAPI):
                 "metrics_available": False,
             })
         by_id = {item["platform_ad_id"]: item for item in inventory}
-        # Historical Insights can reference deleted ads absent from /ads.
-        # Preserve those rows rather than intersecting with current inventory.
+        # Metrics must belong to the same active inventory, even if the
+        # provider returns a stale or unexpectedly broad Insights response.
         return inventory + [{**by_id.get(row["ad_id"], {}), **row,
             "metrics_available": True,
             "allow_estimated_conversion_value": False,
@@ -100,7 +109,8 @@ class FacebookAPI(BasePlatformAPI):
             "campaign_status": metadata.get(row["ad_id"], {}).get("campaign", {}).get("status", "UNKNOWN"),
             "adgroup_status": metadata.get(row["ad_id"], {}).get("adset", {}).get("status", "UNKNOWN"),
             "currency": row.get("account_currency") or self.account.extra_data.get("currency", ""),
-        } for row in rows]
+        } for row in rows if row.get("ad_id") in metadata
+            and row.get("campaign_id") in campaign_ids]
 
 
 def save_campaign_inventory(account, rows):

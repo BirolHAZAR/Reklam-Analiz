@@ -105,6 +105,14 @@ def sync_due_organic_accounts():
         if is_demo_object(account):
             continue
         last_sync = (account.extra_data or {}).get("organic_last_sync_at")
+        from django.utils.dateparse import parse_datetime
+        from django.utils import timezone
+        last_date = parse_datetime(last_sync) if isinstance(last_sync, str) else last_sync
+        if last_date:
+            if timezone.is_naive(last_date):
+                last_date = timezone.make_aware(last_date)
+            if timezone.localdate(last_date) == timezone.localdate():
+                continue
         if not is_sync_due(account.user, last_sync, kind="organic"):
             continue
         _lock_key, acquired = acquire_sync_lock("organic-dispatch", account.id, timeout=1800)

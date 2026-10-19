@@ -22,7 +22,7 @@ class MetaCampaignInventoryTests(TestCase):
             access_token="test-token", extra_data={"source": "ads_oauth"})
         self.account = PlatformAccount.objects.create(user=self.user, platform=self.platform,
             connection=connection, account_id="act_123", extra_data={"currency": "TRY"})
-        self.ads = [{"id": "a1", "name": "New ad", "effective_status": "IN_PROCESS",
+        self.ads = [{"id": "a1", "name": "New ad", "effective_status": "ACTIVE",
             "campaign": {"id": "c1", "name": "New campaign", "status": "ACTIVE", "objective": "OUTCOME_TRAFFIC"},
             "adset": {"id": "s1", "name": "Ad set", "status": "ACTIVE", "lifetime_budget": "6000"}},
             {"id": "a2", "name": "Old ad", "effective_status": "PAUSED",
@@ -34,18 +34,16 @@ class MetaCampaignInventoryTests(TestCase):
 
     def rows(self, token, path, params):
         if path.endswith("/ads"):
-            self.assertNotIn("filtering", params)
             self.assertNotIn("time_range", params)
             statuses = json.loads(params["effective_status"])
-            self.assertTrue({"PAUSED", "ARCHIVED", "IN_PROCESS"}.issubset(statuses))
-            self.assertNotIn("DELETED", statuses)
+            self.assertEqual(statuses, ["ACTIVE"])
+            self.assertIn("filtering", params)
             return self.ads
         if path.endswith("/campaigns"):
             self.assertNotIn("filtering", params)
             self.assertNotIn("time_range", params)
             statuses = json.loads(params["effective_status"])
-            self.assertTrue({"PAUSED", "ARCHIVED"}.issubset(statuses))
-            self.assertNotIn("DELETED", statuses)
+            self.assertEqual(statuses, ["ACTIVE"])
             return self.campaigns
         self.assertEqual(path, "act_123/insights")
         self.assertEqual(params["time_increment"], 1)
@@ -61,17 +59,16 @@ class MetaCampaignInventoryTests(TestCase):
              patch("core.tasks.admin_ops.generate_octo_tasks.apply_async"):
             return sync_v2_platform_account_ads.run(self.account.id, "OWN", 365)
 
-    def test_new_and_paused_entities_without_insights_are_visible_without_fake_metrics(self):
+    def test_only_active_entities_are_imported_without_fabricating_metrics(self):
         self.sync()
-        self.assertEqual(Campaign.objects.filter(platform_account=self.account).count(), 3)
-        self.assertEqual(Ad.objects.filter(platform_account=self.account).count(), 2)
-        self.assertEqual(Ad.objects.get(platform_ad_id="a2").status, "PAUSED")
+        self.assertEqual(Campaign.objects.filter(platform_account=self.account).count(), 1)
+        self.assertEqual(Ad.objects.filter(platform_account=self.account).count(), 1)
         self.assertEqual(Ad.objects.get(platform_ad_id="a1").ad_group.lifetime_budget, Decimal("60"))
         self.assertFalse(AdMetricHistory.objects.exists())
         self.assertFalse(CampaignMetricHistory.objects.exists())
         # Dates select metrics; they must not hide paused/empty campaigns.
         cards = build_campaign_list(self.user, self.account, date(2020, 1, 1), date(2020, 1, 2))
-        self.assertEqual({card["platform_campaign_id"] for card in cards}, {"c1", "c2", "c3"})
+        self.assertEqual({card["platform_campaign_id"] for card in cards}, {"c1"})
 
     def test_yearly_insights_windows_cover_every_day_once(self):
         from datetime import timedelta
@@ -92,30 +89,32 @@ class MetaCampaignInventoryTests(TestCase):
         from core.services.ads_integrations import IntegrationTransportError
         periods = []
         def read(token, path, params):
+            if path.endswith("/campaigns"):
+                return self.campaigns
             if path.endswith("/ads"):
-                return []
+                return self.ads
             period = json.loads(params["time_range"])
             start, end = date.fromisoformat(period["since"]), date.fromisoformat(period["until"])
             if (end - start).days > 14:
                 raise IntegrationTransportError("slow", is_timeout=True)
             periods.append((start, end))
-            return [{"ad_id": "historical", "campaign_id": "c", "adset_id": "s", "date_start": start.isoformat()}]
+            return [{"ad_id": "a1", "campaign_id": "c1", "adset_id": "s1", "date_start": start.isoformat()}]
         with patch("core.platforms.facebook.meta_rows", side_effect=read), \
              patch("core.platforms.facebook.account_today", return_value=date(2026, 10, 9)):
             rows = FacebookAPI(self.account).get_ads(since_days=30)
         self.assertEqual(periods, [(date(2026, 9, 10), date(2026, 9, 24)),
                                    (date(2026, 9, 25), date(2026, 10, 9))])
-        self.assertEqual(len(rows), 2)
+        self.assertEqual(len(rows), 3)
 
     def test_connection_failure_does_not_fan_out_into_smaller_requests(self):
         from core.services.ads_integrations import IntegrationTransportError
-        with patch("core.platforms.facebook.meta_rows", side_effect=[[], IntegrationTransportError("offline")]) as request:
+        with patch("core.platforms.facebook.meta_rows", side_effect=[self.campaigns, self.ads, IntegrationTransportError("offline")]) as request:
             with self.assertRaises(IntegrationTransportError):
                 FacebookAPI(self.account).get_ads(since_days=30)
-        self.assertEqual(request.call_count, 2)
+        self.assertEqual(request.call_count, 3)
 
     def test_daily_history_is_idempotent_and_metadata_sync_does_not_erase_it(self):
-        self.insights = [{"ad_id": "a2", "campaign_id": "c2", "adset_id": "s2", "ad_name": "Old ad",
+        self.insights = [{"ad_id": "a1", "campaign_id": "c1", "adset_id": "s1", "ad_name": "New ad",
             "campaign_name": "Old campaign", "adset_name": "Old set", "date_start": day,
             "spend": spend, "impressions": impressions, "clicks": "1", "account_currency": "TRY"}
             for day, spend, impressions in [("2026-09-01", "3", "10"), ("2026-09-02", "5", "20")]]
@@ -128,15 +127,18 @@ class MetaCampaignInventoryTests(TestCase):
         self.sync()
         self.assertEqual(AdMetricHistory.objects.count(), 2)
         self.assertEqual(AdMetricHistory.objects.get(date="2026-09-02").spend, Decimal("5"))
-        self.assertEqual(Campaign.objects.get(platform_campaign_id="c2").status, "PAUSED")
+        self.assertEqual(Campaign.objects.get(platform_campaign_id="c1").status, "ACTIVE")
 
-    def test_deleted_ad_insights_are_preserved_when_absent_from_inventory(self):
+    def test_inactive_ad_insights_are_not_imported(self):
         self.insights = [{"ad_id": "deleted-ad", "campaign_id": "old-c", "adset_id": "old-s",
             "date_start": "2026-09-01", "spend": "7", "impressions": "30"}]
         self.sync()
-        self.assertEqual(AdMetricHistory.objects.get().ad.platform_ad_id, "deleted-ad")
+        self.assertFalse(AdMetricHistory.objects.exists())
 
     def test_campaign_status_filter_has_separate_cache_and_keeps_history(self):
+        for cid in ("c2", "c3"):
+            Campaign.objects.create(user=self.user, platform_account=self.account,
+                platform_campaign_id=cid, name=cid, status="PAUSED")
         self.sync()
         self.client.force_login(self.user)
         url = "/api/campaign-panel/campaigns/"

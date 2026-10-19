@@ -25,6 +25,7 @@ from core.services.ai_agent_ecosystem import build_campaign_agent_ecosystem
 from core.services.ai_agent_ecosystem import run_agent_orchestration
 from core.services.performance_metrics import aggregate_metric_queryset, safe_decimal
 from core.utils.metric_text import format_metric_text_tr
+from core.services.campaign_reporting import decorate_campaign
 
 
 CAMPAIGN_ANALYSIS_SYSTEM_PROMPT = """
@@ -129,7 +130,7 @@ def aggregate_metrics(qs):
 
 
 def metric_payload(summary, currency="TRY"):
-    return {
+    payload = {
         "impressions": int(summary.get("impressions") or 0),
         "impressions_label": fmt_int(summary.get("impressions")),
         "reach": int(summary.get("reach") or 0),
@@ -187,6 +188,14 @@ def metric_payload(summary, currency="TRY"):
         "metric_rows": int(summary.get("rows") or 0),
         "last_metric_date": summary.get("last_date").strftime("%d.%m.%Y") if summary.get("last_date") else "-",
     }
+    payload["has_data"] = payload["metric_rows"] > 0
+    if not payload["has_data"]:
+        for key in list(payload):
+            if key.endswith("_label"):
+                payload[key] = "—"
+            elif key not in {"metric_rows", "last_metric_date", "has_data"}:
+                payload[key] = None
+    return payload
 
 
 def status_label(status):
@@ -211,7 +220,7 @@ def media_url_for_ad(ad):
     )
 
 
-def campaign_card_payload(campaign, start_date=None, end_date=None):
+def campaign_card_payload(campaign, start_date=None, end_date=None, *, active_only=False):
     metrics = metric_qs_by_date(campaign.metric_history.all(), start_date, end_date)
     summary = aggregate_metrics(metrics)
     currency = getattr(campaign, "currency", "TRY") or "TRY"
@@ -219,6 +228,9 @@ def campaign_card_payload(campaign, start_date=None, end_date=None):
 
     ad_qs = campaign.ads.filter(source_type="OWN")
     ad_group_qs = campaign.ad_groups.all()
+    if active_only:
+        ad_group_qs = current_campaigns(ad_group_qs)
+        ad_qs = ad_qs.filter(is_active=True, status__in=["ACTIVE", "ENABLED"], ad_group__in=ad_group_qs)
     creative_count = ad_qs.exclude(creative__isnull=True).values("creative_id").distinct().count()
     ad_count = ad_qs.count()
     ad_group_count = ad_group_qs.count()
@@ -230,6 +242,11 @@ def campaign_card_payload(campaign, start_date=None, end_date=None):
     except Exception:
         pass
 
+    state = decorate_campaign({"status": campaign.status, "objective": campaign.objective,
+        "start_time": campaign.start_time.isoformat() if campaign.start_time else None,
+        "stop_time": campaign.end_time.isoformat() if campaign.end_time else None})
+    if state["status_group"] == "active" and not campaign.is_active:
+        state.update(status_label="Aktif listede değil", status_group="inactive")
     return {
         "id": campaign.id,
         "name": campaign.name,
@@ -238,9 +255,10 @@ def campaign_card_payload(campaign, start_date=None, end_date=None):
         "account_name": getattr(getattr(campaign, "platform_account", None), "account_name", "") or getattr(getattr(campaign, "platform_account", None), "account_id", "") or "-",
         "account_id": getattr(getattr(campaign, "platform_account", None), "account_id", "") or "-",
         "status": campaign.status,
-        "status_label": status_label(campaign.status),
+        "status_label": state["status_label"],
+        "status_group": state["status_group"],
         "objective": campaign.objective or "UNKNOWN",
-        "objective_label": campaign.get_objective_display() if hasattr(campaign, "get_objective_display") else (campaign.objective or "UNKNOWN"),
+        "objective_label": state["objective_label"],
         "daily_budget": float(safe_decimal(campaign.daily_budget)),
         "daily_budget_label": fmt_money(campaign.daily_budget, currency),
         "lifetime_budget": float(safe_decimal(campaign.lifetime_budget)),
@@ -251,7 +269,7 @@ def campaign_card_payload(campaign, start_date=None, end_date=None):
         "last_synced_at": _date_label(campaign.last_synced_at),
         "created_at": _date_label(campaign.created_at),
         "updated_at": _date_label(campaign.updated_at),
-        "is_active": bool(campaign.is_active),
+        "is_active": campaign.is_active and state["status_group"] == "active",
         "raw_data_keys": sorted(list((campaign.raw_data or {}).keys()))[:24],
         "ad_group_count": ad_group_count,
         "ad_count": ad_count,
@@ -336,7 +354,7 @@ def build_campaign_rule_events(campaign, metrics):
         })
 
     if metric_rows == 0:
-        add("warning", "Veri", "Metrik geçmişi yok", "Bu kampanya için seçili tarih aralığında CampaignMetricHistory kaydı bulunamadı.", "Önce kampanya senkronizasyonunu çalıştır, ardından metrik geçmişi ve dönüşüm alanlarının dolduğunu kontrol et.")
+        add("info", "Veri", "Bu döneme ait ölçüm yok", "Seçilen tarih aralığında günlük performans kaydı yok. Bu durum harcamanın veya performansın sıfır olduğunu göstermez.", "Hesabın son veri çekme dönemini ve platformdaki yayın tarihlerini kontrol edin.")
     if spend > 0 and conversions == 0:
         add("critical", "Dönüşüm", "Harcama var, dönüşüm yok", f"{metrics.get('spend_label')} harcama var fakat dönüşüm 0 görünüyor.", "Pixel/CAPI, dönüşüm aksiyonu eşlemesi, UTM ve landing page dönüşüm olaylarını kontrol et.")
     if spend > 0 and roas < 1:
@@ -831,6 +849,13 @@ def instagram_ad_sources(account, accounts_queryset=None):
         connection__extra_data__source="ads_oauth").select_related("platform", "connection")
 
 
+def current_campaigns(queryset):
+    now = timezone.now()
+    return queryset.filter(is_active=True, status__in=["ACTIVE", "ENABLED"]).filter(
+        Q(start_time__isnull=True) | Q(start_time__lte=now)).filter(
+        Q(end_time__isnull=True) | Q(end_time__gt=now))
+
+
 def build_platform_account_payload(user, platform_code="", accounts_queryset=None):
     platforms = Platform.objects.filter(is_active=True).order_by("name")
     data = []
@@ -845,6 +870,7 @@ def build_platform_account_payload(user, platform_code="", accounts_queryset=Non
         account_items = []
         for account in accounts:
             campaigns = Campaign.objects.filter(platform_account=account)
+            active_campaigns = current_campaigns(campaigns)
             account_items.append({
                 "id": account.id,
                 "account_id": account.account_id,
@@ -853,9 +879,13 @@ def build_platform_account_payload(user, platform_code="", accounts_queryset=Non
                 "platform_name": platform.name,
                 "is_active": account.is_active,
                 "last_sync": account.last_sync.isoformat() if account.last_sync else None,
-                "campaign_count": campaigns.count(),
-                "ad_group_count": AdGroup.objects.filter(campaign__platform_account=account).count(),
-                "ad_count": Ad.objects.filter(platform_account=account, source_type="OWN").count(),
+                "campaign_count": active_campaigns.count(),
+                "historical_campaign_count": campaigns.count(),
+                "ad_group_count": AdGroup.objects.filter(campaign__in=active_campaigns, is_active=True, status="ACTIVE").count(),
+                "ad_count": Ad.objects.filter(platform_account=account, source_type="OWN", is_active=True,
+                    status="ACTIVE", campaign__in=active_campaigns, ad_group__is_active=True,
+                    ad_group__status="ACTIVE").count(),
+                "ads_sync_summary": (account.extra_data or {}).get("ads_sync_summary"),
                 "connection_status": account.connection.status if account.connection else "missing",
                 "organic_instagram": (account.extra_data or {}).get("auth_type") == "instagram_login",
                 "ad_sources": [{"id": source.pk, "name": source.account_name or source.account_id}
@@ -878,15 +908,15 @@ def build_campaign_list(user, account, start_date=None, end_date=None, status=""
         .filter(platform_account=account)
         .select_related("platform_account", "platform_account__platform")
         .prefetch_related("ad_groups", "ads")
-        .order_by("-updated_at", "-created_at")
+        .order_by("-start_time", "-created_at", "-id")
     )
     if status == "ACTIVE":
-        campaigns = campaigns.filter(status="ACTIVE")
+        campaigns = current_campaigns(campaigns)
     elif status == "INACTIVE":
-        campaigns = campaigns.filter(status__in=["PAUSED", "ARCHIVED", "DELETED", "ENDED"])
+        campaigns = campaigns.exclude(pk__in=current_campaigns(Campaign.objects.filter(platform_account=account))).exclude(status="UNKNOWN")
     elif status == "UNKNOWN":
         campaigns = campaigns.filter(status="UNKNOWN")
-    return [campaign_card_payload(campaign, start_date, end_date) for campaign in campaigns]
+    return [campaign_card_payload(campaign, start_date, end_date, active_only=status == "ACTIVE") for campaign in campaigns]
 
 
 def ad_group_payload(ad_group, start_date=None, end_date=None):

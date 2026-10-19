@@ -63,9 +63,13 @@ class OctoRuleAutomationTests(TestCase):
             def __init__(self, account):
                 self.account = account
 
-            def get_ads(self, since_days=30):
+            def get_campaigns(self):
+                return [{"id": "campaign-001", "name": "Campaign 001", "status": "ACTIVE"}]
+
+            def get_ads(self, since_days=30, campaign_inventory=None):
                 return [{
                     "id": "ad-001",
+                    "platform_ad_id": "ad-001",
                     "campaign_id": "campaign-001",
                     "campaign_name": "Campaign 001",
                     "adgroup_id": "group-001",

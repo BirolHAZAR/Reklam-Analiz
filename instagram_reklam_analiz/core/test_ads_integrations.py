@@ -551,9 +551,9 @@ class AdsIntegrationTests(TestCase):
         import json
         account = PlatformAccount.objects.create(user=self.user, platform=self.platform, connection=self.connection(), account_id="123", access_token="secret", extra_data={"currency": "EUR"})
         search.return_value = [{"campaign": {"id": "1", "name": "Campaign", "status": "ENABLED"},
-            "adGroup": {"id": "2", "name": "Group"}, "adGroupAd": {"ad": {"id": "3"}, "status": "ENABLED"},
+            "adGroup": {"id": "2", "name": "Group", "status": "ENABLED"}, "adGroupAd": {"ad": {"id": "3"}, "status": "ENABLED"},
             "segments": {"date": "2026-09-25"}, "metrics": {"costMicros": "2500000", "impressions": "100", "clicks": "10", "conversions": 2, "conversionsValue": 0}}]
-        row = GoogleAdsAPI(account).get_ads(since_days=7)[0]
+        row = GoogleAdsAPI(account).get_ads(since_days=7)[1]
         self.assertEqual(Decimal(row["spend"]), Decimal("2.5"))
         self.assertEqual(row["currency"], "EUR")
         self.assertEqual(row["date"], "2026-09-25")

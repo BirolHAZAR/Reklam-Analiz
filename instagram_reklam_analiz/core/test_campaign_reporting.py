@@ -139,6 +139,6 @@ class CampaignReportingViewsTests(TestCase):
              patch("core.services.ads_integrations.meta_rows", return_value=[
                  {"campaign_id": "99", "impressions": "2209", "clicks": "129", "spend": "59.63"},
              ]) as meta:
-            result = campaign_summaries(self.account, timezone.localdate()-timedelta(days=29), timezone.localdate())
+            result = campaign_summaries(self.account, timezone.localdate()-timedelta(days=29), timezone.localdate(), campaign_ids=["99"])
         self.assertEqual(result["99"]["spend"], Decimal("59.63"))
         self.assertNotIn("time_increment", meta.call_args.args[2])

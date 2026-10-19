@@ -49,7 +49,7 @@ class OrganicInsightsIntegrationTests(TestCase):
             connection=self.connection, account_id="123", access_token="test-token",
             extra_data={"auth_type": "instagram_login"})
         self.media = {"id": "456", "media_type": "IMAGE", "media_product_type": "FEED",
-                      "like_count": 4, "comments_count": 1}
+                      "like_count": 4, "comments_count": 1, "timestamp": timezone.now().isoformat()}
 
     def sync(self, insights):
         with patch("core.services.organic_content_service.InstagramAPI") as api:

@@ -266,7 +266,7 @@ def account_campaigns(request, account_id=None, campaign_id=None):
                        and (not search or search.casefold() in row["name"].casefold() or search in str(row["id"]))]
             context["campaigns"] = visible
             try:
-                summaries = api.campaign_summaries(account, start, end) if visible else {}
+                summaries = api.campaign_summaries(account, start, end, campaign_ids=[row["id"] for row in visible]) if visible else {}
                 for row in visible:
                     row["performance"] = summarize_metrics([summaries[str(row["id"])]]) if str(row["id"]) in summaries else None
                 context["summary"] = summarize_metrics([summaries[str(row["id"])] for row in visible if str(row["id"]) in summaries])

@@ -174,8 +174,9 @@ def discover_accounts(token):
 
 
 def campaigns(token, account_id):
+    from core.services.ad_eligibility import is_current_campaign
     cid = _id(account_id)
-    statuses = "ACTIVE,PAUSED,ARCHIVED,COMPLETED,CANCELED,DRAFT,PENDING_DELETION,REMOVED"
+    statuses = "ACTIVE"
     data = rows(token, f"adAccounts/{cid}/adCampaigns", {
         "q": "search", "search": f"(status:(values:List({statuses})))",
     }, cursor=True)
@@ -194,9 +195,11 @@ def campaigns(token, account_id):
                 return datetime.fromtimestamp(int(value) / 1000, dt_timezone.utc).isoformat()
             except (ValueError, TypeError, OverflowError, OSError):
                 raise IntegrationError("LinkedIn kampanya tarihi doğrulanamadı.") from None
-        result.append({"id": _id(row.get("id", "")), "name": row.get("name") or str(row["id"]),
+        item = {"id": _id(row.get("id", "")), "name": row.get("name") or str(row["id"]),
                        "status": row.get("status", "UNKNOWN"), "objective": row.get("objectiveType", ""),
-                       "start_time": timestamp("start"), "stop_time": timestamp("end")})
+                       "start_time": timestamp("start"), "stop_time": timestamp("end")}
+        if is_current_campaign(item):
+            result.append(item)
     return result
 
 
@@ -211,7 +214,7 @@ def _metrics(row):
         raise IntegrationError("LinkedIn rapor metrikleri doğrulanamadı.") from None
 
 
-def analytics(token, account_id, start, end, *, campaign_id=None):
+def analytics(token, account_id, start, end, *, campaign_id=None, campaign_ids=None):
     cid = _id(account_id)
     if start > end or (end - start).days > 365:
         raise IntegrationError("LinkedIn rapor tarihlerini kontrol edin.")
@@ -221,6 +224,10 @@ def analytics(token, account_id, start, end, *, campaign_id=None):
               "fields": "pivotValues,dateRange,impressions,clicks,costInLocalCurrency"}
     if campaign_id:
         params["campaigns"] = f"List(urn:li:sponsoredCampaign:{_id(campaign_id)})"
+    elif campaign_ids is not None:
+        if not campaign_ids:
+            return []
+        params["campaigns"] = "List(" + ",".join(f"urn:li:sponsoredCampaign:{_id(value)}" for value in campaign_ids) + ")"
     # At most 31 daily rows per campaign call; ALL returns at most 5,000
     # campaigns per account. Never silently accept the 15,000-row API cap.
     result, current = [], start
@@ -248,13 +255,21 @@ def analytics(token, account_id, start, end, *, campaign_id=None):
     return result
 
 
-def campaign_summaries(token, account_id, start, end):
+def campaign_summaries(token, account_id, start, end, campaign_ids=None):
+    if campaign_ids is None:
+        campaign_ids = [row["id"] for row in campaigns(token, account_id)]
+    campaign_ids = list(dict.fromkeys(campaign_ids))
     result = {}
-    for row in analytics(token, account_id, start, end):
+    rows = []
+    for index in range(0, len(campaign_ids), 100):
+        rows.extend(analytics(token, account_id, start, end, campaign_ids=campaign_ids[index:index+100]))
+    for row in rows:
         pivots = row.get("pivotValues")
         if not isinstance(pivots, list) or len(pivots) != 1:
             raise IntegrationError("LinkedIn kampanya raporu doğrulanamadı.")
         cid = _id(pivots[0], "sponsoredCampaign")
+        if cid not in campaign_ids:
+            raise IntegrationError("LinkedIn rapor kampanyası aktif hesap seçimiyle eşleşmiyor.")
         if cid in result:
             raise IntegrationError("LinkedIn raporunda yinelenen kampanya var.")
         result[cid] = _metrics(row)

@@ -266,9 +266,9 @@ class LinkedInAdsTests(TestCase):
     @patch.object(li, "read")
     def test_campaign_cursor_collects_all_pages(self, read):
         read.side_effect = [
-            {"elements": [{"account": "urn:li:sponsoredAccount:123", "id": 7, "name": "A"}],
+            {"elements": [{"account": "urn:li:sponsoredAccount:123", "id": 7, "name": "A", "status": "ACTIVE"}],
              "metadata": {"nextPageToken": "page-two"}},
-            {"elements": [{"account": "urn:li:sponsoredAccount:123", "id": 8, "name": "B"}]},
+            {"elements": [{"account": "urn:li:sponsoredAccount:123", "id": 8, "name": "B", "status": "ACTIVE"}]},
         ]
         self.assertEqual([r["id"] for r in li.campaigns("private", "123")], ["7", "8"])
         self.assertEqual(read.call_args.args[2]["pageToken"], "page-two")
@@ -278,7 +278,7 @@ class LinkedInAdsTests(TestCase):
         for pivots, spend in ((["urn:li:person:7"], "1"), (["urn:li:sponsoredCampaign:7"], "NaN")):
             read.return_value = {"elements": [{"pivotValues": pivots, "costInLocalCurrency": spend}]}
             with self.subTest(pivots=pivots, spend=spend), self.assertRaises(api.IntegrationError):
-                li.campaign_summaries("private", "123", date(2026, 1, 1), date(2026, 1, 2))
+                li.campaign_summaries("private", "123", date(2026, 1, 1), date(2026, 1, 2), campaign_ids=["7"])
 
     def test_cross_owner_connection_cannot_be_used_for_report(self):
         connection = self.connection()

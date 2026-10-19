@@ -169,7 +169,7 @@ def api_campaigns_by_account(request):
         return JsonResponse({"success": False, "error": "account_id gerekli"}, status=400)
 
     account = get_object_or_404(platform_accounts_for_request(request, active_only=True), id=account_id)
-    status = request.GET.get("campaign_status", "").upper()
+    status = request.GET.get("campaign_status", "ACTIVE").upper()
     if status not in {"", "ACTIVE", "INACTIVE", "UNKNOWN"}:
         return JsonResponse({"success": False, "error": "Geçersiz kampanya durumu"}, status=400)
     start_date, end_date = normalize_date_range(request)

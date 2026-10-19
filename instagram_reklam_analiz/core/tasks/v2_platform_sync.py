@@ -244,9 +244,10 @@ def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=
             api = api_class(account)
             from core.services.meta_sync_checkpoint import meta_read_checkpoint
             with meta_read_checkpoint((retry_context or self.request.id) if platform_code == "facebook" else None):
-                ads_data = api.get_ads(since_days=days_back)
-                if platform_code == "facebook" and hasattr(api, "get_campaigns"):
+                if platform_code in {"facebook", "google_ads"}:
                     campaign_inventory = api.get_campaigns()
+                ads_data = (api.get_ads(since_days=days_back, campaign_inventory=campaign_inventory)
+                            if platform_code == "facebook" else api.get_ads(since_days=days_back))
 
         created_or_updated = 0
         if platform_code in {"google_ads", "facebook"} and len(ads_data or []) > policy.max_records:
@@ -270,16 +271,35 @@ def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=
                 synced_dates.add(snapshot["metric"].date)
             created_or_updated += 1
 
-        if campaign_inventory:
-            from core.platforms.facebook import save_campaign_inventory
+        if platform_code in {"facebook", "google_ads"}:
+            if platform_code == "facebook":
+                from core.platforms.facebook import save_campaign_inventory
+                campaign_ids = {str(row["id"]) for row in campaign_inventory}
+            else:
+                from core.platforms.google_ads import save_campaign_inventory
+                campaign_ids = {str(row["campaign"]["id"]) for row in campaign_inventory}
             save_campaign_inventory(account, campaign_inventory)
+            # Only a complete, successful active inventory may mark older
+            # local records inactive. Keep their history and configured status.
+            from core.models import Campaign, Ad
+            Campaign.objects.filter(platform_account=account).exclude(
+                platform_campaign_id__in=campaign_ids).update(is_active=False)
+            active_ad_ids = {str(row["platform_ad_id"]) for row in ads_data or []}
+            Ad.objects.filter(platform_account=account, source_type="OWN").exclude(
+                platform_ad_id__in=active_ad_ids).update(is_active=False)
 
         if synced_dates:
             from core.services.v2_ad_sync import rebuild_ad_metric_rollups
             rebuild_ad_metric_rollups(account, synced_dates)
 
         account.last_sync = timezone.now()
-        account.save(update_fields=["last_sync"])
+        account.extra_data = {**(account.extra_data or {}), "ads_sync_summary": {
+            "completed_at": account.last_sync.isoformat(), "active_only": True,
+            "days_back": days_back, "campaigns": len(campaign_inventory),
+            "ads": len({str(row.get("platform_ad_id")) for row in ads_data or []}),
+            "metric_rows": sum(row.get("metrics_available") is not False for row in ads_data or []),
+        }}
+        account.save(update_fields=["last_sync", "extra_data"])
 
         # Reklamlar ve metrikler veritabanına yazıldıktan sonra kural motoru
         # yalnız ilgili hesap için otomatik çalışır. Kuyruk geçici olarak kapalıysa

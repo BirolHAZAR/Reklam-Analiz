@@ -363,7 +363,9 @@ def meta_rows(token, path, params):
         data = _request("GET", f"{settings.FACEBOOK_GRAPH_URL}/{path}",
                         operation={"me/permissions": "Meta izinlerini kontrol etme", "me/adaccounts": "Meta reklam hesaplarını listeleme"}.get(path, "Meta verilerini okuma"),
                         headers={"Authorization": f"Bearer {token}"}, params=query)
-        rows.extend(data.get("data", []))
+        if not isinstance(data, dict) or not isinstance(data.get("data"), list):
+            raise IntegrationError("Meta veri listesi eksiksiz okunamadı.")
+        rows.extend(data["data"])
         paging = data.get("paging", {})
         if not paging.get("next"):
             save_checkpoint(key, rows, None, True)
@@ -456,27 +458,36 @@ def account_today(account):
 
 
 def campaigns(account):
+    from core.services.ad_eligibility import is_current_campaign
     token = account_token(account)
     if account.platform.code == "linkedin":
         from core.services.linkedin_ads import campaigns as linkedin_campaigns
         return linkedin_campaigns(token, account.account_id)
     if account.platform.code == "google_ads":
-        rows = google_search(token, account.account_id, "SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date_time, campaign.end_date_time FROM campaign WHERE campaign.status != 'REMOVED'", account.extra_data.get("login_customer_id", ""))
+        rows = google_search(token, account.account_id, "SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date_time, campaign.end_date_time FROM campaign WHERE campaign.status = 'ENABLED'", account.extra_data.get("login_customer_id", ""))
         # v23+ exposes customer-local datetimes. Keep the reporting interface's
         # date-only values in the account's timezone, without converting to UTC.
-        return [{"id": str(r["campaign"]["id"]), "name": r["campaign"]["name"], "status": r["campaign"]["status"], "channel": r["campaign"].get("advertisingChannelType", ""), "start_date": (r["campaign"].get("startDateTime") or "")[:10] or None, "end_date": (r["campaign"].get("endDateTime") or "")[:10] or None} for r in rows]
-    return meta_rows(token, f"{account.account_id}/campaigns", {"fields": "id,name,status,objective,start_time,stop_time",
-        "effective_status": json.dumps(["ACTIVE", "PAUSED", "ARCHIVED", "IN_PROCESS", "WITH_ISSUES"])})
+        result = [{"id": str(r["campaign"]["id"]), "name": r["campaign"]["name"], "status": r["campaign"]["status"], "channel": r["campaign"].get("advertisingChannelType", ""), "start_date": (r["campaign"].get("startDateTime") or "")[:10] or None, "end_date": (r["campaign"].get("endDateTime") or "")[:10] or None} for r in rows]
+        return [row for row in result if is_current_campaign(row, today=account_today(account))]
+    from core.platforms.facebook import FacebookAPI
+    return FacebookAPI(account).get_campaigns()
 
 
-def campaign_summaries(account, start, end):
+def campaign_summaries(account, start, end, campaign_ids=None):
     """One account-level request, rather than one Insights call per campaign."""
     token = account_token(account)
+    if campaign_ids is None:
+        campaign_ids = [str(row["id"]) for row in campaigns(account)]
+    campaign_ids = list(dict.fromkeys(str(value) for value in campaign_ids))
+    if any(not value.isdigit() for value in campaign_ids):
+        raise IntegrationError("Geçersiz kampanya.")
+    if not campaign_ids:
+        return {}
     if account.platform.code == "linkedin":
         from core.services.linkedin_ads import campaign_summaries as linkedin_summaries
-        return linkedin_summaries(token, account.account_id, start, end)
+        return linkedin_summaries(token, account.account_id, start, end, campaign_ids=campaign_ids)
     if account.platform.code == "google_ads":
-        query = f"SELECT campaign.id, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM campaign WHERE campaign.status != 'REMOVED' AND segments.date BETWEEN '{start.isoformat()}' AND '{end.isoformat()}'"
+        query = f"SELECT campaign.id, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM campaign WHERE campaign.status = 'ENABLED' AND campaign.id IN ({','.join(campaign_ids)}) AND segments.date BETWEEN '{start.isoformat()}' AND '{end.isoformat()}'"
         return {str(row["campaign"]["id"]): google_metrics(row["metrics"])
                 for row in google_search(token, account.account_id, query, account.extra_data.get("login_customer_id", ""))}
     return {str(row["campaign_id"]): {"impressions": int(row.get("impressions", 0)),
@@ -484,6 +495,7 @@ def campaign_summaries(account, start, end):
             for row in meta_rows(token, f"{account.account_id}/insights", {
                 "level": "campaign", "fields": "campaign_id,impressions,clicks,spend",
                 "time_range": json.dumps({"since": start.isoformat(), "until": end.isoformat()}),
+                "filtering": json.dumps([{"field": "campaign.id", "operator": "IN", "value": campaign_ids}]),
             })}
 
 
