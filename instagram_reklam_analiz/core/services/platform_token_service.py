@@ -156,6 +156,12 @@ def _validate_connection(connection):
         profile(access_token(account), account.account_id)
         connection.refresh_from_db()
         return {"valid": True, "expires_at": connection.token_expiry, "validation": "oauth_refresh"}
+    if connection.platform.code == "linkedin" and (connection.extra_data or {}).get("source") == "ads_oauth":
+        from core.services.linkedin_ads import connection_token, discover_accounts
+        accounts = discover_accounts(connection_token(connection))
+        visible = {row["id"] for row in accounts}
+        linked = set(connection.accounts.filter(is_active=True).values_list("account_id", flat=True))
+        return {"valid": bool(linked) and linked <= visible, "expires_at": connection.token_expiry, "validation": "live_probe"}
     if connection.platform.code in {"youtube", "tiktok", "linkedin", "x"}:
         from core.views.hesap_ekle import _resolve_token_platform_accounts
 

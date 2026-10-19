@@ -123,6 +123,7 @@ def callback(request, provider):
             scopes=token.get("scope", "").split(), is_active=False, status="disconnected",
             extra_data={"source": "google_read_oauth" if provider in api.GOOGLE_READ_PROVIDERS else "ads_oauth", "pending": True, "choices": choices,
                         **{key: token[key] for key in ("meta_user_id", "meta_app_id") if provider == "facebook" and key in token},
+                        **({"linkedin_client_id": token["linkedin_client_id"]} if provider == "linkedin" else {}),
                         "agency_client": client.pk if client else None},
         )
         request.session[f"ads_pending:{provider}"] = connection.pk
@@ -177,7 +178,8 @@ def select_accounts(request, provider):
                 source = "google_read_oauth" if provider in api.GOOGLE_READ_PROVIDERS else "ads_oauth"
                 connection.extra_data = {"source": source, "agency_client": client.pk if client else None,
                     **{key: connection.extra_data[key] for key in ("meta_user_id", "meta_app_id")
-                       if provider == "facebook" and key in connection.extra_data}}
+                       if provider == "facebook" and key in connection.extra_data},
+                    **({"linkedin_client_id": connection.extra_data.get("linkedin_client_id")} if provider == "linkedin" else {})}
                 connection.save()
                 replaced_connections = set()
                 for cid in sorted(selected):

@@ -10,6 +10,7 @@ from core.views import tiktok_oauth
 from core.views.meta_deauthorization import deauthorize
 
 urlpatterns = [
+    path('connect/linkedin/callback/', ads_integrations.callback, {'provider': 'linkedin'}, name='linkedin_ads_callback'),
     path('connect/tiktok/', tiktok_oauth.connect, name='tiktok_connect'),
     path('connect/tiktok/callback/', tiktok_oauth.callback, name='tiktok_oauth_callback'),
     path('tiktok/accounts/<int:account_id>/', tiktok_oauth.report, name='tiktok_report'),

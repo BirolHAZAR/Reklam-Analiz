@@ -13,6 +13,8 @@ if (-not (Test-Path -LiteralPath (Join-Path $ProjectDir "manage.py"))) {
 }
 
 $env:DJANGO_SETTINGS_MODULE = "config.settings"
+$env:DEBUG = "True"
+$env:DJANGO_ENV = "development"
 if (-not $env:REDIS_HOST) { $env:REDIS_HOST = "127.0.0.1" }
 if (-not $env:REDIS_PORT) { $env:REDIS_PORT = "6379" }
 if (-not $env:CACHE_REDIS_URL) { $env:CACHE_REDIS_URL = "redis://$($env:REDIS_HOST):$($env:REDIS_PORT)/3" }

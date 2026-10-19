@@ -15,7 +15,7 @@ from django.db import transaction
 from django.utils import timezone
 
 ADWORDS_SCOPE = "https://www.googleapis.com/auth/adwords"
-PROVIDERS = {"google_ads": "Google Ads", "facebook": "Meta Ads (Facebook ve Instagram)"}
+PROVIDERS = {"google_ads": "Google Ads", "facebook": "Meta Ads (Facebook ve Instagram)", "linkedin": "LinkedIn Ads"}
 GOOGLE_READ_PROVIDERS = {"youtube": "YouTube"}
 CONNECTION_PROVIDERS = {**PROVIDERS, **GOOGLE_READ_PROVIDERS}
 logger = logging.getLogger(__name__)
@@ -50,6 +50,10 @@ def application_values(provider):
         names = ("INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET", "INSTAGRAM_REDIRECT_URI")
     elif provider == "tiktok":
         names = ("TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET", "TIKTOK_REDIRECT_URI")
+    elif provider == "linkedin":
+        if not getattr(settings, "LINKEDIN_ADS_APPROVED", False):
+            raise IntegrationError("LinkedIn Advertising API onayı bekleniyor. Onay sonrası yönetici bağlantıyı açabilir.")
+        names = ("LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET", "LINKEDIN_REDIRECT_URI")
     elif provider in GOOGLE_READ_PROVIDERS:
         prefix = "YOUTUBE"
         names = (f"{prefix}_CLIENT_ID", f"{prefix}_CLIENT_SECRET", f"{prefix}_REDIRECT_URI")
@@ -88,6 +92,9 @@ def configuration(provider):
 
 
 def authorization_url(provider, state):
+    if provider == "linkedin":
+        from core.services.linkedin_ads import authorization_url as linkedin_url
+        return linkedin_url(state)
     if provider in GOOGLE_READ_PROVIDERS:
         from core.services.google_read_oauth import authorization_url as google_url
         return google_url(provider, state)
@@ -200,6 +207,9 @@ def _request(method, url, *, operation="", **kwargs):
 
 
 def exchange_code(provider, code):
+    if provider == "linkedin":
+        from core.services.linkedin_ads import exchange_code as linkedin_exchange
+        return linkedin_exchange(code)
     if provider in GOOGLE_READ_PROVIDERS:
         from core.services.google_read_oauth import exchange_code as google_exchange
         return google_exchange(provider, code)
@@ -264,6 +274,9 @@ def exchange_code(provider, code):
 
 
 def connection_token(connection):
+    if connection.platform.code == "linkedin":
+        from core.services.linkedin_ads import connection_token as linkedin_token
+        return linkedin_token(connection)
     if connection.platform.code in GOOGLE_READ_PROVIDERS:
         from core.services.google_read_oauth import connection_token as google_token
         return google_token(connection)
@@ -363,6 +376,9 @@ def meta_rows(token, path, params):
 
 
 def discover_accounts(provider, token):
+    if provider == "linkedin":
+        from core.services.linkedin_ads import discover_accounts as linkedin_accounts
+        return linkedin_accounts(token)
     if provider in GOOGLE_READ_PROVIDERS:
         from core.services.google_read_oauth import discover_accounts as google_accounts
         return google_accounts(provider, token)
@@ -421,6 +437,11 @@ def discover_accounts(provider, token):
 
 
 def account_token(account):
+    if account.platform.code == "linkedin":
+        if (not account.is_active or not account.connection_id
+                or account.connection.user_id != account.user_id
+                or account.connection.platform_id != account.platform_id):
+            raise IntegrationError("LinkedIn hesabını yeniden bağlayın.")
     if not account.connection_id or (account.connection.extra_data or {}).get("source") != "ads_oauth":
         raise IntegrationError("Bu hesabı Hesap Ekle ekranından yeniden bağlayın.")
     return connection_token(account.connection)
@@ -436,6 +457,9 @@ def account_today(account):
 
 def campaigns(account):
     token = account_token(account)
+    if account.platform.code == "linkedin":
+        from core.services.linkedin_ads import campaigns as linkedin_campaigns
+        return linkedin_campaigns(token, account.account_id)
     if account.platform.code == "google_ads":
         rows = google_search(token, account.account_id, "SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date_time, campaign.end_date_time FROM campaign WHERE campaign.status != 'REMOVED'", account.extra_data.get("login_customer_id", ""))
         # v23+ exposes customer-local datetimes. Keep the reporting interface's
@@ -448,6 +472,9 @@ def campaigns(account):
 def campaign_summaries(account, start, end):
     """One account-level request, rather than one Insights call per campaign."""
     token = account_token(account)
+    if account.platform.code == "linkedin":
+        from core.services.linkedin_ads import campaign_summaries as linkedin_summaries
+        return linkedin_summaries(token, account.account_id, start, end)
     if account.platform.code == "google_ads":
         query = f"SELECT campaign.id, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM campaign WHERE campaign.status != 'REMOVED' AND segments.date BETWEEN '{start.isoformat()}' AND '{end.isoformat()}'"
         return {str(row["campaign"]["id"]): google_metrics(row["metrics"])
@@ -464,6 +491,9 @@ def campaign_performance(account, campaign_id, start, end):
     if not str(campaign_id).isdigit():
         raise IntegrationError("Geçersiz kampanya.")
     token = account_token(account)
+    if account.platform.code == "linkedin":
+        from core.services.linkedin_ads import campaign_performance as linkedin_performance
+        return linkedin_performance(token, account.account_id, campaign_id, start, end)
     if account.platform.code == "google_ads":
         query = f"SELECT segments.date, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM campaign WHERE campaign.id = {campaign_id} AND segments.date BETWEEN '{start.isoformat()}' AND '{end.isoformat()}' ORDER BY segments.date"
         rows = google_search(token, account.account_id, query, account.extra_data.get("login_customer_id", ""))

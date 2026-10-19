@@ -237,12 +237,10 @@
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center mb-3">
                         <div class="platform-icon linkedin me-3"><i class="fab fa-linkedin-in"></i></div>
-                        <div><h5 class="card-title fw-bold mb-0">LinkedIn</h5><small class="text-muted">Profil doğrulaması</small></div>
+                        <div><h5 class="card-title fw-bold mb-0">LinkedIn</h5><small class="text-muted">Reklam raporlaması</small></div>
                     </div>
-                    <p class="card-text small text-muted mb-3">Profil kimliğini doğrulayın. Reklam hesabı ve reklam performansı aktarımı henüz desteklenmiyor.</p>
-                    <button class="btn btn-outline-primary w-100 btn-connect" onclick="openOctoPopup('modalLinkedin')" type="button">
-                        <i class="fas fa-plus-circle me-2"></i> Hesap Bağla
-                    </button>
+                    <p class="card-text small text-muted mb-3">LinkedIn onayı sonrasında reklam hesabınızı seçerek kampanyaları, gösterim, tıklama ve harcamaları görüntüleyin. Bağlantı yalnızca okuma izni ister.</p>
+                    {% for provider in providers %}{% if provider.code == 'linkedin' %}{% include 'platforms/account_connect_form.html' %}{% endif %}{% endfor %}
                 </div>
             </div>
         </div>
@@ -359,30 +357,6 @@
                     {% include "platforms/connection_client_select.html" %}
                     <input type="hidden" name="platform" value="youtube">
                     <div class="mb-3"><label class="form-label">OAuth Access Token</label><input type="text" class="form-control" name="access_token" required><div class="form-text">Yetkili YouTube kanalı ve kanal ID’si otomatik bulunur.</div></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>
-                    <button type="submit" class="btn btn-modal-submit rounded-pill"{% if connection_is_agency and not clients %} disabled{% endif %}>Bağla</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- LinkedIn Modal -->
-<div class="octo-popup" id="modalLinkedin" aria-hidden="true">
-    <div class="octo-popup-dialog">
-        <div class="octo-popup-content">
-            <form method="post" action="{% url 'hesap_ekle' %}">
-                {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fab fa-linkedin me-2"></i> LinkedIn Hesabı Bağla</h5>
-                    <button type="button" class="btn-close" data-octo-close></button>
-                </div>
-                <div class="modal-body">
-                    {% include "platforms/connection_client_select.html" %}
-                    <input type="hidden" name="platform" value="linkedin">
-                    <div class="mb-3"><label class="form-label">OAuth Access Token</label><input type="text" class="form-control" name="access_token" required><div class="form-text">LinkedIn profili ve kimliği otomatik doğrulanır.</div></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>

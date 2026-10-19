@@ -453,9 +453,9 @@ def _connect_agency_platform_account(request, organization, client_id=None):
     posted_client_id = request.POST.get("agency_client") or client_id
     client = get_object_or_404(organization.clients.filter(is_active=True), id=posted_client_id)
     platform_code = (request.POST.get("platform") or "").strip()
-    if platform_code in {"google_ads", "facebook"}:
+    if platform_code in {"google_ads", "facebook", "linkedin"}:
         request.session["active_agency_client_id"] = client.pk
-        messages.info(request, "Google Ads ve Meta hesaplarını Hesap Ekle ekranından izin vererek bağlayın.")
+        messages.info(request, "Google Ads, Meta ve LinkedIn reklam hesaplarını Hesap Ekle ekranından izin vererek bağlayın.")
         return redirect("hesap_ekle")
     account_name = (request.POST.get("account_name") or "").strip()
     account_id = (request.POST.get("account_id") or "").strip()

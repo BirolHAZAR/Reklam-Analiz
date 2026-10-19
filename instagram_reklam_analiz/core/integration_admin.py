@@ -76,6 +76,8 @@ class IntegrationApplicationAdmin(admin.ModelAdmin):
         if not obj:
             return "Ayar girilmedi"
         spec = PLATFORM_SETUP[obj.provider]
+        if obj.provider == "linkedin" and not getattr(settings, "LINKEDIN_ADS_APPROVED", False):
+            return "Hazırlık kaydı — LinkedIn Advertising API onayı bekleniyor"
         if spec["mode"] == "draft":
             return "Hazırlık kaydı — bağlantı henüz uygulanmadı"
         required = [obj.client_id, obj.client_secret]

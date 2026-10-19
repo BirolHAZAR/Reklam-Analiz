@@ -253,7 +253,7 @@ def hesap_ekle_view(request):
             messages.error(request, str(exc))
             return redirect("hesap_ekle")
         platform_code = request.POST.get("platform")
-        if platform_code in {"google_ads", "facebook"}:
+        if platform_code in {"google_ads", "facebook", "linkedin"}:
             messages.info(request, "Reklam hesaplarını Hesap Ekle ekranından bağlayın.")
             return redirect("hesap_ekle")
         account_name = request.POST.get("account_name", "").strip()

@@ -372,6 +372,14 @@ LINKEDIN_API_VERSION = config(
     default='202603',
 )
 
+# Enable only after Advertising API approval; credentials may be saved in admin
+# while this gate remains closed. This is separate from allauth profile login.
+LINKEDIN_ADS_APPROVED = config('LINKEDIN_ADS_APPROVED', default=False, cast=bool)
+LINKEDIN_ADS_API_VERSION = config('LINKEDIN_ADS_API_VERSION', default='202610')
+LINKEDIN_CLIENT_ID = config('LINKEDIN_CLIENT_ID', default='')
+LINKEDIN_CLIENT_SECRET = config('LINKEDIN_CLIENT_SECRET', default='')
+LINKEDIN_REDIRECT_URI = config('LINKEDIN_REDIRECT_URI', default='')
+
 
 # ============================================================
 # OPENAI
