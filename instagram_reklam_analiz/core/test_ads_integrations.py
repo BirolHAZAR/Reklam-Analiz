@@ -478,8 +478,9 @@ class AdsIntegrationTests(TestCase):
 
     def test_unimplemented_ad_providers_are_skipped(self):
         from core.tasks.v2_platform_sync import _should_skip_ad_sync
+        from types import SimpleNamespace
         for code in ("tiktok", "instagram", "youtube", "x"):
-            self.assertEqual(_should_skip_ad_sync(Mock(), code), "unsupported_for_ad_sync")
+            self.assertEqual(_should_skip_ad_sync(SimpleNamespace(user=None, connection=None, extra_data={}), code), "unsupported_for_ad_sync")
 
     def test_zero_reported_revenue_is_not_estimated_and_rollups_sum_ads(self):
         from core.services.v2_ad_sync import upsert_v2_ad_snapshot, rebuild_ad_metric_rollups

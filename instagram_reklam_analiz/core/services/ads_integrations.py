@@ -15,7 +15,20 @@ from django.db import transaction
 from django.utils import timezone
 
 ADWORDS_SCOPE = "https://www.googleapis.com/auth/adwords"
-PROVIDERS = {"google_ads": "Google Ads", "facebook": "Meta Ads (Facebook ve Instagram)", "linkedin": "LinkedIn Ads"}
+PROVIDERS = {"google_ads": "Google Ads", "facebook": "Meta Ads (Facebook ve Instagram)", "linkedin": "LinkedIn Ads", "tiktok_ads": "TikTok Ads"}
+AD_ACCOUNT_PLATFORM_CODES = {"google_ads", "facebook", "linkedin", "tiktok"}
+
+
+def provider_platform_code(provider):
+    return "tiktok" if provider == "tiktok_ads" else provider
+
+
+def provider_source(provider):
+    if provider == "tiktok_ads":
+        return "tiktok_ads_oauth"
+    return "google_read_oauth" if provider in GOOGLE_READ_PROVIDERS else "ads_oauth"
+
+
 GOOGLE_READ_PROVIDERS = {"youtube": "YouTube"}
 CONNECTION_PROVIDERS = {**PROVIDERS, **GOOGLE_READ_PROVIDERS}
 logger = logging.getLogger(__name__)
@@ -50,6 +63,8 @@ def application_values(provider):
         names = ("INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET", "INSTAGRAM_REDIRECT_URI")
     elif provider == "tiktok":
         names = ("TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET", "TIKTOK_REDIRECT_URI")
+    elif provider == "tiktok_ads":
+        names = ("TIKTOK_ADS_APP_ID", "TIKTOK_ADS_APP_SECRET", "TIKTOK_ADS_REDIRECT_URI")
     elif provider == "linkedin":
         if not getattr(settings, "LINKEDIN_ADS_APPROVED", False):
             raise IntegrationError("LinkedIn Advertising API onayı bekleniyor. Onay sonrası yönetici bağlantıyı açabilir.")
@@ -92,6 +107,9 @@ def configuration(provider):
 
 
 def authorization_url(provider, state):
+    if provider == "tiktok_ads":
+        from core.services.tiktok_ads import authorization_url as tiktok_url
+        return tiktok_url(state)
     if provider == "linkedin":
         from core.services.linkedin_ads import authorization_url as linkedin_url
         return linkedin_url(state)
@@ -207,6 +225,9 @@ def _request(method, url, *, operation="", **kwargs):
 
 
 def exchange_code(provider, code):
+    if provider == "tiktok_ads":
+        from core.services.tiktok_ads import exchange_code as tiktok_exchange
+        return tiktok_exchange(code)
     if provider == "linkedin":
         from core.services.linkedin_ads import exchange_code as linkedin_exchange
         return linkedin_exchange(code)
@@ -378,6 +399,9 @@ def meta_rows(token, path, params):
 
 
 def discover_accounts(provider, token):
+    if provider == "tiktok_ads":
+        from core.services.tiktok_ads import discover_accounts as tiktok_accounts
+        return tiktok_accounts(token)
     if provider == "linkedin":
         from core.services.linkedin_ads import discover_accounts as linkedin_accounts
         return linkedin_accounts(token)
@@ -439,6 +463,9 @@ def discover_accounts(provider, token):
 
 
 def account_token(account):
+    if account.platform.code == "tiktok":
+        from core.services.tiktok_ads import account_token as tiktok_token
+        return tiktok_token(account)
     if account.platform.code == "linkedin":
         if (not account.is_active or not account.connection_id
                 or account.connection.user_id != account.user_id
@@ -460,6 +487,9 @@ def account_today(account):
 def campaigns(account):
     from core.services.ad_eligibility import is_current_campaign
     token = account_token(account)
+    if account.platform.code == "tiktok":
+        from core.services.tiktok_ads import inventory
+        return list(inventory(token, account.account_id).values())
     if account.platform.code == "linkedin":
         from core.services.linkedin_ads import campaigns as linkedin_campaigns
         return linkedin_campaigns(token, account.account_id)
@@ -483,6 +513,17 @@ def campaign_summaries(account, start, end, campaign_ids=None):
         raise IntegrationError("Geçersiz kampanya.")
     if not campaign_ids:
         return {}
+    if account.platform.code == "tiktok":
+        from core.services.tiktok_ads import report
+        summaries = {}
+        for row in report(token, account.account_id, start, end):
+            cid = row["campaign_id"]
+            if cid not in campaign_ids:
+                continue
+            total = summaries.setdefault(cid, {"impressions": 0, "clicks": 0, "spend": Decimal("0")})
+            for key in total:
+                total[key] += row[key]
+        return summaries
     if account.platform.code == "linkedin":
         from core.services.linkedin_ads import campaign_summaries as linkedin_summaries
         return linkedin_summaries(token, account.account_id, start, end, campaign_ids=campaign_ids)
@@ -503,6 +544,9 @@ def campaign_performance(account, campaign_id, start, end):
     if not str(campaign_id).isdigit():
         raise IntegrationError("Geçersiz kampanya.")
     token = account_token(account)
+    if account.platform.code == "tiktok":
+        from core.services.tiktok_ads import report
+        return [row for row in report(token, account.account_id, start, end) if row["campaign_id"] == str(campaign_id)]
     if account.platform.code == "linkedin":
         from core.services.linkedin_ads import campaign_performance as linkedin_performance
         return linkedin_performance(token, account.account_id, campaign_id, start, end)

@@ -1,12 +1,19 @@
 """Shared campaign-panel and worker capabilities; organic OAuth is not Ads OAuth."""
 
-SUPPORTED_AD_SYNC_PLATFORMS = {"facebook", "google_ads", "linkedin"}
+SUPPORTED_AD_SYNC_PLATFORMS = {"facebook", "google_ads", "linkedin", "tiktok"}
+
+
+def supports_account_ad_sync(account):
+    code = account.platform.code
+    if code == "tiktok":
+        return bool(account.connection_id and (account.connection.extra_data or {}).get("source") == "tiktok_ads_oauth")
+    return code in SUPPORTED_AD_SYNC_PLATFORMS
 
 
 def ad_sync_unavailable_message(platform_code):
     return {
         "instagram": "Facebook ve Instagram yerleşimleri kampanya düzeyinde ayrılamıyor. Meta kampanyalarını Facebook bölümünde inceleyin. Organik paylaşımlarınız Organik İçerik bölümündedir.",
         "youtube": "Bu bağlantı YouTube kanal verileri içindir. YouTube reklam kampanyalarını bağlı Google Ads hesabında inceleyin.",
-        "tiktok": "TikTok bağlantısında reklam kampanyası senkronizasyonu henüz desteklenmiyor. Organik içerik bağlantısı reklam hesabı erişimi sağlamaz.",
+        "tiktok": "Kampanyalar için ayrı TikTok Ads bağlantısını kullanın. Organik TikTok videoları Organik İçerik bölümünden yenilenir. Reklam erişimi için TikTok for Business uygulaması ve reklam hesabı izni gerekir.",
         "x": "X bağlantısında reklam kampanyası senkronizasyonu henüz desteklenmiyor.",
     }.get(platform_code, "Bu platformda reklam kampanyası senkronizasyonu henüz desteklenmiyor.")

@@ -67,10 +67,18 @@ def sync_tiktok():
     from core.tasks.v2_platform_sync import sync_v2_platform_account_ads
 
     results = []
-    for account in PlatformAccount.objects.filter(is_active=True, platform__code="tiktok"):
+    for account in PlatformAccount.objects.filter(
+        is_active=True, platform__code="tiktok"
+    ).select_related("connection"):
         if is_demo_object(account):
             continue
-        async_result = sync_v2_platform_account_ads.delay(account.id, "OWN")
+        source = (account.connection.extra_data or {}).get("source") if account.connection_id else None
+        if source == "tiktok_oauth":
+            async_result = sync_organic_account.delay(account.id)
+        elif source == "tiktok_ads_oauth":
+            async_result = sync_v2_platform_account_ads.delay(account.id, "OWN")
+        else:
+            continue
         results.append({"account_id": account.id, "task_id": async_result.id})
     return results
 
@@ -78,11 +86,11 @@ def sync_tiktok():
 @shared_task(name="core.tasks.sync_tasks.sync_organic_account")
 def sync_organic_account(account_id):
     from core.models import PlatformAccount
-    from core.services.organic_content_service import sync_instagram_organic_content
+    from core.services.organic_content_service import sync_organic_content
     from core.services.sync_policy import policy_for_user
 
     account = PlatformAccount.objects.select_related("platform", "connection", "user").filter(
-        id=account_id, is_active=True, platform__code="instagram"
+        id=account_id, is_active=True, platform__code__in=["instagram", "tiktok"]
     ).first()
     if not account:
         return {"success": False, "skipped": True, "reason": "account_not_found"}
@@ -91,7 +99,7 @@ def sync_organic_account(account_id):
     policy = policy_for_user(account.user)
     if not policy:
         return {"success": False, "skipped": True, "reason": "active_subscription_required"}
-    return sync_instagram_organic_content(account, limit=policy.max_records)
+    return sync_organic_content(account, limit=policy.max_records)
 
 
 @shared_task(name="core.tasks.sync_tasks.sync_due_organic_accounts")
@@ -100,9 +108,11 @@ def sync_due_organic_accounts():
     from core.services.sync_policy import acquire_sync_lock, is_sync_due
 
     queued = []
-    accounts = PlatformAccount.objects.filter(is_active=True, platform__code="instagram").select_related("user")
+    accounts = PlatformAccount.objects.filter(is_active=True, platform__code__in=["instagram", "tiktok"]).select_related("user", "platform", "connection")
     for account in accounts:
         if is_demo_object(account):
+            continue
+        if account.platform.code == "tiktok" and (not account.connection_id or (account.connection.extra_data or {}).get("source") != "tiktok_oauth"):
             continue
         last_sync = (account.extra_data or {}).get("organic_last_sync_at")
         from django.utils.dateparse import parse_datetime

@@ -850,7 +850,7 @@ def current_campaigns(queryset):
 
 def build_platform_account_payload(user, platform_code="", accounts_queryset=None):
     from core.tasks.v2_platform_sync import normalize_platform_code
-    from core.services.ad_sync_capabilities import SUPPORTED_AD_SYNC_PLATFORMS, ad_sync_unavailable_message
+    from core.services.ad_sync_capabilities import supports_account_ad_sync, ad_sync_unavailable_message
     platforms = Platform.objects.filter(is_active=True).order_by("name")
     data = []
     for platform in platforms:
@@ -864,7 +864,7 @@ def build_platform_account_payload(user, platform_code="", accounts_queryset=Non
         account_items = []
         for account in accounts:
             code = normalize_platform_code(platform)
-            supported = code in SUPPORTED_AD_SYNC_PLATFORMS
+            supported = supports_account_ad_sync(account)
             from django.db.models import Exists, OuterRef
             campaigns = Campaign.objects.filter(platform_account=account).filter(Exists(
                 CampaignMetricHistory.objects.filter(campaign_id=OuterRef("pk"))))

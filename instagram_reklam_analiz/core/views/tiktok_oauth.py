@@ -101,7 +101,8 @@ def callback(request):
 @require_GET
 @never_cache
 def report(request, account_id):
-    account = get_object_or_404(platform_accounts_for_request(request), pk=account_id, platform__code="tiktok")
+    account = get_object_or_404(platform_accounts_for_request(request), pk=account_id, platform__code="tiktok",
+                              connection__extra_data__source="tiktok_oauth")
     cursor = request.GET.get("cursor")
     if cursor is not None and (not cursor.isascii() or not cursor.isdigit() or len(cursor) > 18):
         return HttpResponseBadRequest("Geçersiz video sayfası.")

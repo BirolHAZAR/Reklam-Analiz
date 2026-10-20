@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -59,11 +60,13 @@ def account_connection_context(request):
                 if application else reverse("admin:core_integrationapplication_add") + f"?provider={code}"
             )
         providers.append({"code": code, "name": name, "ready": ready, "setup_error": setup_error, "settings_url": settings_url})
-    accounts = list(platform_accounts_for_request(request).filter(platform__code__in=api.PROVIDERS).select_related("platform", "connection", "agency_client"))
+    accounts = list(platform_accounts_for_request(request).filter(platform__code__in=api.AD_ACCOUNT_PLATFORM_CODES)
+        .filter(~Q(platform__code="tiktok") | Q(connection__extra_data__source="tiktok_ads_oauth"))
+        .select_related("platform", "connection", "agency_client"))
     for account in accounts:
         connection = account.connection
         account.ads_authorized = bool(
-            connection and (connection.extra_data or {}).get("source") == "ads_oauth"
+            connection and (connection.extra_data or {}).get("source") in {"ads_oauth", "tiktok_ads_oauth"}
             and account.is_active and connection.is_active and connection.status == "active"
             and (not connection.is_token_expired or (account.platform.code == "google_ads" and connection.refresh_token))
         )
@@ -106,24 +109,26 @@ def callback(request, provider):
     if not flow or flow.get("user") != request.user.pk or time.time() - flow["created"] > 600 or not secrets.compare_digest(flow["state"], request.GET.get("state", "")):
         messages.error(request, "Bağlantı isteği geçersiz veya süresi dolmuş. Yeniden başlatın.")
         return redirect("platform_connections")
-    if request.GET.get("error") or not request.GET.get("code"):
+    code = request.GET.get("auth_code") if provider == "tiktok_ads" else request.GET.get("code")
+    if request.GET.get("error") or not code:
         messages.warning(request, "Platform izni verilmedi; hesap bağlanmadı.")
         return redirect("platform_connections")
     try:
         client = _client(request, flow.get("client"))
-        token = api.exchange_code(provider, request.GET["code"])
+        token = api.exchange_code(provider, code)
         choices = api.discover_accounts(provider, token["access_token"])
         if not choices:
             raise api.IntegrationError("Erişilebilir YouTube kanalı bulunamadı. Google hesabınızın yetkisini kontrol edin." if provider in api.GOOGLE_READ_PROVIDERS else "Erişilebilir aktif reklam hesabı bulunamadı. Platformdaki reklam hesabı yetkinizi kontrol edin.")
-        platform, _ = Platform.objects.get_or_create(code=provider, defaults={"name": api.CONNECTION_PROVIDERS[provider], "is_active": True})
+        platform, _ = Platform.objects.get_or_create(code=api.provider_platform_code(provider), defaults={"name": api.CONNECTION_PROVIDERS[provider], "is_active": True})
         connection = PlatformConnection.objects.create(
             user=request.user, platform=platform, name=api.CONNECTION_PROVIDERS[provider],
             access_token=token["access_token"], refresh_token=token.get("refresh_token", ""),
-            token_expiry=None if provider == "facebook" and token.get("expires_in") is None else timezone.now() + timedelta(seconds=int(token.get("expires_in", 3600))),
+            token_expiry=None if provider in {"facebook", "tiktok_ads"} and token.get("expires_in") is None else timezone.now() + timedelta(seconds=int(token.get("expires_in", 3600))),
             scopes=token.get("scope", "").split(), is_active=False, status="disconnected",
-            extra_data={"source": "google_read_oauth" if provider in api.GOOGLE_READ_PROVIDERS else "ads_oauth", "pending": True, "choices": choices,
+            extra_data={"source": api.provider_source(provider), "pending": True, "choices": choices,
                         **{key: token[key] for key in ("meta_user_id", "meta_app_id") if provider == "facebook" and key in token},
                         **({"linkedin_client_id": token["linkedin_client_id"]} if provider == "linkedin" else {}),
+                        **({"tiktok_ads_app_id": token["tiktok_ads_app_id"]} if provider == "tiktok_ads" else {}),
                         "agency_client": client.pk if client else None},
         )
         request.session[f"ads_pending:{provider}"] = connection.pk
@@ -139,8 +144,8 @@ def callback(request, provider):
 def select_accounts(request, provider):
     if provider not in api.CONNECTION_PROVIDERS:
         raise Http404
-    connection = get_object_or_404(PlatformConnection, pk=request.session.get(f"ads_pending:{provider}"), user=request.user, platform__code=provider)
-    if not connection.extra_data.get("pending") or connection.created_at < timezone.now() - timedelta(minutes=15):
+    connection = get_object_or_404(PlatformConnection, pk=request.session.get(f"ads_pending:{provider}"), user=request.user, platform__code=api.provider_platform_code(provider))
+    if not connection.extra_data.get("pending") or connection.extra_data.get("source") != api.provider_source(provider) or connection.created_at < timezone.now() - timedelta(minutes=15):
         messages.error(request, "Hesap seçiminin süresi doldu. Bağlantıyı yeniden başlatın.")
         return redirect("platform_connections")
     choices = [dict(row) for row in connection.extra_data.get("choices", [])]
@@ -173,13 +178,14 @@ def select_accounts(request, provider):
                 connection = PlatformConnection.objects.select_for_update().get(pk=connection.pk)
                 if not connection.extra_data.get("pending"):
                     raise api.IntegrationError("Bu hesap seçimi zaten tamamlandı.")
-                ensure_platform_account_capacity(request.user, [(provider, cid) for cid in selected], organization=client.organization if client else None)
+                ensure_platform_account_capacity(request.user, [(api.provider_platform_code(provider), cid) for cid in selected], organization=client.organization if client else None)
                 connection.is_active, connection.status = True, "active"
-                source = "google_read_oauth" if provider in api.GOOGLE_READ_PROVIDERS else "ads_oauth"
+                source = api.provider_source(provider)
                 connection.extra_data = {"source": source, "agency_client": client.pk if client else None,
                     **{key: connection.extra_data[key] for key in ("meta_user_id", "meta_app_id")
                        if provider == "facebook" and key in connection.extra_data},
-                    **({"linkedin_client_id": connection.extra_data.get("linkedin_client_id")} if provider == "linkedin" else {})}
+                    **({"linkedin_client_id": connection.extra_data.get("linkedin_client_id")} if provider == "linkedin" else {}),
+                    **({"tiktok_ads_app_id": connection.extra_data.get("tiktok_ads_app_id")} if provider == "tiktok_ads" else {})}
                 connection.save()
                 replaced_connections = set()
                 for cid in sorted(selected):
@@ -213,8 +219,8 @@ def account_campaigns(request, account_id=None, campaign_id=None):
     from urllib.parse import urlencode
     from core.services.campaign_reporting import decorate_campaign, summarize_metrics
     accounts = platform_accounts_for_request(request).select_related("platform", "connection").filter(
-        is_active=True, platform__code__in=api.PROVIDERS,
-    ).order_by("platform__name", "account_name", "pk")
+        is_active=True, platform__code__in=api.AD_ACCOUNT_PLATFORM_CODES,
+    ).filter(~Q(platform__code="tiktok") | Q(connection__extra_data__source="tiktok_ads_oauth")).order_by("platform__name", "account_name", "pk")
     selected_id = account_id if account_id is not None else request.GET.get("account")
     account = get_object_or_404(accounts, pk=selected_id) if str(selected_id or "").isdigit() else None
     if selected_id and account is None:

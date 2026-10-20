@@ -105,7 +105,7 @@
                                 </button>
                             </form>
                             {% endif %}
-                            <form method="post" action="{% url 'organic_content_delete' post.id %}" class="post-actions" onsubmit="return confirm('Bu içerik yalnızca yerel Organik İçerik Merkezi kaydından silinsin mi? Instagram gönderisi silinmeyecek.');">
+                            <form method="post" action="{% url 'organic_content_delete' post.id %}" class="post-actions" onsubmit="return confirm('Bu içerik yalnızca yerel Organik İçerik Merkezi kaydından silinsin mi? Platformdaki gönderi silinmeyecek.');">
                                 {% csrf_token %}
                                 <button class="btn btn-sm post-delete-btn" type="submit"><i class="fas fa-trash me-1"></i>Sil</button>
                             </form>

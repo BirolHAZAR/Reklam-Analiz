@@ -191,6 +191,18 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-6 col-lg-4">
+            <div class="platform-card card h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="platform-icon tiktok me-3"><i class="fab fa-tiktok"></i></div>
+                        <div><h5 class="card-title fw-bold mb-0">TikTok Ads</h5><small class="text-muted">Reklam kampanyaları ve performans</small></div>
+                    </div>
+                    <p class="card-text small text-muted mb-3">TikTok for Business hesabınızla izin verip reklam hesabınızı seçin. Kampanya ve reklam performansını bu bağlantıdan takip edin.</p>
+                    {% for provider in providers %}{% if provider.code == 'tiktok_ads' %}{% include 'platforms/account_connect_form.html' %}{% endif %}{% endfor %}
+                </div>
+            </div>
+        </div>
         <!-- Google Ads -->
         <div class="col-md-6 col-lg-4">
             <div class="platform-card card h-100">
@@ -227,7 +239,7 @@
                     </div>
                     <p class="card-text small text-muted mb-3">İzin ekranıyla profilinizi ve herkese açık videolarınızı bağlayın. Reklam hesapları ayrı TikTok for Business bağlantısı gerektirir.</p>
                     {% include 'platforms/account_connect_form.html' with provider=tiktok_provider %}
-                    {% for account in platform_accounts %}{% if account.platform.code == 'tiktok' %}<p class="mt-2"><a href="{% url 'tiktok_report' account.pk %}">{{ account.display_name }} istatistikleri</a></p>{% endif %}{% endfor %}
+                    {% for account in platform_accounts %}{% if account.platform.code == 'tiktok' and account.connection.extra_data.source == 'tiktok_oauth' %}<p class="mt-2"><a href="{% url 'tiktok_report' account.pk %}">{{ account.display_name }} istatistikleri</a></p>{% endif %}{% endfor %}
                 </div>
             </div>
         </div>

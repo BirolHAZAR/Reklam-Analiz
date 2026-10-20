@@ -112,11 +112,16 @@ def _is_placeholder_token(token):
 
 
 def _should_skip_ad_sync(account, platform_code):
+    if is_demo_object(account):
+        return "demo_account"
+
     if platform_code not in SUPPORTED_AD_SYNC_PLATFORMS:
         return "unsupported_for_ad_sync"
 
-    if is_demo_object(account):
-        return "demo_account"
+    if platform_code == "tiktok":
+        connection = getattr(account, "connection", None)
+        if not connection or not connection.is_active or (connection.extra_data or {}).get("source") != "tiktok_ads_oauth":
+            return "unsupported_for_ad_sync"
 
     if platform_code in {"google_ads", "facebook", "linkedin"}:
         connection = getattr(account, "connection", None)
@@ -198,6 +203,9 @@ def sync_v2_platform_account_ads(self, account_id, source_type="OWN", days_back=
         return _skip_result(account, platform_code, source_type, skip_reason)
 
     try:
+        if platform_code == "tiktok":
+            from core.services.tiktok_campaign_sync import sync_tiktok_campaigns
+            return sync_tiktok_campaigns(account, days_back, policy.max_records, source_type)
         if platform_code == "linkedin":
             from core.services.linkedin_campaign_sync import sync_linkedin_campaigns
             return sync_linkedin_campaigns(account, days_back, policy.max_records, source_type)

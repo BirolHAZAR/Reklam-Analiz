@@ -347,9 +347,9 @@ def api_campaign_ai_pdf(request, campaign_id):
 def api_campaign_panel_sync_account(request, account_id):
     account = get_object_or_404(platform_accounts_for_request(request, active_only=True), id=account_id)
     from core.tasks.v2_platform_sync import normalize_platform_code
-    from core.services.ad_sync_capabilities import SUPPORTED_AD_SYNC_PLATFORMS, ad_sync_unavailable_message
+    from core.services.ad_sync_capabilities import supports_account_ad_sync, ad_sync_unavailable_message
     platform_code = normalize_platform_code(account.platform)
-    if platform_code not in SUPPORTED_AD_SYNC_PLATFORMS:
+    if not supports_account_ad_sync(account):
         return JsonResponse({"success": False, "error": "ad_sync_unavailable",
             "message": ad_sync_unavailable_message(platform_code)}, status=400)
     days_back = request.POST.get("days_back") or request.GET.get("days_back") or 365

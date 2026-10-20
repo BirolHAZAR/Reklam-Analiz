@@ -18,7 +18,8 @@ from core.services.cache_service import CacheService
 from core.services.agency_scope import get_agency_scope, platform_accounts_for_request
 from core.services.organic_content_service import (
     decorate_posts,
-    sync_instagram_organic_content,
+    sync_organic_content,
+    ORGANIC_SYNC_SOURCES,
 )
 from core.services.organic_publish import publish_post
 from core.services.organic_insights import summarize_snapshots
@@ -54,6 +55,7 @@ def _user_connections(user):
     return (
         PlatformConnection.objects.select_related("platform")
         .filter(user=user, is_active=True, platform__code__in=SUPPORTED_ORGANIC_PLATFORM_CODES)
+        .exclude(platform__code="tiktok", extra_data__source="tiktok_ads_oauth")
         .order_by("platform__name", "name")
     )
 
@@ -83,6 +85,7 @@ def _accessible_platform_accounts(user):
         )
         .filter(filters, is_active=True)
         .filter(platform__code__in=SUPPORTED_ORGANIC_PLATFORM_CODES)
+        .filter(~Q(platform__code="tiktok") | Q(connection__extra_data__source="tiktok_oauth"))
         .distinct()
         .order_by("agency_client__name", "platform__name", "account_name", "account_id")
     )
@@ -96,6 +99,7 @@ def _scoped_platform_accounts(request):
             "agency_client", "agency_client__organization",
         )
         .filter(platform__code__in=SUPPORTED_ORGANIC_PLATFORM_CODES)
+        .filter(~Q(platform__code="tiktok") | Q(connection__extra_data__source="tiktok_oauth"))
         .distinct()
         .order_by("agency_client__name", "platform__name", "account_name", "account_id")
     )
@@ -125,7 +129,7 @@ def organic_content_center(request):
     selected_platform = request.GET.get("platform", "").strip()
     selected_type = request.GET.get("type", "").strip()
     version = CacheService.get_version("organic_content", request.user.id)
-    cache_parts = ("user", request.user.id, "scope", agency_scope.cache_key, "source", "platform-sync-v1", "metrics", "insights-v2", "period", selected_period, "start", start_date.isoformat(), "end", end_date.isoformat(), "platform", selected_platform or "all", "type", selected_type or "all")
+    cache_parts = ("user", request.user.id, "scope", agency_scope.cache_key, "source", "platform-sync-v2", "metrics", "insights-v2", "period", selected_period, "start", start_date.isoformat(), "end", end_date.isoformat(), "platform", selected_platform or "all", "type", selected_type or "all")
     cached = CacheService.get("organic_content", *cache_parts, version=version)
     if cached is not None:
         cached = dict(cached)
@@ -152,7 +156,7 @@ def organic_content_center(request):
             Q(platform_account__platform__code__in=SUPPORTED_ORGANIC_PLATFORM_CODES)
             | Q(platform_connection__platform__code__in=SUPPORTED_ORGANIC_PLATFORM_CODES)
         )
-        .filter(raw_data__source="instagram_media_sync")
+        .filter(raw_data__source__in=ORGANIC_SYNC_SOURCES)
         .distinct()
         .order_by("-posted_at", "-created_at")
     )
@@ -247,14 +251,15 @@ def organic_content_refresh(request):
     if not manual_sync_allowed(request.user, "organic"):
         return JsonResponse({"success": False, "message": "Paketiniz manuel post yenilemeye izin vermiyor."}, status=403)
     accounts = list(_scoped_platform_accounts(request))
+    policy = policy_for_user(request.user)
     results = []
     for account in accounts:
-        if getattr(account.platform, "code", "") != "instagram":
+        if getattr(account.platform, "code", "") not in {"instagram", "tiktok"}:
             continue
         extra_data = account.extra_data or {}
         if extra_data.get("demo") or str(account.account_id).startswith("demo-"):
             continue
-        result = sync_instagram_organic_content(account)
+        result = sync_organic_content(account, limit=policy.max_records if policy else 50)
         results.append({"account_id": account.id, "account": account.account_name or account.account_id, **result})
 
     CacheService.bump_version("reports_center", request.user.id)
@@ -272,7 +277,7 @@ def organic_content_refresh(request):
             "metrics": sum(row.get("metrics", 0) for row in successful),
             "insights_unavailable": missing_insights,
         })
-    error = next((row.get("error") for row in results if row.get("error")), "Senkronize edilecek gerçek Instagram hesabı bulunamadı.")
+    error = next((row.get("error") for row in results if row.get("error")), "Senkronize edilecek gerçek Instagram veya TikTok hesabı bulunamadı.")
     return JsonResponse({"success": False, "message": error}, status=400)
 
 
@@ -289,14 +294,14 @@ def organic_content_delete(request, post_id):
     post = get_object_or_404(
         SocialPost.objects.filter(access_filter),
         id=post_id,
-        raw_data__source="instagram_media_sync",
+        raw_data__source__in=ORGANIC_SYNC_SOURCES,
     )
     post.delete()
     CacheService.bump_version("organic_content", request.user.id)
     CacheService.bump_version("reports_center", request.user.id)
     messages.success(
         request,
-        "İçerik yerel merkezden silindi. Instagram'daki gerçek gönderiye dokunulmadı.",
+        "İçerik yerel merkezden silindi. Platformdaki gerçek gönderiye dokunulmadı.",
     )
     return redirect("organic_content_center")
 
@@ -382,7 +387,7 @@ def organic_connections(request):
     organic_post_counts = (
         SocialPost.objects.filter(
             platform_account_id__in=account_ids,
-            raw_data__source="instagram_media_sync",
+            raw_data__source__in=ORGANIC_SYNC_SOURCES,
         )
         .values("platform_account_id")
         .annotate(total=Count("id"), latest=Max("posted_at"))
@@ -411,7 +416,8 @@ def organic_content_sync_account(request, account_id):
             return JsonResponse({"success": False, "message": message}, status=403)
         messages.error(request, message)
         return redirect("organic_connections")
-    result = sync_instagram_organic_content(account)
+    policy = policy_for_user(request.user)
+    result = sync_organic_content(account, limit=policy.max_records if policy else 50)
     CacheService.bump_version("reports_center", request.user.id)
     CacheService.bump_version("organic_content", request.user.id)
     if result.get("success"):

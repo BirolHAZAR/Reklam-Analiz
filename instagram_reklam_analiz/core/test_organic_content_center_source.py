@@ -10,8 +10,8 @@ class OrganicContentCenterSourceTests(SimpleTestCase):
         source = (
             Path(settings.BASE_DIR) / "core" / "views" / "social_content.py"
         ).read_text(encoding="utf-8")
-        self.assertIn('.filter(raw_data__source="instagram_media_sync")', source)
-        self.assertIn('"source", "platform-sync-v1"', source)
+        self.assertIn('.filter(raw_data__source__in=ORGANIC_SYNC_SOURCES)', source)
+        self.assertIn('"source", "platform-sync-v2"', source)
         refresh_body = source.split(
             "def organic_content_refresh(request):", 1
         )[1].split("def organic_content_delete", 1)[0]
@@ -30,4 +30,4 @@ class OrganicContentCenterSourceTests(SimpleTestCase):
             / "organic_content_center.html"
         ).read_text(encoding="utf-8")
         self.assertIn("organic_content_delete", template)
-        self.assertIn("Instagram gönderisi silinmeyecek", template)
+        self.assertIn("Platformdaki gönderi silinmeyecek", template)

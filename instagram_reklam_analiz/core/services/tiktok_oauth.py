@@ -15,7 +15,7 @@ API = "https://open.tiktokapis.com/v2"
 PROFILE_FIELDS = ("open_id", "display_name", "username", "bio_description",
                   "follower_count", "following_count", "likes_count", "video_count")
 VIDEO_FIELDS = ("id", "title", "video_description", "create_time", "view_count",
-                "like_count", "comment_count", "share_count")
+                "like_count", "comment_count", "share_count", "cover_image_url", "share_url")
 
 
 def request(method, path, **kwargs):
@@ -87,8 +87,9 @@ def videos(access_token, cursor=None):
     data = payload.get("data")
     if not isinstance(data, dict) or not isinstance(data.get("videos"), list):
         raise IntegrationError("TikTok video listesi okunamadı.")
-    rows = [{k: row.get(k) for k in VIDEO_FIELDS}
-            for row in data["videos"] if isinstance(row, dict)]
+    if any(not isinstance(row, dict) for row in data["videos"]) or not isinstance(data.get("has_more"), bool):
+        raise IntegrationError("TikTok video listesi doğrulanamadı.")
+    rows = [{k: row.get(k) for k in VIDEO_FIELDS} for row in data["videos"]]
     next_cursor = data.get("cursor")
     if data.get("has_more") and (not isinstance(next_cursor, int) or isinstance(next_cursor, bool) or next_cursor < 0):
         raise IntegrationError("TikTok video sayfalaması doğrulanamadı.")
@@ -102,6 +103,9 @@ def access_token(account):
             or not account.is_active or not connection.is_active or connection.status != "active"
             or (connection.extra_data or {}).get("source") != "tiktok_oauth"):
         raise IntegrationError("TikTok hesabını yeniden bağlayın.")
+    if ((connection.extra_data or {}).get("profile", {}).get("open_id") != account.account_id
+            or not set(SCOPES).issubset(connection.scopes or [])):
+        raise IntegrationError("TikTok hesap kimliği veya okuma izinleri doğrulanamadı. Yeniden bağlanın.")
     key, _, _ = configuration("tiktok")
     if (connection.extra_data or {}).get("client_key") != key:
         raise IntegrationError("TikTok uygulama ayarı değişmiş. Hesabı yeniden bağlayın.")

@@ -162,6 +162,14 @@ def _validate_connection(connection):
         visible = {row["id"] for row in accounts}
         linked = set(connection.accounts.filter(is_active=True).values_list("account_id", flat=True))
         return {"valid": bool(linked) and linked <= visible, "expires_at": connection.token_expiry, "validation": "live_probe"}
+    if connection.platform.code == "tiktok" and (connection.extra_data or {}).get("source") == "tiktok_ads_oauth":
+        from core.services.tiktok_ads import account_token, discover_accounts
+        account = connection.accounts.filter(user=connection.user, is_active=True).first()
+        if account is None:
+            return {"valid": False, "expires_at": connection.token_expiry}
+        visible = {row["id"] for row in discover_accounts(account_token(account))}
+        linked = set(connection.accounts.filter(is_active=True).values_list("account_id", flat=True))
+        return {"valid": linked <= visible, "expires_at": connection.token_expiry, "validation": "live_probe"}
     if connection.platform.code in {"youtube", "tiktok", "linkedin", "x"}:
         from core.views.hesap_ekle import _resolve_token_platform_accounts
 

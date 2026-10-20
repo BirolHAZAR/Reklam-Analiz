@@ -163,6 +163,17 @@ class TikTokOAuthTests(TestCase):
         with self.assertRaises(IntegrationError):
             save_account(self.user, brand, self.token, self.profile)
 
+    def test_organic_token_cannot_be_reused_after_subject_or_scope_change(self):
+        account = save_account(self.user, None, self.token, self.profile)
+        account.account_id = "changed-subject"
+        with self.assertRaises(IntegrationError):
+            access_token(account)
+        account.account_id = self.token["open_id"]
+        account.connection.scopes = ["user.info.basic"]
+        account.connection.save()
+        with self.assertRaises(IntegrationError):
+            access_token(account)
+
     @patch("core.services.tiktok_oauth.profile")
     @patch("core.services.tiktok_oauth.token_request")
     def test_health_check_refreshes_before_generic_token_probe(self, refresh, profile):
