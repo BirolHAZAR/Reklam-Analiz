@@ -29,6 +29,20 @@ class CampaignPanelCsrfTests(TestCase):
                         f"{settings.CSRF_COOKIE_NAME}={'a' * 32}; {settings.CSRF_COOKIE_NAME}={'b' * 32}")
 
     @patch("core.views.campaign_panel.sync_platform_account_ads")
+    def test_staff_manual_sync_without_personal_plan_does_not_open_regular_user_access(self, task):
+        from core.models import UserSubscription
+        UserSubscription.objects.filter(user=self.user).delete()
+        url = reverse("api_campaign_panel_sync_account", args=[self.account.pk])
+        response = self.browser.post(url, HTTP_COOKIE=self.cookies, HTTP_X_CSRFTOKEN="b" * 32)
+        self.assertEqual(response.status_code, 402)
+        task.delay.assert_not_called()
+        self.user.is_staff = True
+        self.user.save(update_fields=["is_staff"])
+        response = self.browser.post(url, HTTP_COOKIE=self.cookies, HTTP_X_CSRFTOKEN="b" * 32)
+        self.assertEqual(response.status_code, 200)
+        task.delay.assert_called_once()
+
+    @patch("core.views.campaign_panel.sync_platform_account_ads")
     def test_rendered_token_works_with_duplicate_csrf_cookies(self, task):
         page = self.browser.get(reverse("campaign_panel"), HTTP_COOKIE=self.cookies)
         self.assertEqual(page.status_code, 200, str(page.headers))
@@ -78,11 +92,11 @@ class CampaignPanelCsrfTests(TestCase):
         response = self.browser.post(reverse("api_campaign_panel_sync_account", args=[self.account.pk]),
             HTTP_COOKIE=self.cookies, HTTP_X_CSRFTOKEN="b" * 32)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["error"], "meta_ad_account_required")
+        self.assertEqual(response.json()["error"], "ad_sync_unavailable")
         self.assertFalse(PlatformSyncJob.objects.exists())
         task.delay.assert_not_called()
 
-    def test_instagram_sources_keep_canonical_ids_and_exclude_other_users(self):
+    def test_meta_campaign_sources_are_not_repeated_under_instagram(self):
         from core.models import PlatformConnection
         from core.services.campaign_panel_service import build_platform_account_payload
         instagram, _ = Platform.objects.get_or_create(code="instagram", defaults={"name": "Instagram"})
@@ -98,7 +112,37 @@ class CampaignPanelCsrfTests(TestCase):
             account_id="foreign", access_token="test-token")
         payload = build_platform_account_payload(self.user, platform_code="instagram")[0]["accounts"][0]
         self.assertTrue(payload["organic_instagram"])
-        self.assertEqual({s["id"] for s in payload["ad_sources"]}, {s.pk for s in sources})
+        self.assertEqual(payload["ad_sources"], [])
+        self.assertFalse(payload["ad_sync_supported"])
         scoped = build_platform_account_payload(self.user, platform_code="instagram",
             accounts_queryset=PlatformAccount.objects.filter(pk__in=[profile.pk, sources[0].pk]))
-        self.assertEqual([s["id"] for s in scoped[0]["accounts"][0]["ad_sources"]], [sources[0].pk])
+        self.assertEqual(scoped[0]["accounts"][0]["ad_sources"], [])
+
+    @patch("core.views.campaign_panel.sync_platform_account_ads")
+    def test_unsupported_campaign_connections_do_not_create_failed_jobs(self, task):
+        for code in ("instagram", "youtube", "tiktok", "x"):
+            with self.subTest(code=code):
+                platform, _ = Platform.objects.get_or_create(code=code, defaults={"name": code})
+                self.account.platform = platform
+                self.account.save(update_fields=["platform"])
+                response = self.browser.post(reverse("api_campaign_panel_sync_account", args=[self.account.pk]),
+                    HTTP_COOKIE=self.cookies, HTTP_X_CSRFTOKEN="b" * 32)
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.json()["error"], "ad_sync_unavailable")
+                self.assertNotIn("unsupported_for_ad_sync", response.json()["message"])
+        self.assertFalse(PlatformSyncJob.objects.exists())
+        task.delay.assert_not_called()
+
+    def test_legacy_instagram_campaigns_are_hidden_from_list_and_counts(self):
+        from core.models import Campaign
+        from core.services.campaign_panel_service import build_campaign_list, build_platform_account_payload
+        platform, _ = Platform.objects.get_or_create(code="instagram", defaults={"name": "Instagram"})
+        self.account.platform = platform
+        self.account.save(update_fields=["platform"])
+        Campaign.objects.create(user=self.user, platform_account=self.account,
+            platform_campaign_id="meta-duplicate", name="Duplicate", status="ACTIVE")
+        self.assertEqual(build_campaign_list(self.user, self.account), [])
+        payload = build_platform_account_payload(self.user, platform_code="instagram")[0]["accounts"][0]
+        self.assertEqual(payload["campaign_count"], 0)
+        self.assertEqual(payload["historical_campaign_count"], 0)
+        self.assertFalse(payload["ad_sync_supported"])

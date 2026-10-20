@@ -84,7 +84,7 @@ class ActiveSyncTests(TestCase):
         self.assertEqual(len(build_campaign_list(self.user,self.account)), 2)
         self.assertEqual(build_campaign_list(self.user,self.account,status="INACTIVE")[0]["status_label"], "Tamamlandı")
 
-    def test_google_sync_keeps_empty_active_campaign_and_active_ad_without_metrics(self):
+    def test_google_sync_does_not_store_campaign_or_ad_without_metrics(self):
         from core.tasks.v2_platform_sync import sync_v2_platform_account_ads
         old = Campaign.objects.create(user=self.user, platform_account=self.account,
             platform_campaign_id="999", name="Old", status="ACTIVE")
@@ -105,12 +105,10 @@ class ActiveSyncTests(TestCase):
              patch("core.services.sync_policy.policy_for_user",return_value=SimpleNamespace(history_days=30,max_records=100)), \
              patch("core.tasks.admin_ops.generate_octo_tasks.apply_async"):
             sync_v2_platform_account_ads.run(self.account.pk,"OWN",30,retry_errors=False)
-        self.assertEqual(set(Campaign.objects.filter(is_active=True).values_list("platform_campaign_id",flat=True)), {"10","11"})
-        self.assertEqual(set(Ad.objects.values_list("platform_ad_id",flat=True)), {"30"})
+        self.assertFalse(Campaign.objects.exists())
+        self.assertFalse(Ad.objects.exists())
         self.assertFalse(AdMetricHistory.objects.exists())
-        old.refresh_from_db()
-        self.assertFalse(old.is_active)
-        self.assertEqual(old.status,"ACTIVE")
+        self.assertFalse(Campaign.objects.filter(pk=old.pk).exists())
 
     def test_failed_inventory_cannot_mark_existing_campaign_inactive(self):
         from core.tasks.v2_platform_sync import sync_v2_platform_account_ads

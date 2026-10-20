@@ -26,14 +26,47 @@ def _distinct_actions(items):
 
 
 class FacebookAPI(BasePlatformAPI):
-    def get_campaigns(self):
+    def get_report_data(self, since_days=30):
+        inventory = self.get_campaigns(include_history=True)
+        metrics = self.get_campaign_metrics(since_days, inventory, include_history=True)
+        measured_ids = {str(row["platform_campaign_id"]) for row in metrics}
+        ads = self.get_ads(since_days, [row for row in inventory if str(row["id"]) in measured_ids],
+                           include_history=True)
+        return inventory, ads, metrics
+
+    def get_campaign_metrics(self, since_days=30, campaign_inventory=None, include_history=False):
+        campaigns = self.get_campaigns() if campaign_inventory is None else campaign_inventory
+        ids = {str(row["id"]) for row in campaigns}
+        if not ids:
+            return []
+        end = account_today(self.account)
+        start = end - timedelta(days=max(1, min(int(since_days), 365)) - 1)
+        result = []
+        while start <= end:
+            stop = min(start + timedelta(days=29), end)
+            rows = meta_rows(account_token(self.account), f"{self.account.account_id}/insights", {
+                "level": "campaign", "time_increment": 1,
+                "fields": "campaign_id,date_start,impressions,reach,clicks,spend,actions,action_values,account_currency",
+                "time_range": json.dumps({"since": start.isoformat(), "until": stop.isoformat()}),
+                **({} if include_history else {"filtering": json.dumps([{"field": "campaign.id", "operator": "IN", "value": sorted(ids)}])}),
+            })
+            result.extend({**row, "platform_campaign_id": str(row["campaign_id"]), "date": row["date_start"],
+                "actions": _distinct_actions(row.get("actions")),
+                "action_values": _distinct_actions(row.get("action_values")),
+                "allow_estimated_conversion_value": False,
+                "currency": row.get("account_currency") or self.account.extra_data.get("currency", "TRY")}
+                for row in rows if str(row.get("campaign_id")) in ids)
+            start = stop + timedelta(days=1)
+        return result
+
+    def get_campaigns(self, include_history=False):
         rows = meta_rows(account_token(self.account), f"{self.account.account_id}/campaigns", {
             "fields": "id,name,status,effective_status,objective,daily_budget,lifetime_budget,start_time,stop_time",
-            "effective_status": json.dumps(["ACTIVE"]),
+            **({} if include_history else {"effective_status": json.dumps(["ACTIVE"])}),
         })
-        return [row for row in rows if is_current_campaign(row, today=account_today(self.account))]
+        return rows if include_history else [row for row in rows if is_current_campaign(row, today=account_today(self.account))]
 
-    def get_ads(self, since_days=30, campaign_inventory=None):
+    def get_ads(self, since_days=30, campaign_inventory=None, include_history=False):
         end = account_today(self.account)
         start = end - timedelta(days=max(1, min(int(since_days), 365)) - 1)
         token = account_token(self.account)
@@ -43,12 +76,12 @@ class FacebookAPI(BasePlatformAPI):
             return []
         metadata = {row["id"]: row for row in meta_rows(token, f"{self.account.account_id}/ads", {
             "fields": "id,name,effective_status,campaign{id,name,status,objective,start_time,stop_time},adset{id,name,status,effective_status,daily_budget,lifetime_budget,start_time,end_time},creative{id,name,title,body,thumbnail_url,object_url,call_to_action_type,image_url}",
-            "effective_status": json.dumps(["ACTIVE"]),
+            **({} if include_history else {"effective_status": json.dumps(["ACTIVE"])}),
             "filtering": json.dumps([{"field": "campaign.id", "operator": "IN", "value": sorted(campaign_ids)}]),
-        }) if row.get("effective_status") == "ACTIVE"
+        }) if (include_history or row.get("effective_status") == "ACTIVE")
             and str((row.get("campaign") or {}).get("id")) in campaign_ids
-            and is_current_campaign(row.get("campaign") or {}, today=end)
-            and is_current_campaign(row.get("adset") or {}, today=end)}
+            and (include_history or is_current_campaign(row.get("campaign") or {}, today=end))
+            and (include_history or is_current_campaign(row.get("adset") or {}, today=end))}
         if not metadata:
             return []
         def insights_between(window_start, window_end):

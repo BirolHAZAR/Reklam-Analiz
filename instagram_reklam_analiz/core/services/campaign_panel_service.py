@@ -841,14 +841,6 @@ def _openai_campaign_text(report_type, campaign, metrics, findings, actions, cre
         raise RuntimeError(f"Gerçek kampanya AI raporu tamamlanamadı: {exc}") from exc
 
 
-def instagram_ad_sources(account, accounts_queryset=None):
-    accounts = accounts_queryset if accounts_queryset is not None else PlatformAccount.objects.all()
-    return accounts.filter(user_id=account.user_id, agency_client_id=account.agency_client_id,
-        is_active=True, platform__code__in=("facebook", "meta"), connection__is_active=True,
-        connection__user_id=account.user_id,
-        connection__extra_data__source="ads_oauth").select_related("platform", "connection")
-
-
 def current_campaigns(queryset):
     now = timezone.now()
     return queryset.filter(is_active=True, status__in=["ACTIVE", "ENABLED"]).filter(
@@ -857,6 +849,8 @@ def current_campaigns(queryset):
 
 
 def build_platform_account_payload(user, platform_code="", accounts_queryset=None):
+    from core.tasks.v2_platform_sync import normalize_platform_code
+    from core.services.ad_sync_capabilities import SUPPORTED_AD_SYNC_PLATFORMS, ad_sync_unavailable_message
     platforms = Platform.objects.filter(is_active=True).order_by("name")
     data = []
     for platform in platforms:
@@ -869,7 +863,13 @@ def build_platform_account_payload(user, platform_code="", accounts_queryset=Non
         ).select_related("platform", "connection")
         account_items = []
         for account in accounts:
-            campaigns = Campaign.objects.filter(platform_account=account)
+            code = normalize_platform_code(platform)
+            supported = code in SUPPORTED_AD_SYNC_PLATFORMS
+            from django.db.models import Exists, OuterRef
+            campaigns = Campaign.objects.filter(platform_account=account).filter(Exists(
+                CampaignMetricHistory.objects.filter(campaign_id=OuterRef("pk"))))
+            if code == "instagram":
+                campaigns = campaigns.none()
             active_campaigns = current_campaigns(campaigns)
             account_items.append({
                 "id": account.id,
@@ -884,13 +884,13 @@ def build_platform_account_payload(user, platform_code="", accounts_queryset=Non
                 "ad_group_count": AdGroup.objects.filter(campaign__in=active_campaigns, is_active=True, status="ACTIVE").count(),
                 "ad_count": Ad.objects.filter(platform_account=account, source_type="OWN", is_active=True,
                     status="ACTIVE", campaign__in=active_campaigns, ad_group__is_active=True,
-                    ad_group__status="ACTIVE").count(),
+                    ad_group__status="ACTIVE", metric_history__isnull=False).distinct().count(),
                 "ads_sync_summary": (account.extra_data or {}).get("ads_sync_summary"),
                 "connection_status": account.connection.status if account.connection else "missing",
-                "organic_instagram": (account.extra_data or {}).get("auth_type") == "instagram_login",
-                "ad_sources": [{"id": source.pk, "name": source.account_name or source.account_id}
-                               for source in instagram_ad_sources(account, accounts_queryset)]
-                              if platform.code == "instagram" else [],
+                "organic_instagram": code == "instagram",
+                "ad_sync_supported": supported,
+                "ad_sync_message": "" if supported else ad_sync_unavailable_message(code),
+                "ad_sources": [],
             })
         data.append({
             "id": platform.id,
@@ -902,7 +902,10 @@ def build_platform_account_payload(user, platform_code="", accounts_queryset=Non
     return data
 
 
-def build_campaign_list(user, account, start_date=None, end_date=None, status=""):
+def build_campaign_list(user, account, start_date=None, end_date=None, status="", measured_only=False):
+    from core.tasks.v2_platform_sync import normalize_platform_code
+    if normalize_platform_code(account.platform) == "instagram":
+        return []
     campaigns = (
         Campaign.objects
         .filter(platform_account=account)
@@ -916,6 +919,11 @@ def build_campaign_list(user, account, start_date=None, end_date=None, status=""
         campaigns = campaigns.exclude(pk__in=current_campaigns(Campaign.objects.filter(platform_account=account))).exclude(status="UNKNOWN")
     elif status == "UNKNOWN":
         campaigns = campaigns.filter(status="UNKNOWN")
+    if measured_only:
+        from django.db.models import Exists, OuterRef
+        period_metrics = metric_qs_by_date(CampaignMetricHistory.objects.filter(
+            campaign_id=OuterRef("pk")), start_date, end_date)
+        campaigns = campaigns.filter(Exists(period_metrics))
     return [campaign_card_payload(campaign, start_date, end_date, active_only=status == "ACTIVE") for campaign in campaigns]
 
 

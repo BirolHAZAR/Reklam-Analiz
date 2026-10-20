@@ -71,6 +71,9 @@ def upsert_v2_ad_snapshot(*, user, platform_account, payload: Dict[str, Any], so
     PlatformAccount -> Campaign -> AdGroup -> Creative -> Ad -> AdMetricHistory
     """
     now = timezone.now()
+    from core.services.measurement_policy import has_measurement
+    if not has_measurement(payload):
+        return {"campaign": None, "ad_group": None, "creative": None, "ad": None, "metric": None}
     platform_code = getattr(getattr(platform_account, "platform", None), "code", "platform") or "platform"
     ad_platform_id = str(payload.get("platform_ad_id") or payload.get("ad_id") or payload.get("id") or "").strip()
     if not ad_platform_id:

@@ -185,6 +185,8 @@ class AgencyScopeTests(TestCase):
         self.assertNotContains(personal_response, 'class="agency-client-scope-form"')
 
     def test_ad_movements_filter_is_agency_only_and_scopes_ajax_rows(self):
+        facebook, _ = Platform.objects.get_or_create(code="facebook", defaults={"name": "Facebook"})
+        PlatformAccount.objects.filter(pk__in=[self.account_a.pk, self.account_b.pk]).update(platform=facebook)
         campaign_a = Campaign.objects.create(
             user=self.owner,
             platform_account=self.account_a,
@@ -205,6 +207,7 @@ class AgencyScopeTests(TestCase):
             platform_ad_id="movements-ad-a",
             name="Firma A Hareket Reklamı",
         )
+        AdMetricHistory.objects.create(ad=ad_a, date=timezone.localdate(), impressions=1)
         Ad.objects.create(
             user=self.owner,
             source_type="OWN",
@@ -225,7 +228,7 @@ class AgencyScopeTests(TestCase):
 
         ajax = self.client.get(
             reverse("reklam_hareketleri"),
-            {"agency_client": str(self.client_a.id)},
+            {"agency_client": str(self.client_a.id), "include_unmeasured": "1"},
             HTTP_X_REQUESTED_WITH="XMLHttpRequest",
         )
         self.assertEqual(ajax.status_code, 200)

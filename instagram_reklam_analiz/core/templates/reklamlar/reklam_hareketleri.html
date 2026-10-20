@@ -400,6 +400,12 @@
                     </option>
                     {% endfor %}
                 </select>
+                <label class="mt-3" for="movementPeriod">Ölçüm dönemi</label>
+                <select id="movementPeriod" class="filter-select" onchange="document.getElementById('dateRangeInput').value=this.value;loadData()">
+                    <option value="weekly">Son 7 gün</option>
+                    <option value="monthly">Son 30 gün</option>
+                    <option value="quarterly">Son 90 gün</option>
+                </select>
             </div>
             
             <div class="sidebar-section">
@@ -464,7 +470,7 @@ function loadData() {
                         <div class="ad-name">${escapeHtml(ad.name.substring(0, 45))}</div>
                         <div class="ad-meta">
                             <span><i class="fab fa-${ad.platform}"></i> ${ad.platform}</span>
-                            <span><i class="fas fa-chart-line"></i> ${ad.performance_score}</span>
+                            <span><i class="fas fa-chart-line"></i> ${ad.performance_score ?? 'Ölçüm yok'}</span>
                         </div>
                     </div>
                 `;
@@ -480,7 +486,7 @@ function loadData() {
         if (data.selected_reklam) {
             updateMainContent(data);
         } else {
-            document.getElementById('mainContent').innerHTML = '<div class="reklam-header text-center p-5">Lütfen bir reklam seçin.</div>';
+            document.getElementById('mainContent').innerHTML = `<div class="reklam-header text-center p-5">${escapeHtml(data.empty_message || 'Lütfen bir reklam seçin.')}</div>`;
         }
     })
     .catch(error => {
@@ -603,7 +609,7 @@ function updateMainContent(data) {
                 <span><i class="fab fa-${ad.platform}"></i> ${ad.platform}</span>
                 <span><i class="fas fa-calendar"></i> ${ad.created_at}</span>
                 <span><i class="fas fa-tag"></i> ${ad.media_type}</span>
-                <span><i class="fas fa-chart-simple"></i> Skor: ${ad.performance_score}/100</span>
+                <span><i class="fas fa-chart-simple"></i> ${ad.performance_score == null ? 'Ölçüm yok' : `Skor: ${ad.performance_score}/100`}</span>
             </div>
             </div>
             <div class="report-actions no-export">
@@ -633,6 +639,7 @@ function updateMainContent(data) {
         </div>
         
         ${statsHtml}
+        ${!data.has_data ? '<div class="reklam-header">Seçilen dönemde ölçüm kaydı yok. Bu bir envanter kaydıdır; performans sonucu değildir.</div>' : ''}
         
         <div class="chart-card">
             <div class="card-header"><span class="card-header-title"><i class="fas fa-chart-line"></i> Günlük Performans Trendi</span></div>
@@ -823,6 +830,7 @@ async function downloadTopReportPdf(button) {
 window.downloadTopReportPdf = downloadTopReportPdf;
 
 function formatNumber(num, fractionDigits = 0) {
+    if (num === null || num === undefined || num === '') return '—';
     const number = Number.parseFloat(num);
     const safeNumber = Number.isFinite(number) ? number : 0;
     return new Intl.NumberFormat('tr-TR', {
@@ -836,10 +844,12 @@ function formatDecimal(num) {
 }
 
 function formatCurrency(num) {
+    if (num === null || num === undefined) return '—';
     return `${formatDecimal(num)} TL`;
 }
 
 function formatPercent(num) {
+    if (num === null || num === undefined) return '—';
     return `${formatDecimal(num)}%`;
 }
 

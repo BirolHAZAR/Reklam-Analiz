@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from django.db.models import Exists, OuterRef, Prefetch
 from django.shortcuts import render
 from django.templatetags.static import static
 from django.utils import timezone
@@ -51,7 +52,7 @@ def _change_percent(series):
 
 def _calculate_performance_score(metric):
     if not metric:
-        return 0
+        return None
 
     score = 0
 
@@ -108,10 +109,12 @@ def ads_center(request):
         )
 
         start_date, end_date = _date_range_from_request(request)
+        period_metrics = AdMetricHistory.objects.filter(date__gte=start_date, date__lte=end_date)
 
         ads = scope_queryset(
             request,
-            Ad.objects.filter(source_type="OWN"),
+            Ad.objects.filter(source_type="OWN", platform_account__is_active=True).exclude(
+                platform_account__platform__code__in=("instagram", "ig")),
         )
         ads = (
             ads
@@ -131,12 +134,17 @@ def ads_center(request):
         if account_id:
             ads = ads.filter(platform_account_id=account_id)
 
+        inventory_count = ads.count()
+        ads = ads.annotate(has_period_metrics=Exists(period_metrics.filter(ad_id=OuterRef("pk"))))
+        ads = ads.filter(has_period_metrics=True)
+        ads = ads.prefetch_related(Prefetch("metric_history", queryset=period_metrics.order_by("-date"),
+                                           to_attr="period_metrics"))
         ads = ads.order_by("-created_at")
 
         ad_list_data = []
 
         for ad in ads:
-            latest_metric = ad.metric_history.order_by("-date").first()
+            latest_metric = ad.period_metrics[0] if ad.period_metrics else None
             score = _calculate_performance_score(latest_metric)
 
             ad_list_data.append({
@@ -145,6 +153,7 @@ def ads_center(request):
                 "platform": _get_platform_code(ad),
                 "platform_icon": _get_platform_code(ad),
                 "performance_score": score,
+                "has_data": ad.has_period_metrics,
                 "active": False,
             })
 
@@ -187,7 +196,8 @@ def ads_center(request):
                         "impressions": 0,
                         "clicks": 0,
                         "spend": 0.0,
-                        "budget": float(current_budget_for_ad(selected_ad)[0]),
+                        "budget": (float(current_budget_for_ad(selected_ad)[0])
+                                   if current_budget_for_ad(selected_ad)[1] != "unavailable" else None),
                         "ctr_total": 0.0,
                         "ctr_count": 0,
                         "engagement": 0,
@@ -226,23 +236,21 @@ def ads_center(request):
         selected_ad_data = None
 
         if selected_ad:
-            latest_metric = selected_ad.metric_history.order_by("-date").first()
+            latest_metric = selected_ad.period_metrics[0] if selected_ad.period_metrics else None
+            budget, budget_type = current_budget_for_ad(selected_ad)
 
             selected_ad_data = {
                 "id": selected_ad.id,
                 "name": _get_ad_name(selected_ad),
                 "platform": _get_platform_code(selected_ad),
-                "created_at": selected_ad.created_at.strftime("%d.%m.%Y"),
+                "created_at": selected_ad.started_at.strftime("%d.%m.%Y") if selected_ad.started_at else "Yayın tarihi bilinmiyor",
                 "media_type": selected_ad.ad_format or (
                     selected_ad.creative.creative_type if selected_ad.creative else ""
                 ),
                 "performance_score": _calculate_performance_score(latest_metric),
-                "budget": float(
-                    selected_ad.campaign.daily_budget
-                    if selected_ad.campaign and selected_ad.campaign.daily_budget
-                    else 0
-                ),
-                "spend": float(latest_metric.spend or 0) if latest_metric else 0,
+                "budget": float(budget) if budget_type != "unavailable" else None,
+                "spend": float(latest_metric.spend or 0) if latest_metric else None,
+                "has_data": bool(chart_labels),
             }
 
         return JsonResponse({
@@ -264,11 +272,14 @@ def ads_center(request):
             "chart_ctr": chart_ctr,
             "chart_engagement": chart_engagement,
 
-            "total_impressions": total_impressions,
-            "total_clicks": total_clicks,
-            "total_spend": round(total_spend, 2),
-            "total_engagement": total_engagement,
-            "avg_ctr": avg_ctr,
+            "has_data": bool(chart_labels),
+            "inventory_count": inventory_count,
+            "empty_message": "Seçilen dönemde sağlayıcıdan alınmış reklam metriği bulunmuyor. Ölçümsüz kayıtlar performans listesine alınmaz.",
+            "total_impressions": total_impressions if chart_labels else None,
+            "total_clicks": total_clicks if chart_labels else None,
+            "total_spend": round(total_spend, 2) if chart_labels else None,
+            "total_engagement": total_engagement if chart_labels else None,
+            "avg_ctr": avg_ctr if chart_labels else None,
 
             "impressions_change": _change_percent(chart_impressions),
             "clicks_change": _change_percent(chart_clicks),

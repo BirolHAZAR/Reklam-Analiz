@@ -67,7 +67,7 @@ def sync_platform_account_ads(self, job_id):
         from core.tasks.v2_platform_sync import sync_v2_platform_account_ads
         sync_result = sync_v2_platform_account_ads.apply(
             args=(account.id, "OWN", job.days_back),
-            kwargs={"retry_errors": False, "retry_context": f"manual:{job.id}"}, throw=True,
+            kwargs={"retry_errors": False, "retry_context": f"manual:{job.id}", "staff_manual": True}, throw=True,
         ).get(propagate=True, disable_sync_subtasks=False)
         if sync_result.get("skipped") or sync_result.get("failed"):
             raise ValueError(sync_result.get("error") or sync_result.get("reason") or "Platform senkronizasyonu tamamlanamadı.")
@@ -132,6 +132,10 @@ def sync_platform_account_ads(self, job_id):
             date__gte=start_date,
             date__lte=end_date,
         ).count()
+        from core.models import CampaignMetricHistory
+        campaign_metrics = CampaignMetricHistory.objects.filter(
+            campaign__in=campaigns_qs, date__gte=start_date, date__lte=end_date)
+        metrics_count += campaign_metrics.count()
 
         total_spend = AdMetricHistory.objects.filter(
             ad__in=ads_qs,
@@ -140,6 +144,8 @@ def sync_platform_account_ads(self, job_id):
         ).values_list("spend", flat=True)
 
         total_spend_value = sum([x or Decimal("0") for x in total_spend])
+        if campaign_metrics.exists():
+            total_spend_value = sum(campaign_metrics.values_list("spend", flat=True), Decimal("0"))
 
         update_job(
             job,
@@ -159,6 +165,8 @@ def sync_platform_account_ads(self, job_id):
             f"{ads_count} reklam ve "
             f"{metrics_count} geçmiş metrik incelendi."
         )
+        if sync_result.get("message"):
+            job.message = sync_result["message"]
         job.finished_at = timezone.now()
         job.result = {
             "campaigns_count": campaigns_count,

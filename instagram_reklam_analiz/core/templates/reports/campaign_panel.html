@@ -67,8 +67,8 @@ body:has(.cp-shell)>main{padding-left:0!important;padding-right:8px!important}.c
         </div>
         <div class="cp-datebar">
           <select id="campaignStatus" aria-label="Kampanya durumu" onchange="reloadCampaigns()">
-            <option value="">Tüm geçmiş kayıtlar</option>
-            <option value="ACTIVE" selected>Aktif kampanyalar</option>
+            <option value="" selected>Ölçümü olan tüm kampanyalar</option>
+            <option value="ACTIVE">Aktif kampanyalar</option>
             <option value="INACTIVE">Pasif / arşivlenmiş</option>
             <option value="UNKNOWN">Durumu bilinmeyen</option>
           </select>
@@ -156,25 +156,26 @@ async function loadPlatforms(){
         </button>
         <div class="cp-accounts">
           ${(p.accounts||[]).length ? (p.accounts||[]).map(acc=>`
-            <button class="cp-account" type="button" data-id="${acc.id}" data-organic="${acc.organic_instagram ? 'true' : 'false'}" data-name="${escapeHtml(acc.account_name)}" onclick="selectAccount(this)">
+            <button class="cp-account" type="button" data-id="${acc.id}" data-organic="${acc.organic_instagram ? 'true' : 'false'}" data-sync-supported="${acc.ad_sync_supported ? 'true' : 'false'}" data-sync-message="${escapeHtml(acc.ad_sync_message || '')}" data-name="${escapeHtml(acc.account_name)}" onclick="selectAccount(this)">
               <strong>${escapeHtml(acc.account_name)}</strong>
               <small>${escapeHtml(acc.platform_name)} · ${acc.campaign_count || 0} aktif kampanya · ${acc.ad_count || 0} aktif reklam · ${acc.historical_campaign_count || 0} geçmiş kayıt</small>
             </button>
-            ${(acc.ad_sources||[]).map(source=>`<button class="cp-account" type="button" data-id="${source.id}" data-name="${escapeHtml(source.name)} (Meta reklamları)" onclick="selectAccount(this)"><strong>${escapeHtml(source.name)}</strong><small>Meta reklamları · Facebook ve Instagram</small></button>`).join('')}`).join('') : '<div style="color:#B8BED0;font-size:12px;padding:8px">Bu platformda bağlı hesap yok.</div>'}
+            `).join('') : '<div style="color:#B8BED0;font-size:12px;padding:8px">Bu platformda bağlı hesap yok.</div>'}
         </div>
       </div>`).join('');
   }catch(error){container.innerHTML='<div class="cp-empty">Platformlar yüklenirken hata oluştu.</div>';console.error(error);}
 }
 function togglePlatform(btn){const wrap=btn.closest('.cp-platform');const open=wrap.classList.contains('open');document.querySelectorAll('.cp-platform').forEach(x=>x.classList.remove('open'));document.querySelectorAll('.cp-platform-btn').forEach(x=>x.classList.remove('active'));if(!open){wrap.classList.add('open');btn.classList.add('active');}}
-function selectAccount(btn){document.querySelectorAll('.cp-account').forEach(x=>x.classList.remove('active'));btn.classList.add('active');currentAccountId=btn.dataset.id;currentAccountName=btn.dataset.name;currentOrganicInstagram=btn.dataset.organic==='true';document.getElementById('accountLabel').textContent=currentAccountName;document.getElementById('syncBtn').disabled=currentOrganicInstagram;setSyncStatus('','',false);loadCampaigns();}
+let currentSyncSupported=false;let currentSyncMessage='';
+function selectAccount(btn){document.querySelectorAll('.cp-account').forEach(x=>x.classList.remove('active'));btn.classList.add('active');currentAccountId=btn.dataset.id;currentAccountName=btn.dataset.name;currentOrganicInstagram=btn.dataset.organic==='true';currentSyncSupported=btn.dataset.syncSupported==='true';currentSyncMessage=btn.dataset.syncMessage||'';document.getElementById('accountLabel').textContent=currentAccountName;document.getElementById('syncBtn').disabled=!currentSyncSupported;setSyncStatus('','',false);loadCampaigns();}
 function reloadCampaigns(){if(currentAccountId)loadCampaigns();}
 let campaignRequestVersion=0;
 async function loadCampaigns(){
   const requestVersion=++campaignRequestVersion;
   const container=document.getElementById('campaignContainer');
-  if(currentOrganicInstagram){
+  if(!currentSyncSupported){
     ['statCampaigns','statAdGroups','statAds','statCreatives'].forEach(id=>document.getElementById(id).textContent='0');
-    container.innerHTML='<div class="cp-empty"><i class="fab fa-instagram"></i><strong>Instagram içerikleri ve reklamları</strong><br>Organik paylaşımları Organik İçerik bölümünde inceleyin. Reklam kampanyalarını çekmek için soldaki Meta reklam hesaplarından birini seçin.<div style="margin-top:14px"><a class="cp-btn primary" href="/organic-content/">Organik İçerik</a></div></div>';
+    container.innerHTML=`<div class="cp-empty"><strong>Kampanya bilgisi</strong><br>${escapeHtml(currentSyncMessage)}${currentOrganicInstagram ? '<div style="margin-top:14px"><a class="cp-btn primary" href="/organic-content/">Organik İçerik</a></div>' : ''}</div>`;
     return;
   }
   container.innerHTML='<div class="cp-loading" style="grid-column:1/-1"><div class="cp-spinner"></div></div>';
@@ -189,7 +190,7 @@ async function loadCampaigns(){
     document.getElementById('statAdGroups').textContent=totals.adGroups;
     document.getElementById('statAds').textContent=totals.ads;
     document.getElementById('statCreatives').textContent=totals.creatives;
-    if(!campaigns.length){container.innerHTML='<div class="cp-empty"><i class="fas fa-bullseye"></i><strong>Seçilen filtreye uygun kampanya yok.</strong><br>Eski kayıtlar için Tüm geçmiş kayıtlar filtresini seçin. Yeni veri için Kampanyaları Çek düğmesini kullanın.<div style="margin-top:14px"><button class="cp-btn primary cp-sync-btn" type="button" onclick="startCampaignSync()">Kampanyaları Çek</button></div></div>';return;}
+    if(!campaigns.length){container.innerHTML='<div class="cp-empty"><strong>Secilen donemde metrik kaydi bulunan kampanya yok.</strong><br>Olcumsuz kayitlar performans listesine alinmaz. Hesap ve tarih araligini kontrol edip Kampanyalari Cek islemini kullanin.</div>';return;}
     container.innerHTML=campaigns.map(createCampaignCard).join('');
   }catch(error){if(requestVersion!==campaignRequestVersion)return;container.innerHTML='<div class="cp-empty"><i class="fas fa-triangle-exclamation"></i>Kampanyalar yüklenirken hata oluştu.</div>';console.error(error);}
 }
@@ -405,7 +406,7 @@ async function pollCampaignSync(jobId){
   setSyncStatus('Senkronizasyon devam ediyor','Veri cekme islemi arka planda suruyor. Biraz sonra sayfayi yenileyebilirsin.');
 }
 async function startCampaignSync(){
-  if(currentOrganicInstagram){setSyncStatus('Meta reklam hesabını seçin','Instagram reklamları soldaki Meta reklam hesaplarından çekilir.');return;}
+  if(currentAccountId&&!currentSyncSupported){setSyncStatus('Kampanya bilgisi',currentSyncMessage);return;}
   if(!currentAccountId){setSyncStatus('Once hesap secin','Soldaki platform listesinden bir hesap secmeden kampanya cekilemez.');return;}
   const btn=document.getElementById('syncBtn');
   if(btn){btn.disabled=true;btn.classList.add('is-syncing');btn.innerHTML='Cekiliyor...';}
@@ -418,7 +419,7 @@ async function startCampaignSync(){
   }catch(e){
     setSyncStatus('Senkronizasyon baslatilamadi',e.message||'Platform baglantisini kontrol edin.');
   }finally{
-    if(btn){btn.disabled=false;btn.classList.remove('is-syncing');btn.innerHTML='Kampanyaları Çek';}
+    if(btn){btn.disabled=!currentSyncSupported;btn.classList.remove('is-syncing');btn.innerHTML='Kampanyaları Çek';}
   }
 }
 

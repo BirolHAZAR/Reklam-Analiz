@@ -27,13 +27,19 @@ function Find-ProjectProcess([string]$Pattern) {
 function Start-LocalService([string]$Name, [string]$Script) {
     $ScriptPath = Join-Path $RootDir $Script
     if (-not (Test-Path -LiteralPath $ScriptPath)) { throw "Baslatma dosyasi bulunamadi: $ScriptPath" }
-    # Separate log files keep startup errors reviewable without visible consoles.
-    $process = Start-Process -FilePath "powershell.exe" -ArgumentList @(
-        "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ('"' + $ScriptPath + '"')
-    ) -WorkingDirectory $RootDir -WindowStyle Hidden -PassThru `
-      -RedirectStandardOutput (Join-Path $LogDir "$Name.out.log") `
-      -RedirectStandardError (Join-Path $LogDir "$Name.err.log")
+    $ConsoleScript = Join-Path $RootDir "show_dev_service.ps1"
+    $process = Start-Process -FilePath "cmd.exe" -ArgumentList @(
+        "/c", "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass",
+        "-File", ('"' + $ConsoleScript + '"'), "-ServiceName", $Name
+    ) -WorkingDirectory $RootDir -WindowStyle Normal -PassThru
     return $process
+}
+
+function Show-ServiceConsole([string]$Name) {
+    $consolePattern = [regex]::Escape((Join-Path $RootDir "show_dev_service.ps1"))
+    $existing = @(Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" |
+        Where-Object { $_.CommandLine -match $consolePattern -and $_.CommandLine -match "-ServiceName\s+$Name\b" })
+    if ($existing.Count -eq 0) { $null = Start-LocalService $Name "show_dev_service.ps1" }
 }
 
 $env:DEBUG = "True"
@@ -63,6 +69,8 @@ if (-not (Test-LocalWebsite)) {
     }
 }
 
+Show-ServiceConsole "web"
+
 foreach ($service in @(
     @{ Name = "worker"; Pattern = 'celery.*\bworker\b'; Script = "start_celery_worker.ps1" },
     @{ Name = "beat"; Pattern = 'celery.*\bbeat\b'; Script = "start_celery_beat.ps1" }
@@ -72,8 +80,39 @@ foreach ($service in @(
         Write-Output "$($service.Name) baslatildi (PID $($started.Id))."
     } else {
         Write-Output "$($service.Name) zaten calisiyor."
+        Show-ServiceConsole $service.Name
     }
 }
 
-Write-Output "ReklamAnaliz hazir: $SiteUrl"
+$workerPingLog = Join-Path $LogDir "worker-health.log"
+$previous = Get-Location
+try {
+    Set-Location -LiteralPath $ProjectDir
+    $workerHealthy = $false
+    $healthDeadline = (Get-Date).AddSeconds(45)
+    do {
+        # A new worker needs time to import Django. Celery writes a missing
+        # reply to stderr; retain it in the log without aborting the launcher.
+        $healthErrorPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = "Continue"
+            & $PythonExe -m celery -A config inspect ping --timeout=5 *> $workerPingLog
+            $workerHealthy = ($LASTEXITCODE -eq 0 -and (Get-Content -LiteralPath $workerPingLog -Raw) -match '\bpong\b')
+        } finally { $ErrorActionPreference = $healthErrorPreference }
+        if (-not $workerHealthy) { Start-Sleep -Milliseconds 500 }
+    } while (-not $workerHealthy -and (Get-Date) -lt $healthDeadline)
+} finally { Set-Location -LiteralPath $previous }
+$beatProcesses = @(Find-ProjectProcess 'celery.*\bbeat\b')
+$beatLog = Join-Path $LogDir "beat.console.log"
+if (-not (Test-Path -LiteralPath $beatLog)) { $beatLog = Join-Path $LogDir "beat.err.log" }
+$beatRecent = (Test-Path -LiteralPath $beatLog) -and ((Get-Item -LiteralPath $beatLog).LastWriteTime -gt (Get-Date).AddMinutes(-2))
+$statusLines = @(
+    "Kontrol: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')",
+    "Web: HAZIR - $SiteUrl",
+    $(if ($workerHealthy) { "Worker: CALISIYOR - pong yaniti alindi" } else { "Worker: YANIT ALINAMADI - worker.err.log dosyasini kontrol edin" }),
+    $(if ($beatProcesses.Count -gt 0 -and $beatRecent) { "Beat: CALISIYOR - surec mevcut, log guncel" } elseif ($beatProcesses.Count -gt 0) { "Beat: SUREC MEVCUT - henuz guncel log dogrulanamadi" } else { "Beat: CALISMIYOR - beat.err.log dosyasini kontrol edin" }),
+    "Web, worker ve beat ayri CMD pencerelerinde izlenebilir. Log klasoru: $LogDir"
+)
+$statusLines | Set-Content -LiteralPath (Join-Path $LogDir "status.txt") -Encoding UTF8
+$statusLines | Write-Output
 if (-not $NoBrowser) { Start-Process $SiteUrl }

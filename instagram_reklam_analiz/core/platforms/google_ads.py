@@ -5,16 +5,39 @@ from core.services.ad_eligibility import is_current_campaign
 
 
 class GoogleAdsAPI(BasePlatformAPI):
-    def get_campaigns(self):
+    def get_report_data(self, since_days=30):
+        inventory = self.get_campaigns(include_history=True)
+        metrics = self.get_campaign_metrics(since_days, inventory, include_history=True)
+        ids = {row["platform_campaign_id"] for row in metrics}
+        return inventory, self.get_ads(since_days, include_history=True, campaign_ids=ids), metrics
+
+    def get_campaign_metrics(self, since_days=30, campaign_inventory=None, include_history=False):
+        campaigns = self.get_campaigns() if campaign_inventory is None else campaign_inventory
+        ids = {str(row["campaign"]["id"]) for row in campaigns}
+        if not ids:
+            return []
+        end = account_today(self.account)
+        start = end - timedelta(days=max(1, min(int(since_days), 365)) - 1)
+        rows = google_search(account_token(self.account), self.account.account_id,
+            "SELECT campaign.id, segments.date, metrics.impressions, metrics.clicks, metrics.cost_micros, "
+            "metrics.conversions, metrics.conversions_value FROM campaign WHERE "
+            + ("" if include_history else "campaign.status = 'ENABLED' AND ")
+            + f"segments.date BETWEEN '{start}' AND '{end}'", self.account.extra_data.get("login_customer_id", ""))
+        return [{"platform_campaign_id": str(row["campaign"]["id"]), "date": row["segments"]["date"],
+            **{key: str(value) for key, value in google_metrics(row["metrics"]).items()},
+            "currency": self.account.extra_data.get("currency", "TRY"), "allow_estimated_conversion_value": False}
+            for row in rows if str(row["campaign"]["id"]) in ids and row.get("segments") and row.get("metrics")]
+
+    def get_campaigns(self, include_history=False):
         rows = google_search(account_token(self.account), self.account.account_id,
             "SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, "
             "campaign.start_date_time, campaign.end_date_time, campaign_budget.amount_micros "
-            "FROM campaign WHERE campaign.status = 'ENABLED'",
+            "FROM campaign" + ("" if include_history else " WHERE campaign.status = 'ENABLED'"),
             self.account.extra_data.get("login_customer_id", ""))
-        return [row for row in rows if is_current_campaign(row["campaign"], today=account_today(self.account),
+        return rows if include_history else [row for row in rows if is_current_campaign(row["campaign"], today=account_today(self.account),
                     zone=self.account.extra_data.get("timezone") or "UTC")]
 
-    def get_ads(self, since_days=30):
+    def get_ads(self, since_days=30, include_history=False, campaign_ids=None):
         end = account_today(self.account)
         start = end - timedelta(days=max(1, min(int(since_days), 365)) - 1)
         token = account_token(self.account)
@@ -24,11 +47,17 @@ class GoogleAdsAPI(BasePlatformAPI):
                   "ad_group_ad.ad.id, ad_group_ad.ad.name, ad_group_ad.status")
         active = ("campaign.status = 'ENABLED' AND ad_group.status = 'ENABLED' "
                   "AND ad_group_ad.status = 'ENABLED'")
+        if include_history:
+            if not campaign_ids:
+                return []
+            if any(not str(value).isdigit() for value in campaign_ids):
+                raise ValueError("Geçersiz kampanya kimliği")
+            active = f"campaign.id IN ({','.join(sorted(campaign_ids))})"
         inventory_rows = google_search(token, self.account.account_id,
             f"SELECT {fields} FROM ad_group_ad WHERE {active}", manager)
         inventory = {}
         for row in inventory_rows:
-            if (not is_current_campaign(row["campaign"], today=end, zone=self.account.extra_data.get("timezone") or "UTC")
+            if not include_history and (not is_current_campaign(row["campaign"], today=end, zone=self.account.extra_data.get("timezone") or "UTC")
                     or row["adGroup"].get("status") != "ENABLED"
                     or row["adGroupAd"].get("status") != "ENABLED"):
                 continue
@@ -73,7 +102,8 @@ def save_campaign_inventory(account, rows):
             return value
         Campaign.objects.update_or_create(platform_account=account, platform_campaign_id=str(c["id"]), defaults={
             "user": account.user, "platform_connection": account.connection,
-            "name": c["name"], "status": "ACTIVE", "is_active": True,
+            "name": c["name"], "status": "ACTIVE" if c.get("status") == "ENABLED" else "PAUSED",
+            "is_active": c.get("status") == "ENABLED",
             "objective": c.get("advertisingChannelType") or "UNKNOWN",
             "start_time": stamp("startDateTime"), "end_time": stamp("endDateTime"),
             "daily_budget": Decimal(str(row.get("campaignBudget", {}).get("amountMicros", 0))) / 1000000,

@@ -1,4 +1,5 @@
 from datetime import timedelta
+from functools import wraps
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -27,6 +28,17 @@ from core.services.ai_credit_purchase import insufficient_credit_payload
 
 CAMPAIGN_PANEL_CACHE_TIMEOUT = 120
 CAMPAIGN_AI_REFERENCE_PREFIX = "campaign_panel.ai_report"
+
+
+def _manual_sync_subscription_required(view):
+    subscribed_view = api_subscription_required(view)
+
+    @wraps(view)
+    def wrapped(request, *args, **kwargs):
+        if request.user.is_staff or request.user.is_superuser:
+            return view(request, *args, **kwargs)
+        return subscribed_view(request, *args, **kwargs)
+    return wrapped
 
 try:
     from core.tasks.ads_pipeline import sync_platform_account_ads
@@ -169,10 +181,11 @@ def api_campaigns_by_account(request):
         return JsonResponse({"success": False, "error": "account_id gerekli"}, status=400)
 
     account = get_object_or_404(platform_accounts_for_request(request, active_only=True), id=account_id)
-    status = request.GET.get("campaign_status", "ACTIVE").upper()
+    status = request.GET.get("campaign_status", "").upper()
     if status not in {"", "ACTIVE", "INACTIVE", "UNKNOWN"}:
         return JsonResponse({"success": False, "error": "Geçersiz kampanya durumu"}, status=400)
     start_date, end_date = normalize_date_range(request)
+    measured_only = True
     version = CacheService.get_version("campaign_panel_account", request.user.id, account.id)
     cache_key_parts = (
         "user",
@@ -183,13 +196,14 @@ def api_campaigns_by_account(request):
         start_date.isoformat() if start_date else "all",
         "to",
         end_date.isoformat() if end_date else "all",
-        "status", status or "all",
+        "status", status or "all", "measured_only", measured_only,
     )
     cached = CacheService.get("campaign_panel_campaigns", *cache_key_parts, version=version)
     if cached is not None:
         return JsonResponse(cached)
 
-    campaigns = build_campaign_list(request.user, account, start_date=start_date, end_date=end_date, status=status)
+    campaigns = build_campaign_list(request.user, account, start_date=start_date, end_date=end_date, status=status,
+                                    measured_only=measured_only)
 
     payload = {
         "success": True,
@@ -328,13 +342,16 @@ def api_campaign_ai_pdf(request, campaign_id):
 
 
 @login_required
-@api_subscription_required
+@_manual_sync_subscription_required
 @require_POST
 def api_campaign_panel_sync_account(request, account_id):
     account = get_object_or_404(platform_accounts_for_request(request, active_only=True), id=account_id)
-    if account.platform.code == "instagram" and (account.extra_data or {}).get("auth_type") == "instagram_login":
-        return JsonResponse({"success": False, "error": "meta_ad_account_required",
-            "message": "Instagram reklamları için Instagram bölümündeki Meta reklam hesabını seçin. Organik içerik bağlantınız korunur."}, status=400)
+    from core.tasks.v2_platform_sync import normalize_platform_code
+    from core.services.ad_sync_capabilities import SUPPORTED_AD_SYNC_PLATFORMS, ad_sync_unavailable_message
+    platform_code = normalize_platform_code(account.platform)
+    if platform_code not in SUPPORTED_AD_SYNC_PLATFORMS:
+        return JsonResponse({"success": False, "error": "ad_sync_unavailable",
+            "message": ad_sync_unavailable_message(platform_code)}, status=400)
     days_back = request.POST.get("days_back") or request.GET.get("days_back") or 365
     try:
         days_back = max(1, min(int(days_back), 3650))

@@ -35,15 +35,15 @@ class MetaCampaignInventoryTests(TestCase):
     def rows(self, token, path, params):
         if path.endswith("/ads"):
             self.assertNotIn("time_range", params)
-            statuses = json.loads(params["effective_status"])
-            self.assertEqual(statuses, ["ACTIVE"])
+            if "effective_status" in params:
+                self.assertEqual(json.loads(params["effective_status"]), ["ACTIVE"])
             self.assertIn("filtering", params)
             return self.ads
         if path.endswith("/campaigns"):
             self.assertNotIn("filtering", params)
             self.assertNotIn("time_range", params)
-            statuses = json.loads(params["effective_status"])
-            self.assertEqual(statuses, ["ACTIVE"])
+            if "effective_status" in params:
+                self.assertEqual(json.loads(params["effective_status"]), ["ACTIVE"])
             return self.campaigns
         self.assertEqual(path, "act_123/insights")
         self.assertEqual(params["time_increment"], 1)
@@ -59,16 +59,15 @@ class MetaCampaignInventoryTests(TestCase):
              patch("core.tasks.admin_ops.generate_octo_tasks.apply_async"):
             return sync_v2_platform_account_ads.run(self.account.id, "OWN", 365)
 
-    def test_only_active_entities_are_imported_without_fabricating_metrics(self):
+    def test_empty_provider_report_does_not_create_entities(self):
         self.sync()
-        self.assertEqual(Campaign.objects.filter(platform_account=self.account).count(), 1)
-        self.assertEqual(Ad.objects.filter(platform_account=self.account).count(), 1)
-        self.assertEqual(Ad.objects.get(platform_ad_id="a1").ad_group.lifetime_budget, Decimal("60"))
+        self.assertEqual(Campaign.objects.filter(platform_account=self.account).count(), 0)
+        self.assertEqual(Ad.objects.filter(platform_account=self.account).count(), 0)
         self.assertFalse(AdMetricHistory.objects.exists())
         self.assertFalse(CampaignMetricHistory.objects.exists())
         # Dates select metrics; they must not hide paused/empty campaigns.
         cards = build_campaign_list(self.user, self.account, date(2020, 1, 1), date(2020, 1, 2))
-        self.assertEqual({card["platform_campaign_id"] for card in cards}, {"c1"})
+        self.assertEqual(cards, [])
 
     def test_yearly_insights_windows_cover_every_day_once(self):
         from datetime import timedelta
@@ -136,9 +135,14 @@ class MetaCampaignInventoryTests(TestCase):
         self.assertFalse(AdMetricHistory.objects.exists())
 
     def test_campaign_status_filter_has_separate_cache_and_keeps_history(self):
+        from django.core.cache import cache
+        cache.clear()
         for cid in ("c2", "c3"):
-            Campaign.objects.create(user=self.user, platform_account=self.account,
+            campaign = Campaign.objects.create(user=self.user, platform_account=self.account,
                 platform_campaign_id=cid, name=cid, status="PAUSED")
+            CampaignMetricHistory.objects.create(campaign=campaign, date=date(2026, 9, 1), spend=0)
+        self.insights = [{"ad_id": "a1", "campaign_id": "c1", "adset_id": "s1",
+                          "date_start": "2026-09-01", "impressions": "10", "spend": "1"}]
         self.sync()
         self.client.force_login(self.user)
         url = "/api/campaign-panel/campaigns/"
@@ -156,7 +160,7 @@ class MetaCampaignInventoryTests(TestCase):
         payload.update(metrics_available=False, spend="0", impressions=0, status="PAUSED")
         result = upsert_v2_ad_snapshot(user=self.user, platform_account=self.account, payload=payload)
         self.assertIsNone(result["metric"])
-        self.assertEqual(result["ad"].status, "PAUSED")
+        self.assertIsNone(result["ad"])
         self.assertEqual(AdMetricHistory.objects.get().spend, Decimal("8"))
 
     def test_manual_pipeline_performs_provider_pull_before_counting_success(self):
@@ -169,7 +173,7 @@ class MetaCampaignInventoryTests(TestCase):
         with patch("core.tasks.v2_platform_sync.sync_v2_platform_account_ads.apply", side_effect=pull) as request:
             result = sync_platform_account_ads.run(job.id)
         request.assert_called_once_with(args=(self.account.id, "OWN", 30),
-            kwargs={"retry_errors": False, "retry_context": f"manual:{job.id}"}, throw=True)
+            kwargs={"retry_errors": False, "retry_context": f"manual:{job.id}", "staff_manual": True}, throw=True)
         self.assertEqual(result["campaigns_count"], 1)
         job.refresh_from_db()
         self.assertEqual(job.status, "completed")
@@ -230,7 +234,7 @@ class MetaCampaignInventoryTests(TestCase):
         with patch("core.services.sync_policy.policy_for_user", return_value=SimpleNamespace(history_days=30, max_records=100)), \
              patch("core.tasks.v2_platform_sync._get_api_class") as api, \
              patch.object(sync_v2_platform_account_ads, "retry") as retry:
-            api.return_value.return_value.get_ads.side_effect = error
+            api.return_value.return_value.get_report_data.side_effect = error
             with self.assertRaises(MetaRateLimitError):
                 sync_v2_platform_account_ads.run(self.account.pk, retry_errors=False)
         retry.assert_not_called()
@@ -288,17 +292,17 @@ class MetaCampaignInventoryTests(TestCase):
                 retry.assert_not_called()
                 self.assertNotIn("waiting_reason", job.result)
 
-    def test_instagram_rate_response_propagates_to_pipeline_without_inner_retry(self):
-        from core.services.meta_rate_limit import MetaRateLimitError
+    def test_instagram_does_not_fetch_duplicate_meta_campaigns(self):
         from core.tasks.v2_platform_sync import sync_v2_platform_account_ads
         instagram, _ = Platform.objects.get_or_create(code="instagram", defaults={"name": "Instagram"})
         self.account.platform = instagram
         self.account.access_token = "fixture-instagram-access-token"
         self.account.save(update_fields=["platform", "access_token"])
         with patch("core.services.sync_policy.policy_for_user", return_value=SimpleNamespace(history_days=30, max_records=100)), \
-             patch("core.instagram_api.InstagramAPI.get_ads_insights", return_value={"error": "rate", "status_code": 429, "retry_after": 54}), \
+             patch("core.instagram_api.InstagramAPI.get_ads_insights") as fetch, \
              patch.object(sync_v2_platform_account_ads, "retry") as retry:
-            with self.assertRaises(MetaRateLimitError) as error:
-                sync_v2_platform_account_ads.run(self.account.pk, retry_errors=False)
-        self.assertEqual(error.exception.retry_after, 54)
+            result = sync_v2_platform_account_ads.run(self.account.pk, retry_errors=False)
+        self.assertTrue(result["skipped"])
+        self.assertIn("Facebook", result["error"])
+        fetch.assert_not_called()
         retry.assert_not_called()

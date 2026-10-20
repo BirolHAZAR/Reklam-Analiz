@@ -43,7 +43,10 @@ def api_platform_accounts(request):
         ).select_related("platform", "connection")
         account_items = []
         for account in accounts:
-            ad_count = Ad.objects.filter(platform_account=account, source_type="OWN").count()
+            ad_count = Ad.objects.filter(platform_account=account, source_type="OWN",
+                                         metric_history__isnull=False).distinct().count()
+            if platform.code == "instagram":
+                ad_count = 0
             account_items.append({
                 "id": account.id,
                 "account_id": account.account_id,
@@ -92,10 +95,13 @@ def api_ads_by_account(request):
         return JsonResponse(cached)
 
     ads = (
-        scope_queryset(request, Ad.objects.filter(platform_account=account, source_type="OWN"))
+        scope_queryset(request, Ad.objects.filter(platform_account=account, source_type="OWN",
+                                                  metric_history__isnull=False).distinct())
         .select_related("campaign", "ad_group", "creative", "platform_account__platform")
         .order_by("-created_at")
     )
+    if account.platform.code == "instagram":
+        ads = ads.none()
     data = []
     for ad in ads:
         latest = ad.metric_history.order_by("-date").first()
