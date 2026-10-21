@@ -148,6 +148,13 @@ def _validate_connection(connection):
             if error.get("code") == 190:
                 return {"valid": False, "expires_at": connection.token_expiry}
             raise RuntimeError(error.get("message") or "Meta token canlı kontrolü tamamlanamadı.")
+    if connection.platform.code == "x" and (connection.extra_data or {}).get("source") == "x_oauth":
+        # Health sweeps must not silently spend X API credits. Identity and
+        # refresh validation happen inside explicitly enabled data syncs.
+        return {"valid": bool(connection.is_active and connection.status == "active"
+                              and connection.access_token and connection.token_expiry
+                              and (not connection.is_token_expired or connection.refresh_token)),
+                "expires_at": connection.token_expiry, "validation": "local_expiry_only"}
     if connection.platform.code == "tiktok" and (connection.extra_data or {}).get("source") == "tiktok_oauth":
         from core.services.tiktok_oauth import access_token, profile
         account = connection.accounts.filter(user=connection.user, platform=connection.platform, is_active=True).first()

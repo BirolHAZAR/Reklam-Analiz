@@ -44,10 +44,13 @@ def integrations(request):
 def account_connection_context(request):
     scope = get_agency_scope(request)
     providers = []
-    for code, name in {**api.CONNECTION_PROVIDERS, "instagram": "Instagram", "tiktok": "TikTok"}.items():
+    for code, name in {**api.CONNECTION_PROVIDERS, "instagram": "Instagram", "tiktok": "TikTok", "x": "X"}.items():
         setup_error = ""
         try:
             api.configuration(code)
+            if code == "x":
+                from core.services.x_oauth import require_read_access
+                require_read_access()
             ready = True
         except api.IntegrationError as exc:
             ready = False
@@ -72,7 +75,8 @@ def account_connection_context(request):
         )
     return {
         "connection_is_agency": scope.is_agency,
-        "providers": [p for p in providers if p["code"] not in {"instagram", "tiktok"}],
+        "providers": [p for p in providers if p["code"] not in {"instagram", "tiktok", "x"}],
+        "x_provider": next(p for p in providers if p["code"] == "x"),
         "instagram_provider": next(p for p in providers if p["code"] == "instagram"),
         "tiktok_provider": next(p for p in providers if p["code"] == "tiktok"),
         "clients": scope.clients, "selected_client": scope.selected_client,

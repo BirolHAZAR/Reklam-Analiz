@@ -90,7 +90,7 @@ def sync_organic_account(account_id):
     from core.services.sync_policy import policy_for_user
 
     account = PlatformAccount.objects.select_related("platform", "connection", "user").filter(
-        id=account_id, is_active=True, platform__code__in=["instagram", "tiktok"]
+        id=account_id, is_active=True, platform__code__in=["instagram", "tiktok", "x"]
     ).first()
     if not account:
         return {"success": False, "skipped": True, "reason": "account_not_found"}
@@ -108,12 +108,19 @@ def sync_due_organic_accounts():
     from core.services.sync_policy import acquire_sync_lock, is_sync_due
 
     queued = []
-    accounts = PlatformAccount.objects.filter(is_active=True, platform__code__in=["instagram", "tiktok"]).select_related("user", "platform", "connection")
+    accounts = PlatformAccount.objects.filter(is_active=True, platform__code__in=["instagram", "tiktok", "x"]).select_related("user", "platform", "connection")
     for account in accounts:
         if is_demo_object(account):
             continue
         if account.platform.code == "tiktok" and (not account.connection_id or (account.connection.extra_data or {}).get("source") != "tiktok_oauth"):
             continue
+        if account.platform.code == "x":
+            from django.conf import settings
+            if (not getattr(settings, "X_AUTO_SYNC_ENABLED", False)
+                    or not getattr(settings, "X_API_READ_ENABLED", False)
+                    or not account.connection_id
+                    or (account.connection.extra_data or {}).get("source") != "x_oauth"):
+                continue
         last_sync = (account.extra_data or {}).get("organic_last_sync_at")
         from django.utils.dateparse import parse_datetime
         from django.utils import timezone

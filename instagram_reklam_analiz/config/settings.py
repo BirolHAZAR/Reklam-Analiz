@@ -2024,3 +2024,8 @@ REFERRAL_PROGRAM_ENABLED = os.getenv(
     "yes",
     "on",
 }
+
+# X API reads consume credits; disabled until an operator approves usage.
+X_API_READ_ENABLED = os.getenv("X_API_READ_ENABLED", "false").lower() == "true"
+X_AUTO_SYNC_ENABLED = os.getenv("X_AUTO_SYNC_ENABLED", "false").lower() == "true"
+X_MAX_POSTS_PER_SYNC = int(os.getenv("X_MAX_POSTS_PER_SYNC", "10"))

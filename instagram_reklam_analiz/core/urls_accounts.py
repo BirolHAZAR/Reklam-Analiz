@@ -7,9 +7,12 @@ from core.views import ads_integrations
 from core.views import local_names
 from core.views import instagram_oauth
 from core.views import tiktok_oauth
+from core.views import x_oauth
 from core.views.meta_deauthorization import deauthorize
 
 urlpatterns = [
+    path('connect/x/', x_oauth.connect, name='x_connect'),
+    path('connect/x/callback/', x_oauth.callback, name='x_oauth_callback'),
     path('connect/tiktok-ads/callback/', ads_integrations.callback, {'provider': 'tiktok_ads'}, name='tiktok_ads_callback'),
     path('connect/linkedin/callback/', ads_integrations.callback, {'provider': 'linkedin'}, name='linkedin_ads_callback'),
     path('connect/tiktok/', tiktok_oauth.connect, name='tiktok_connect'),

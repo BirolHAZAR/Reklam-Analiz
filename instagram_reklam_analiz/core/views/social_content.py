@@ -254,7 +254,7 @@ def organic_content_refresh(request):
     policy = policy_for_user(request.user)
     results = []
     for account in accounts:
-        if getattr(account.platform, "code", "") not in {"instagram", "tiktok"}:
+        if getattr(account.platform, "code", "") not in {"instagram", "tiktok", "x"}:
             continue
         extra_data = account.extra_data or {}
         if extra_data.get("demo") or str(account.account_id).startswith("demo-"):

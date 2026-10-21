@@ -63,6 +63,8 @@ def application_values(provider):
         names = ("INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET", "INSTAGRAM_REDIRECT_URI")
     elif provider == "tiktok":
         names = ("TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET", "TIKTOK_REDIRECT_URI")
+    elif provider == "x":
+        names = ("X_CLIENT_ID", "X_CLIENT_SECRET", "X_REDIRECT_URI")
     elif provider == "tiktok_ads":
         names = ("TIKTOK_ADS_APP_ID", "TIKTOK_ADS_APP_SECRET", "TIKTOK_ADS_REDIRECT_URI")
     elif provider == "linkedin":

@@ -2,7 +2,7 @@
 <p><a href="{{ provider.settings_url }}">Uygulama ayarlarını düzenle</a><br><small>Uygulama kimliği, gizli anahtar ve dönüş adresi.</small></p>
 {% endif %}
 {% if provider.ready %}
-<form method="post" action="{% if provider.code == 'instagram' %}{% url 'instagram_connect' %}{% elif provider.code == 'tiktok' %}{% url 'tiktok_connect' %}{% else %}{% url 'integration_connect' provider.code %}{% endif %}">
+<form method="post" action="{% if provider.code == 'instagram' %}{% url 'instagram_connect' %}{% elif provider.code == 'tiktok' %}{% url 'tiktok_connect' %}{% elif provider.code == 'x' %}{% url 'x_connect' %}{% else %}{% url 'integration_connect' provider.code %}{% endif %}">
   {% csrf_token %}
   {% include 'platforms/connection_client_select.html' %}
 <button class="btn btn-outline-primary w-100" type="submit"{% if connection_is_agency and not clients %} disabled{% endif %}>{{ provider.name }} bağla</button>

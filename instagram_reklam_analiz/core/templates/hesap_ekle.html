@@ -262,12 +262,10 @@
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center mb-3">
                         <div class="platform-icon x me-3"><i class="fab fa-twitter"></i></div>
-                        <div><h5 class="card-title fw-bold mb-0">X (Twitter)</h5><small class="text-muted">Profil doğrulaması</small></div>
+                        <div><h5 class="card-title fw-bold mb-0">X (Twitter)</h5><small class="text-muted">Organik profil ve gönderi metrikleri</small></div>
                     </div>
-                    <p class="card-text small text-muted mb-3">Profil kimliğini doğrulayın. Reklam hesabı ve reklam performansı aktarımı henüz desteklenmiyor.</p>
-                    <button class="btn btn-outline-info w-100 btn-connect" onclick="openOctoPopup('modalX')" type="button">
-                        <i class="fas fa-plus-circle me-2"></i> Hesap Bağla
-                    </button>
+                    <p class="card-text small text-muted mb-3">X hesabınıza okuma izni verip organik gönderilerinizi ve gerçek metriklerini görüntüleyin. API kredisi gerekir; reklam hesapları ayrı X Ads API erişimi gerektirir.</p>
+                    {% include 'platforms/account_connect_form.html' with provider=x_provider %}
                 </div>
             </div>
         </div>
@@ -369,30 +367,6 @@
                     {% include "platforms/connection_client_select.html" %}
                     <input type="hidden" name="platform" value="youtube">
                     <div class="mb-3"><label class="form-label">OAuth Access Token</label><input type="text" class="form-control" name="access_token" required><div class="form-text">Yetkili YouTube kanalı ve kanal ID’si otomatik bulunur.</div></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>
-                    <button type="submit" class="btn btn-modal-submit rounded-pill"{% if connection_is_agency and not clients %} disabled{% endif %}>Bağla</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- X Modal -->
-<div class="octo-popup" id="modalX" aria-hidden="true">
-    <div class="octo-popup-dialog">
-        <div class="octo-popup-content">
-            <form method="post" action="{% url 'hesap_ekle' %}">
-                {% csrf_token %}
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fab fa-twitter me-2"></i> X (Twitter) Hesabı Bağla</h5>
-                    <button type="button" class="btn-close" data-octo-close></button>
-                </div>
-                <div class="modal-body">
-                    {% include "platforms/connection_client_select.html" %}
-                    <input type="hidden" name="platform" value="x">
-                    <div class="mb-3"><label class="form-label">Kullanıcı OAuth Tokenı</label><input type="text" class="form-control" name="access_token" required><div class="form-text">X kullanıcı adı ve hesap ID’si otomatik doğrulanır. Uygulama-only bearer tokenı kullanıcı hesabını tanımlamaz.</div></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary rounded-pill" data-octo-close>İptal</button>

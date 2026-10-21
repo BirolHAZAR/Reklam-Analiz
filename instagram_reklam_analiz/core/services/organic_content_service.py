@@ -11,11 +11,14 @@ from core.models import PlatformAccount, SocialPost, SocialPostMetricHistory
 from core.services.organic_publish import can_publish_post
 
 
-READY_PLATFORM_CODES = {"instagram", "tiktok"}
-ORGANIC_SYNC_SOURCES = ("instagram_media_sync", "tiktok_video_sync")
+READY_PLATFORM_CODES = {"instagram", "tiktok", "x"}
+ORGANIC_SYNC_SOURCES = ("instagram_media_sync", "tiktok_video_sync", "x_post_sync")
 
 
 def sync_organic_content(account, *, limit=50):
+    if getattr(account.platform, "code", "") == "x":
+        from core.services.x_organic import sync_x_organic_content
+        return sync_x_organic_content(account, limit=limit)
     if getattr(account.platform, "code", "") == "tiktok":
         from core.services.tiktok_organic import sync_tiktok_organic_content
         return sync_tiktok_organic_content(account, limit=limit)
