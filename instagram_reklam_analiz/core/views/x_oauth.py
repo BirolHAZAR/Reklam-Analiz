@@ -48,6 +48,8 @@ def save_account(user, client, token, profile):
             raise IntegrationError('Bu X hesabı ajansınızda zaten kayıtlı.')
     platform, _ = Platform.objects.get_or_create(code='x', defaults={'name': 'X', 'is_active': True})
     old = PlatformAccount.objects.filter(user=user, platform=platform, account_id=account_id).first()
+    if old and (old.extra_data or {}).get('source') == 'x_ads_oauth':
+        raise IntegrationError('Bu kimlik bir X reklam hesabına ait; organik bağlantıyla değiştirilemez.')
     if old and old.agency_client_id != (client.pk if client else None):
         raise IntegrationError('Bu X hesabı başka bir müşteriyle eşleştirilmiş.')
     ensure_platform_account_capacity(user, [('x', account_id)], organization=client.organization if client else None)

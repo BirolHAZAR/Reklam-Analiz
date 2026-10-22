@@ -15,15 +15,17 @@ from django.db import transaction
 from django.utils import timezone
 
 ADWORDS_SCOPE = "https://www.googleapis.com/auth/adwords"
-PROVIDERS = {"google_ads": "Google Ads", "facebook": "Meta Ads (Facebook ve Instagram)", "linkedin": "LinkedIn Ads", "tiktok_ads": "TikTok Ads"}
-AD_ACCOUNT_PLATFORM_CODES = {"google_ads", "facebook", "linkedin", "tiktok"}
+PROVIDERS = {"google_ads": "Google Ads", "facebook": "Meta Ads (Facebook ve Instagram)", "linkedin": "LinkedIn Ads", "tiktok_ads": "TikTok Ads", "x_ads": "X Ads"}
+AD_ACCOUNT_PLATFORM_CODES = {"google_ads", "facebook", "linkedin", "tiktok", "x"}
 
 
 def provider_platform_code(provider):
-    return "tiktok" if provider == "tiktok_ads" else provider
+    return {"tiktok_ads":"tiktok", "x_ads":"x"}.get(provider, provider)
 
 
 def provider_source(provider):
+    if provider == "x_ads":
+        return "x_ads_oauth"
     if provider == "tiktok_ads":
         return "tiktok_ads_oauth"
     return "google_read_oauth" if provider in GOOGLE_READ_PROVIDERS else "ads_oauth"
@@ -63,6 +65,8 @@ def application_values(provider):
         names = ("INSTAGRAM_APP_ID", "INSTAGRAM_APP_SECRET", "INSTAGRAM_REDIRECT_URI")
     elif provider == "tiktok":
         names = ("TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET", "TIKTOK_REDIRECT_URI")
+    elif provider == "x_ads":
+        names = ("X_ADS_CONSUMER_KEY", "X_ADS_CONSUMER_SECRET", "X_ADS_REDIRECT_URI")
     elif provider == "x":
         names = ("X_CLIENT_ID", "X_CLIENT_SECRET", "X_REDIRECT_URI")
     elif provider == "tiktok_ads":
@@ -465,6 +469,9 @@ def discover_accounts(provider, token):
 
 
 def account_token(account):
+    if account.platform.code == "x":
+        from core.services.x_ads import account_token as x_token
+        return x_token(account)
     if account.platform.code == "tiktok":
         from core.services.tiktok_ads import account_token as tiktok_token
         return tiktok_token(account)
@@ -489,6 +496,9 @@ def account_today(account):
 def campaigns(account):
     from core.services.ad_eligibility import is_current_campaign
     token = account_token(account)
+    if account.platform.code == "x":
+        from core.services.x_ads import inventory
+        return [{**row, "status":row.get("entity_status", "UNKNOWN")} for row in inventory(token, account.account_id).values()]
     if account.platform.code == "tiktok":
         from core.services.tiktok_ads import inventory
         return list(inventory(token, account.account_id).values())
@@ -508,6 +518,15 @@ def campaigns(account):
 def campaign_summaries(account, start, end, campaign_ids=None):
     """One account-level request, rather than one Insights call per campaign."""
     token = account_token(account)
+    if account.platform.code == "x":
+        from core.services.x_ads import report, inventory
+        ids = list(inventory(token, account.account_id)) if campaign_ids is None else campaign_ids
+        result = {}
+        for row in report(token, account.account_id, ids, account.extra_data["timezone"], start, end):
+            total = result.setdefault(row["id"], {"impressions":0,"clicks":0,"spend":Decimal(0)})
+            for key in total:
+                total[key] += row[key]
+        return result
     if campaign_ids is None:
         campaign_ids = [str(row["id"]) for row in campaigns(account)]
     campaign_ids = list(dict.fromkeys(str(value) for value in campaign_ids))
@@ -543,6 +562,13 @@ def campaign_summaries(account, start, end, campaign_ids=None):
 
 
 def campaign_performance(account, campaign_id, start, end):
+    if account.platform.code == "x":
+        from core.services.x_ads import report, inventory, identifier
+        token = account_token(account)
+        campaign_id = identifier(str(campaign_id))
+        if campaign_id not in inventory(token, account.account_id):
+            raise IntegrationError("X kampanyası seçili reklam hesabına ait değil.")
+        return report(token, account.account_id, [campaign_id], account.extra_data["timezone"], start, end)
     if not str(campaign_id).isdigit():
         raise IntegrationError("Geçersiz kampanya.")
     token = account_token(account)

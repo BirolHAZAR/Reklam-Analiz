@@ -1,5 +1,29 @@
 # X platform durumu — 21 Ekim 2026
 
+## 22 Ekim güncellemesi
+
+- Kullanıcı yalnızca ilgili X yanıtının okunmasına izin verdi. Açık “Your X Ads API Application” e-postasında X Ads Developer Program, App ID 33559101 için Standard Ads API erişimini onaylamış (21 Ekim 18:43, posta arayüzü saati).
+- /connect/x-ads/callback/ X uygulamasının izinli dönüş adreslerine eklendi; Read uygulama izni korundu.
+- Ayrı x_ads IntegrationApplication sağlayıcısı, OAuth 1.0a bağlantısı, mevcut hesap seçim ekranı, kampanya / promoted tweet günlük metrikleri ve Celery aktarımı eklendi. Bu ek kod henüz commit edilmedi veya yayınlanmadı; yeni commit numarası kullanıcıdan soruldu.
+- Token secret şifreli refresh_token alanında tutulur; OAuth 1.0a tokenı için yenileme işlemi yoktur. Geçici token secret da şifreli bağlantı kaydında saklanır; oturuma sır yazılmaz.
+- Gerçek para birimi ve hesap saat dilimi doğrulanır. Kampanyalar, gruplar ve promoted tweet envanteri sağlayıcı kimlikleriyle eşleştirilir. Eksik metrik veya sonraki rapor hatasında kısmi kayıt yazılmaz; boş rapordan kampanya/reklam üretilmez.
+- Raporlar en fazla 31 gün; her istek en fazla 7 gün ve 20 nesne. ALL_ON_TWITTER, SPOTLIGHT ve TREND yerleşimleri ayrı okunup günlük olarak toplanır; harcama mikro birimden hesap para birimine çevrilir. Rapor başına en fazla 100 istek sınırı vardır. Daha uzun dönem veya yüksek hacimli asenkron rapor işleri bu sürüme dahil değil.
+- requests-oauthlib 2.0.0 ve oauthlib 4.0.0 sabitlendi. core.0086 yalnızca sağlayıcı seçeneğini ekler.
+- Son ilgili test grubu: 84/84 başarılı; Django check ve migration diff temiz. Gerçek X reklam hesabı henüz yetkilendirilmedi; canlı veri aktarımı doğrulanmadı.
+- OAuth 1.0 Consumer Key/Secret henüz admin X Ads kaydına alınmadı. Konsolda mevcut Consumer Key için yalnız Show / Regenerate var; gizli anahtar kayıp ise kullanıcı anahtar yenilemesini kendisi yapmalı, değerler sohbete veya dosyaya yazılmamalı.
+- Kullanıcı V1.2.12 yayınına açık onay verdi. 7a538b30 origin/main'e gönderildi, Dokploy derleme günlüğü 22 Ekim 07:24:35 UTC'de başladı. Canlı web 9686f51d1046, worker ba8425159050, beat 080cf6509587: üçünde de Git HEAD 7a538b3 doğrulandı. Worker ping/pong başarılı, 1 node online; canlı Django check temiz.
+- Canlı Django ayarları ayrıca okundu: X_API_READ_ENABLED=False, X_AUTO_SYNC_ENABLED=False. Ücretli organik okuma açılmadı.
+- Canlı admin oturumu süre aşımı nedeniyle giriş ekranına düştü; kullanıcıdan girişini tamamlaması istendi. Mevcut X admin kaydı hâlâ eski allauth callback'iyle kapalı; admin girişi sonrası /connect/x/callback/ olarak düzeltilmeli.
+- Kullanıcının OAuth 1.0 anahtar yenilemesi ve yalnız şifreli X Ads kaydına aktarım onayı bekleniyor. X konsolu anahtar ekranı, admin giriş ekranı ve yeni commit numarası sorusu açık bırakıldı.
+
+### Devam kontrolü
+
+- Kullanıcı yeni commit numarasını 13 olarak belirtti; anahtarı yenilediğini ve yalnız şifreli X Ads kaydına aktarımını onayladığını bildirdi.
+- Admin girişi tamamlandı; mevcut X kaydı 9'un callback'i /connect/x/callback/ olarak UI üzerinden kaydedildi ve başarı mesajı doğrulandı. Kayıt kapalı; organik API okuması açılmadı.
+- X konsolunda yeni Key/Secret modalı henüz görünmedi; yalnız maskeli anahtar listesi görüldü. Bu nedenle sırlar henüz alınmadı veya şifreli X Ads kaydına aktarılmadı. Kullanıcıdan sonuç penceresini açık bırakması istendi.
+- Hesap Ekle sayfasına ayrı X Ads kartı ve bağlantı formu eklendi; platform bağlantı listesinde reklam yetkilendirmesi ayrı gösteriliyor.
+- V1.2.13 yayını henüz onaylanmadı/başlatılmadı. Önceki açık yayın onayı V1.2.12 içindi.
+
 ## Uygulama ve canlı ayarlar
 
 - X hesabı: @HazarBirol. Geliştirici hesap adı ReklamAnaliz, hesap ID 2112803163468374141.
@@ -26,6 +50,7 @@
 - Başvuru @HazarBirol, HZRSoft şirketi, info@reklamanaliz.net ve App ID 33559101 ile hazırlandı. Amaç yalnızca izinli reklam hesaplarının kampanya ve performans raporlarını okumak; dönüşüm olayı yükleme veya reklam değiştirme talep edilmiyor.
 - Kullanıcı veri işleme/şirket adına ileti alma beyanını ve gönderimi açıkça onayladı.
 - Gönderim denendi; sayfa başarı onayı vermedi. Tarayıcı konsolunda “Turnstile challenge did not respond” hatası görüldü. Aynı resmi form doğrudan açılarak yeniden denendi. Başvuru gönderilmiş veya onaylanmış sayılmamalı; açık form korunmalı.
+- Son durum: Kullanıcı Submit düğmesine bastıktan sonra aynı formda “Success! Someone from the X Developer Platform will reach out shortly.” mesajı doğrulandı. Başvuru başarıyla gönderildi; erişim onayı henüz alınmadı. Kanıt: runtime/x-ads-api-basvuru-basarili-20261021.png. Önceki gönderim engeli aşıldı.
 - Ads API için ayrıca uygulama onayı ve OAuth 1.0a reklam hesabı yetkilendirmesi gereklidir. OAuth 2.0 organik bağlantı reklam verisi erişimi sağlamaz. Reklam aktarım adaptörü bu sürümde tamamlanmadı.
 
 ## Doğrulama

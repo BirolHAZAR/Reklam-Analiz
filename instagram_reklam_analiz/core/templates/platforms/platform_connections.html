@@ -111,7 +111,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if item.platform.code == 'facebook' or item.platform.code == 'google_ads' or item.platform.code == 'linkedin' or account.connection.extra_data.source == 'tiktok_ads_oauth' %}
+                                    {% if item.platform.code == 'facebook' or item.platform.code == 'google_ads' or item.platform.code == 'linkedin' or account.connection.extra_data.source == 'tiktok_ads_oauth' or account.connection.extra_data.source == 'x_ads_oauth' %}
                                         {% if account.ads_authorized %}<span class="pc-pill ok">Yetkilendirildi</span>{% else %}<span class="pc-pill warn">Yeniden bağlantı gerekli</span>{% endif %}
                                     {% elif account.connection %}
                                         {% if account.connection.status == "active" %}
@@ -147,7 +147,7 @@
                                     <div class="pc-row-actions">
                                         {% if item.platform.code == 'tiktok' and account.connection.extra_data.source == 'tiktok_oauth' %}<a class="pc-btn secondary" href="{% url 'tiktok_report' account.pk %}">Profil ve videolar</a>{% endif %}
                                         {% if item.platform.code == 'x' and account.connection.extra_data.source == 'x_oauth' %}<a class="pc-btn secondary" href="{% url 'organic_content_center' %}">Organik içerik</a>{% endif %}
-                                        {% if item.platform.code == 'facebook' or item.platform.code == 'google_ads' or item.platform.code == 'linkedin' or account.connection.extra_data.source == 'tiktok_ads_oauth' %}
+                                        {% if item.platform.code == 'facebook' or item.platform.code == 'google_ads' or item.platform.code == 'linkedin' or account.connection.extra_data.source == 'tiktok_ads_oauth' or account.connection.extra_data.source == 'x_ads_oauth' %}
                                         {% if account.ads_authorized %}<a class="pc-btn secondary" href="{% url 'integration_campaigns' account.pk %}">Kampanyalar</a>
                                         {% else %}<a class="pc-btn secondary" href="{% url 'hesap_ekle' %}">Yeniden bağla</a>{% endif %}
                                         {% endif %}

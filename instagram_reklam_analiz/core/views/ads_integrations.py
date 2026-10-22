@@ -65,11 +65,12 @@ def account_connection_context(request):
         providers.append({"code": code, "name": name, "ready": ready, "setup_error": setup_error, "settings_url": settings_url})
     accounts = list(platform_accounts_for_request(request).filter(platform__code__in=api.AD_ACCOUNT_PLATFORM_CODES)
         .filter(~Q(platform__code="tiktok") | Q(connection__extra_data__source="tiktok_ads_oauth"))
+        .filter(~Q(platform__code="x") | Q(connection__extra_data__source="x_ads_oauth"))
         .select_related("platform", "connection", "agency_client"))
     for account in accounts:
         connection = account.connection
         account.ads_authorized = bool(
-            connection and (connection.extra_data or {}).get("source") in {"ads_oauth", "tiktok_ads_oauth"}
+            connection and (connection.extra_data or {}).get("source") in {"ads_oauth", "tiktok_ads_oauth", "x_ads_oauth"}
             and account.is_active and connection.is_active and connection.status == "active"
             and (not connection.is_token_expired or (account.platform.code == "google_ads" and connection.refresh_token))
         )
@@ -88,6 +89,9 @@ def account_connection_context(request):
 @require_POST
 @never_cache
 def connect(request, provider):
+    if provider == "x_ads":
+        from core.views.x_ads_oauth import connect as x_connect
+        return x_connect(request)
     if provider not in api.CONNECTION_PROVIDERS:
         raise Http404
     try:
@@ -186,6 +190,7 @@ def select_accounts(request, provider):
                 connection.is_active, connection.status = True, "active"
                 source = api.provider_source(provider)
                 connection.extra_data = {"source": source, "agency_client": client.pk if client else None,
+                    **({"x_ads_consumer_key":connection.extra_data.get("x_ads_consumer_key"), "authorized_account_ids":sorted(selected)} if provider == "x_ads" else {}),
                     **{key: connection.extra_data[key] for key in ("meta_user_id", "meta_app_id")
                        if provider == "facebook" and key in connection.extra_data},
                     **({"linkedin_client_id": connection.extra_data.get("linkedin_client_id")} if provider == "linkedin" else {}),
@@ -194,6 +199,8 @@ def select_accounts(request, provider):
                 replaced_connections = set()
                 for cid in sorted(selected):
                     old = PlatformAccount.objects.filter(user=request.user, platform=connection.platform, account_id=cid).first()
+                    if provider == 'x_ads' and old and (old.extra_data or {}).get('source') == 'x_oauth':
+                        raise api.IntegrationError('Bu kimlik organik X hesabına ait; reklam bağlantısıyla değiştirilemez.')
                     if old and old.agency_client_id != (client.pk if client else None):
                         raise api.IntegrationError("Seçilen hesap başka bir müşteriyle eşleştirilmiş. Önce mevcut eşleştirmeyi düzenleyin.")
                     if old and old.connection_id:
@@ -224,7 +231,7 @@ def account_campaigns(request, account_id=None, campaign_id=None):
     from core.services.campaign_reporting import decorate_campaign, summarize_metrics
     accounts = platform_accounts_for_request(request).select_related("platform", "connection").filter(
         is_active=True, platform__code__in=api.AD_ACCOUNT_PLATFORM_CODES,
-    ).filter(~Q(platform__code="tiktok") | Q(connection__extra_data__source="tiktok_ads_oauth")).order_by("platform__name", "account_name", "pk")
+    ).filter(~Q(platform__code="tiktok") | Q(connection__extra_data__source="tiktok_ads_oauth")).filter(~Q(platform__code="x") | Q(connection__extra_data__source="x_ads_oauth")).order_by("platform__name", "account_name", "pk")
     selected_id = account_id if account_id is not None else request.GET.get("account")
     account = get_object_or_404(accounts, pk=selected_id) if str(selected_id or "").isdigit() else None
     if selected_id and account is None:
@@ -280,6 +287,8 @@ def account_campaigns(request, account_id=None, campaign_id=None):
                 for row in visible:
                     row["performance"] = summarize_metrics([summaries[str(row["id"])]]) if str(row["id"]) in summaries else None
                 context["summary"] = summarize_metrics([summaries[str(row["id"])] for row in visible if str(row["id"]) in summaries])
+                if account.platform.code == 'x':
+                    context['campaigns'] = [row for row in visible if str(row['id']) in summaries]
             except api.IntegrationError as exc:
                 context["metrics_error"] = str(exc)
     except api.IntegrationError as exc:

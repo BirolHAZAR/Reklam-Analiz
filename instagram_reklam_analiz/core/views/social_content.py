@@ -56,6 +56,7 @@ def _user_connections(user):
         PlatformConnection.objects.select_related("platform")
         .filter(user=user, is_active=True, platform__code__in=SUPPORTED_ORGANIC_PLATFORM_CODES)
         .exclude(platform__code="tiktok", extra_data__source="tiktok_ads_oauth")
+        .exclude(platform__code="x", extra_data__source="x_ads_oauth")
         .order_by("platform__name", "name")
     )
 
@@ -86,6 +87,7 @@ def _accessible_platform_accounts(user):
         .filter(filters, is_active=True)
         .filter(platform__code__in=SUPPORTED_ORGANIC_PLATFORM_CODES)
         .filter(~Q(platform__code="tiktok") | Q(connection__extra_data__source="tiktok_oauth"))
+        .filter(~Q(platform__code="x") | Q(connection__extra_data__source="x_oauth"))
         .distinct()
         .order_by("agency_client__name", "platform__name", "account_name", "account_id")
     )
@@ -100,6 +102,7 @@ def _scoped_platform_accounts(request):
         )
         .filter(platform__code__in=SUPPORTED_ORGANIC_PLATFORM_CODES)
         .filter(~Q(platform__code="tiktok") | Q(connection__extra_data__source="tiktok_oauth"))
+        .filter(~Q(platform__code="x") | Q(connection__extra_data__source="x_oauth"))
         .distinct()
         .order_by("agency_client__name", "platform__name", "account_name", "account_id")
     )

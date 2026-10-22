@@ -271,6 +271,21 @@
         </div>
     </div>
 
+    <div class="row g-4 mt-1">
+        <div class="col-md-6 col-lg-4">
+            <div class="platform-card card h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="platform-icon x me-3"><i class="fab fa-twitter"></i></div>
+                        <div><h5 class="card-title fw-bold mb-0">X Ads</h5><small class="text-muted">Reklam kampanyaları ve performans</small></div>
+                    </div>
+                    <p class="card-text small text-muted mb-3">X reklam hesabınızı seçerek kampanyalarınızı ve günlük gösterim, tıklama ve harcamaları aktarın. Organik hesaptan ayrı okuma yetkisi ve X Ads API onayı gerekir.</p>
+                    {% for provider in providers %}{% if provider.code == 'x_ads' %}{% include 'platforms/account_connect_form.html' %}{% endif %}{% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Mevcut Bağlı Hesaplar (Platform Bazlı Gruplanmış) -->
     <div class="card shadow-sm border-0 rounded-4 mt-4">
         <div class="card-body p-4">

@@ -148,6 +148,10 @@ def _validate_connection(connection):
             if error.get("code") == 190:
                 return {"valid": False, "expires_at": connection.token_expiry}
             raise RuntimeError(error.get("message") or "Meta token canlı kontrolü tamamlanamadı.")
+    if connection.platform.code == "x" and (connection.extra_data or {}).get("source") == "x_ads_oauth":
+        # OAuth 1.0a tokens have no scheduled expiry. Verify at explicit sync.
+        return {"valid":bool(connection.is_active and connection.status == "active" and connection.access_token and connection.refresh_token),
+                "expires_at":None, "validation":"local_credentials_only"}
     if connection.platform.code == "x" and (connection.extra_data or {}).get("source") == "x_oauth":
         # Health sweeps must not silently spend X API credits. Identity and
         # refresh validation happen inside explicitly enabled data syncs.
