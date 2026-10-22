@@ -265,6 +265,9 @@ def account_campaigns(request, account_id=None, campaign_id=None):
     context.update(start=start, end=end, report_query=urlencode(params))
     try:
         rows = [decorate_campaign(row, today=api.account_today(account)) for row in api.campaigns(account)]
+        if account.platform.code == 'x':
+            from core.services.x_ads import campaign_currency
+            context['currency'] = campaign_currency(rows)
         aliases = (account.extra_data or {}).get("campaign_names", {})
         for row in rows:
             row["name"] = aliases.get(str(row["id"])) or row["name"]

@@ -23,7 +23,7 @@ class XAdsTests(TestCase):
             extra_data={'source':'x_ads_oauth','x_ads_consumer_key':'consumer','authorized_account_ids':['acc1']})
         self.account = PlatformAccount.objects.create(user=self.user,platform=self.platform,connection=self.connection,
             account_id='acc1',extra_data={'source':'x_ads_oauth','currency':'TRY','timezone':'Europe/Istanbul'})
-        self.info = {'id':'acc1','name':'Account','currency':'TRY','timezone':'Europe/Istanbul'}
+        self.info = {'id':'acc1','name':'Account','timezone':'Europe/Istanbul'}
         self.day = timezone.localdate()
         self.metric = {'id':'cmp1','date':self.day.isoformat(),'impressions':10,'clicks':2,
                        'spend':Decimal('1.25'),'metrics_available':True}
@@ -145,7 +145,7 @@ class XAdsTests(TestCase):
         token.assert_not_called()
 
     def sync(self, campaign_metrics, ad_metrics=None, *, fail=False):
-        inventories = [{'cmp1':{'id':'cmp1','name':'Campaign','entity_status':'ACTIVE'}},
+        inventories = [{'cmp1':{'id':'cmp1','name':'Campaign','entity_status':'ACTIVE','currency':'EUR'}},
                        {'grp1':{'id':'grp1','name':'Group','campaign_id':'cmp1'}},
                        {'ad1':{'id':'ad1','line_item_id':'grp1','tweet_id':'123','entity_status':'ACTIVE'}}]
         with patch('core.services.x_ads.read',return_value={'data':self.info}), \
@@ -162,6 +162,43 @@ class XAdsTests(TestCase):
         self.assertEqual(CampaignMetricHistory.objects.count(),1)
         self.assertEqual(AdMetricHistory.objects.count(),1)
         self.assertEqual(CampaignMetricHistory.objects.get().spend,Decimal('1.25'))
+        self.assertEqual(Campaign.objects.get().currency, 'EUR')
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.extra_data['currency'], 'EUR')
+
+    @patch('core.services.x_ads.rows')
+    def test_real_account_schema_without_currency_is_discoverable(self, rows):
+        rows.return_value = [self.info]
+        self.assertEqual(api.discover_accounts(('token', 'secret')), [
+            {**self.info, 'currency':'', 'kind':'ad_account'}])
+
+    def test_empty_account_sync_without_currency_creates_no_advertising_data(self):
+        with patch('core.services.x_ads.read', return_value={'data':self.info}), \
+             patch('core.services.x_ads.inventory', return_value={}), \
+             patch('core.services.x_ads.report', return_value=[]):
+            result = sync_x_campaigns(self.account, 1, 100)
+        self.assertEqual(result['metric_rows'], 0)
+        self.assertFalse(Campaign.objects.exists())
+        self.assertFalse(Ad.objects.exists())
+        self.assertFalse(CampaignMetricHistory.objects.exists())
+        self.assertFalse(AdMetricHistory.objects.exists())
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.extra_data['currency'], '')
+
+    def test_missing_or_mixed_campaign_currency_aborts_before_saving(self):
+        for currency in (None, '', 'eur', 'EUR/USD'):
+            with self.subTest(currency=currency), \
+                 patch('core.services.x_ads.read', return_value={'data':self.info}), \
+                 patch('core.services.x_ads.inventory', return_value={
+                     'cmp1':{'id':'cmp1','name':'Campaign','currency':currency}}), \
+                 patch('core.services.x_ads.report') as report:
+                with self.assertRaises(IntegrationError):
+                    sync_x_campaigns(self.account, 1, 100)
+                report.assert_not_called()
+        with self.assertRaises(IntegrationError):
+            api.campaign_currency([{'currency':'EUR'}, {'currency':'TRY'}])
+        self.assertFalse(Campaign.objects.exists())
+        self.assertFalse(CampaignMetricHistory.objects.exists())
 
     def test_empty_reports_never_create_entities_and_late_failure_is_atomic(self):
         self.sync([])

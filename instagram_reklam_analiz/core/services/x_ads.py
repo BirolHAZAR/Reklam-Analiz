@@ -97,15 +97,32 @@ def account_info(row):
     if not isinstance(row, dict):
         raise IntegrationError('X reklam hesabı okunamadı.')
     aid = identifier(row.get('id'))
-    currency, zone = row.get('currency'), row.get('timezone')
+    zone = row.get('timezone')
     try:
         ZoneInfo(zone if isinstance(zone, str) else '')
     except (ValueError, ZoneInfoNotFoundError):
         raise IntegrationError('X reklam hesabının saat dilimi doğrulanamadı.') from None
-    if not isinstance(currency, str) or not re.fullmatch(r'[A-Z]{3}', currency):
-        raise IntegrationError('X reklam hesabının para birimi doğrulanamadı.')
-    return {'id': aid, 'name': row.get('name') or aid, 'currency': currency,
+    # Accounts do not expose currency. Never infer it from the country or
+    # preserve a previous connection's currency during account selection.
+    return {'id': aid, 'name': row.get('name') or aid, 'currency': '',
             'timezone': zone, 'kind': 'ad_account'}
+
+
+def campaign_currency(campaigns):
+    """Campaign.currency is the provider's currency for local-micro billing.
+
+    Empty accounts have no monetary data and need no invented currency.
+    This reporting UI aggregates campaigns, so mixed currencies must not sum.
+    """
+    currencies = set()
+    for campaign in campaigns:
+        currency = campaign.get('currency')
+        if not isinstance(currency, str) or not re.fullmatch(r'[A-Z]{3}', currency):
+            raise IntegrationError('X kampanyasının para birimi doğrulanamadı; harcama aktarılmadı.')
+        currencies.add(currency)
+    if len(currencies) > 1:
+        raise IntegrationError('Farklı para birimlerindeki X kampanyaları birlikte raporlanamaz.')
+    return next(iter(currencies), '')
 
 
 def discover_accounts(credentials):

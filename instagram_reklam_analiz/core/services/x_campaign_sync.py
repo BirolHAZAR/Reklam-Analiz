@@ -21,6 +21,7 @@ def sync_x_campaigns(account, days_back, max_records, source_type='OWN'):
     end = timezone.localdate(timezone=ZoneInfo(info['timezone']))
     start = end-timedelta(days=int(days_back)-1)
     campaigns = api.inventory(credentials, account.account_id, limit=max_records)
+    info['currency'] = api.campaign_currency(campaigns.values())
     groups = api.inventory(credentials, account.account_id, 'line_items', limit=max_records)
     ads = api.inventory(credentials, account.account_id, 'promoted_tweets', limit=max_records)
     campaign_metrics = api.report(credentials, account.account_id, list(campaigns), info['timezone'], start, end, limit=max_records)

@@ -1,5 +1,16 @@
 # X platform durumu — 21 Ekim 2026
 
+## Güncel sonuç — 22 Ekim 2026
+
+- V1.2.13 (3b76841a) kullanıcı onayıyla yayınlandı; web, worker ve beat aynı sürümde doğrulandı. X Ads uygulama kaydı 10 etkin; Consumer Key/Secret şifreli kaydedildi. Organik X ücretli okumaları kapalı kaldı.
+- Kullanıcı standart X Ads OAuth izninin reklam yönetimini de kapsadığını görerek bağlantıyı onayladı. ReklamAnaliz adaptörü yalnız GET raporlama istekleri yapar. Bağlantı kartına bu kapsamı açıklayan metin eklendi.
+- Kullanıcı X Ads MSA sözleşmesini; Türkiye, Europe/Istanbul, EUR kurulumu için onayladı. @HazarBirol altında 18ce55xw65k reklam hesabı oluşturuldu. Reklam, bütçe veya ödeme oluşturulmadı. Ads Manager seçili dönemde kampanya sonucu göstermiyor. Kanıt: runtime/x-ads-hesap-olusturuldu-20261022.png.
+- Gerçek OAuth dönüşü accounts yanıtında currency bulunmadığından eski doğrulamaya takıldı. Resmi X SDK Account şemasında currency yoktur; Campaign.currency alanında bulunur. Düzeltme hesap keşfinde para birimini zorunlu tutmaz; yeni hesaba uydurma para birimi yazmaz. Kampanya aktarımı ve rapor ekranı para birimini kampanya yanıtından doğrular. Eksik veya karışık para birimlerinde aktarım durur.
+- Boş hesap eşitlemesi sıfır kampanya/reklam/metrik kaydı oluşturur; hesap bağlantısı ve son eşitleme durumu tutulur. Gerçek kampanya aktarımında EUR, eski TRY hesap metadatasının üzerine doğru biçimde yazılır.
+- Düzeltme yerelde hazır: core.test_x_ads, core.test_platform_setup, core.test_x_oauth toplam 41/41 test geçti; Django check ve git diff --check temiz. Henüz commit veya yayın yapılmadı; proje kuralı gereği yeni sürüm numarası ve yayın onayı bekleniyor. Son commit ve son onaylanan sürüm V1.2.13 (3b76841a).
+- Yayın sonrası kalan işlem: X Ads OAuth bağlantısını yeniden başlat, 18ce55xw65k hesabını Reklam Analiz müşterisi için seç, gerçek salt okunur eşitlemeyi çalıştır ve sonucu doğrula. Şu an ReklamAnaliz hesap bağlantısı tamamlanmış sayılmamalı.
+- Şema kaynağı: https://github.com/xdevplatform/twitter-python-ads-sdk/blob/master/twitter_ads/account.py ve https://github.com/xdevplatform/twitter-python-ads-sdk/blob/master/twitter_ads/campaign.py.
+
 ## 22 Ekim güncellemesi
 
 - Kullanıcı yalnızca ilgili X yanıtının okunmasına izin verdi. Açık “Your X Ads API Application” e-postasında X Ads Developer Program, App ID 33559101 için Standard Ads API erişimini onaylamış (21 Ekim 18:43, posta arayüzü saati).
@@ -23,6 +34,27 @@
 - X konsolunda yeni Key/Secret modalı henüz görünmedi; yalnız maskeli anahtar listesi görüldü. Bu nedenle sırlar henüz alınmadı veya şifreli X Ads kaydına aktarılmadı. Kullanıcıdan sonuç penceresini açık bırakması istendi.
 - Hesap Ekle sayfasına ayrı X Ads kartı ve bağlantı formu eklendi; platform bağlantı listesinde reklam yetkilendirmesi ayrı gösteriliyor.
 - V1.2.13 yayını henüz onaylanmadı/başlatılmadı. Önceki açık yayın onayı V1.2.12 içindi.
+
+### V1.2.13 canlı doğrulama
+
+- Kullanıcının 13 onayıyla 3b76841a — reklamanaliz V1.2.13 oluşturuldu. Ardından kullanıcı bu commit'in GitHub main dalına gönderilmesini ve canlı dağıtımı ayrıca onayladı; origin/main güncellendi.
+- Canlı web 491d3a2c9e88, worker f1f3d48babbb ve beat 97ae7d982740 üzerinde Git HEAD 3b76841 doğrulandı. Worker pong verdi; Django check temiz; core.0086 uygulandı.
+- X_API_READ_ENABLED=False ve X_AUTO_SYNC_ENABLED=False canlı ayarlarda doğrulandı.
+- X Ads admin taslak kaydı 10 UI üzerinden oluşturuldu. Callback /connect/x-ads/callback/, enabled=False; API Key/Secret henüz girilmedi. X organik kaydı 9'un callback'i de düzeltildi, etkinlik kapalı.
+- X Ads kartı yerel ve canlı Hesap Ekle ekranında doğrulandı. Son ekran eklemesinden sonra X Ads testleri 14/14 geçti.
+- Ek kurulum / LinkedIn grubunda eski sabit 8 platform beklentisi yeni dokuzuncu sağlayıcı nedeniyle başarısız oldu. Test yerelde platform kataloğuyla karşılaştıracak şekilde düzeltildi; bu düzeltmeyle 31/31 geçti. Bu yalnız test dosyası değişikliği V1.2.13 commit'inden sonra yapıldı ve henüz commit edilmedi; yeni commit için tekrar numara sorulmalı.
+- Kullanıcının Key/Secret penceresini açık bıraktığını bildirmesine rağmen DOM, AX ve görüntüde sonuç penceresi görünmedi. Consumer Key Show yalnız maskeli kısmi gösterim verdi; değer anahtar olarak kullanılmadı. Hiçbir sır dosyaya/sohbete yazılmadı. Canlı admin formu 10, kullanıcının bilgileri doğrudan güvenli alana yapıştırabilmesi için açık bırakıldı.
+- Kullanıcıdan bilgileri formda kaydedip bildirmesi veya gerçek Key/Secret sonuç penceresini açık bırakması istendi. Henüz X Ads uygulaması etkinleştirilmedi; reklam hesabı OAuth onayı ve gerçek metrik aktarımı yapılmadı.
+- Kanıtlar: runtime/x-admin-organik-callback-duzeltildi-20261022.png, runtime/x-ads-canli-ayar-formu-20261022.png, runtime/x-ads-canli-baglanti-karti-20261022.png.
+
+### Anahtarlar ve gerçek izin ekranı
+
+- Kullanıcının “sen yap gerekeni” talimatıyla OAuth 1.0 Consumer Key satırındaki Regenerate onayı açıldı ve API Key/Secret çifti yenilendi. Yeni çift canlı admin kaydı 10'a UI üzerinden aktarıldı; enabled=True yapıldı. Veritabanında Key/Secret doluluğu ve Secret'ın şifreli saklandığı yalnız boolean sonuçlarla doğrulandı. Sonuç penceresi kapatıldı, geçici aktarım değişkenleri temizlendi. Çalışma dosyalarına anahtar yazılmadı.
+- Reklam Analiz müşterisi 6 için X Ads bağlantısı başlatıldı. Request token isteği başarılı; callback henüz tamamlanmadı.
+- X'in gerçek OAuth 1.0 ekranı, genel Read uygulama ayarına rağmen Standard Ads erişiminde reklam verilerini görme/oluşturma/yönetme yetkisi gösteriyor. Ayrıca profil, korumalı gönderiler/liste/koleksiyon ve takip/sessize alma/engelleme bilgilerini okuma var. Ekrandaki kapsam ayrı ayrı seçilemiyor.
+- X resmi belgesi https://docs.x.com/x-ads-api/fundamentals/accessing-ads-accounts Standard Access için read & write olduğunu; hesap rolünün erişimi ayrıca sınırladığını doğruluyor. Proje yalnız OAuth token işlemleri ve GET Ads API okumaları uygular; bu kod kısıtı sağlayıcının verdiği teknik yetkiyi daraltmaz.
+- “I trust this app” ve “Authorize app” henüz seçilmedi. Önceki salt okunur kapsamdan daha geniş yetki olduğu açıklandı ve kullanıcıdan bu tam kapsam / X koşulları için onay istendi. Kanıt: runtime/x-ads-gercek-izin-kapsami-20261022.png.
+- Canlı şifreli ayar kanıtı: runtime/x-ads-anahtarlar-sifreli-kayitli-20261022.png. Gerçek reklam hesabı listesi ve metrik aktarımı hâlâ doğrulanmadı.
 
 ## Uygulama ve canlı ayarlar
 

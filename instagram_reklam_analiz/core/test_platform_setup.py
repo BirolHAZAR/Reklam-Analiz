@@ -17,7 +17,8 @@ class PlatformSetupTests(TestCase):
 
     def test_supported_platforms_have_separate_admin_forms(self):
         response = self.client.get(reverse("admin:core_integrationapplication_changelist"))
-        self.assertEqual(len(response.context["setup_links"]), 8)
+        self.assertEqual({row['name'] for row in response.context['setup_links']},
+                         {spec['name'] for spec in PLATFORM_SETUP.values()})
         self.assertNotContains(response, "Google Analytics")
         for provider, spec in PLATFORM_SETUP.items():
             with self.subTest(provider=provider):
