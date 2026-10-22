@@ -98,7 +98,7 @@
                                         <div class="pc-account-avatar">{{ account.display_name|default:account.account_id|first|upper }}</div>
                                         <div>
                                             <strong>{{ account.display_name|default:account.account_id }}</strong>{% if account.user_id == request.user.id %}<a href="{% url 'local_name_update' 'account' account.pk %}" class="pc-muted">Adı düzenle</a>{% endif %}
-                                            <div class="pc-muted">{{ account.currency|default:"TRY" }} · {{ account.timezone|default:"-" }}</div>
+                                            <div class="pc-muted">{{ account.extra_data.currency|default:"—" }} · {{ account.extra_data.timezone|default:"—" }}</div>
                                         </div>
                                     </div>
                                 </td>

@@ -2,6 +2,14 @@
 
 ## Güncel sonuç — 22 Ekim 2026
 
+### Canlı sonuç (49f518d4)
+
+- Kullanıcı yeni commit için tekrar 13 numarasını ve canlı yayını onayladı. 49f518d4 başlığı reklamanaliz V1.2.13; origin/main'e gönderildi. Web 5609920dffad, worker ccce7a4d00eb, beat 01b5197154c9 üzerinde HEAD 49f518d doğrulandı. Canlı Django check temiz.
+- Yeni OAuth akışı gerçek hesabı listeledi; Reklam Analiz müşterisi (6) altında PlatformAccount 93 bağlandı. Hesap kimliği 18ce55xw65k, source x_ads_oauth, bağlantı active; şifreli token ve secret mevcut. Organik X_API_READ_ENABLED ve X_AUTO_SYNC_ENABLED false kaldı.
+- Worker görevi c9965a6a-1f25-4898-bf8e-05d41cf88447 SUCCESS: son 7 gün için campaigns_synced=0, ads_synced=0, metric_rows=0. Hesap 93 için Campaign, Ad, CampaignMetricHistory, AdMetricHistory sayıları sıfır. Son eşitleme 22 Ekim 15:36 (Türkiye).
+- Canlı X kampanya ekranı hatasız açıldı: 0 kampanya, erişilebilir kampanya bulunamadı, harcama para birimi “—”. Kanıt: runtime/x-ads-bagli-esitleme-basarili-20261022.png.
+- Yayın sonrası bağlantı tablosunun modelde olmayan account.currency/account.timezone alanlarını okuyup sabit TRY gösterdiği saptandı. Yerel tek satırlık düzeltme extra_data.currency/timezone kullanır, bilinmeyende “—” gösterir. Bu ek görüntü düzeltmesi henüz commit/yayın edilmedi; tekrar commit numarası sorulmalıdır. Django check ve diff kontrolü temiz.
+
 - V1.2.13 (3b76841a) kullanıcı onayıyla yayınlandı; web, worker ve beat aynı sürümde doğrulandı. X Ads uygulama kaydı 10 etkin; Consumer Key/Secret şifreli kaydedildi. Organik X ücretli okumaları kapalı kaldı.
 - Kullanıcı standart X Ads OAuth izninin reklam yönetimini de kapsadığını görerek bağlantıyı onayladı. ReklamAnaliz adaptörü yalnız GET raporlama istekleri yapar. Bağlantı kartına bu kapsamı açıklayan metin eklendi.
 - Kullanıcı X Ads MSA sözleşmesini; Türkiye, Europe/Istanbul, EUR kurulumu için onayladı. @HazarBirol altında 18ce55xw65k reklam hesabı oluşturuldu. Reklam, bütçe veya ödeme oluşturulmadı. Ads Manager seçili dönemde kampanya sonucu göstermiyor. Kanıt: runtime/x-ads-hesap-olusturuldu-20261022.png.
