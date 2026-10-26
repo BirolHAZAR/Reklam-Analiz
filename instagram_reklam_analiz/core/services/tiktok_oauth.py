@@ -36,6 +36,8 @@ def authorization_url(state):
     return "https://www.tiktok.com/v2/auth/authorize/?" + urlencode({
         "client_key": key, "redirect_uri": uri, "scope": ",".join(SCOPES),
         "response_type": "code", "state": state,
+        # Show the requested read scopes even when TikTok remembers consent.
+        "disable_auto_auth": 1,
     })
 
 

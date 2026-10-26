@@ -40,6 +40,7 @@ class TikTokOAuthTests(TestCase):
         self.assertEqual(parsed.hostname, "www.tiktok.com")
         params = parse_qs(parsed.query)
         self.assertEqual(params["scope"], [",".join(api.SCOPES)])
+        self.assertEqual(params["disable_auto_auth"], ["1"])
         self.assertEqual(params["state"], [self.client.session[SESSION_KEY]["state"]])
         self.assertNotIn("test-secret", result.url)
 
