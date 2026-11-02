@@ -1,9 +1,12 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from django.db import transaction
+from django.urls import reverse
 from django.apps import apps
 from django.utils import timezone
 from django.db.models import Max, Sum
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from datetime import datetime, time
 from types import SimpleNamespace
 from django.utils.dateparse import parse_datetime
@@ -232,6 +235,16 @@ def sync_center(request):
         status_label = "Bağlantı yok"
         last_sync_label = "Henüz senkron yok"
         error_message = ""
+        from core.services.account_sync import account_sync_mode
+        from core.services.sync_policy import manual_sync_allowed
+        account_rows = []
+        for account in PlatformAccount.objects.filter(user=request.user, platform=platform, is_active=True).select_related("platform", "connection"):
+            mode = account_sync_mode(account)
+            pending = PlatformSyncJob.objects.filter(user=request.user, platform_account=account,
+                status__in=("pending", "running")).order_by("-id").first()
+            account_rows.append({"account": account, "mode_label": {"ad": "Reklam verileri", "organic": "Organik içerik", "youtube": "Kanal verileri"}.get(mode, "Bağlantı kontrolü gerekli"),
+                "can_sync": bool(mode and manual_sync_allowed(request.user, "ad" if mode == "ad" else "organic")),
+                "pending": bool(pending), "status_url": reverse("sync_center_job_status", args=[pending.pk]) if pending else ""})
 
         if connection or account_count:
             status = "ok"
@@ -270,6 +283,7 @@ def sync_center(request):
             "status_label": status_label,
             "last_sync_label": last_sync_label,
             "error_message": error_message,
+            "accounts": account_rows,
         })
 
     created_field_campaign = _field(Campaign, "created_at", "created_time")
@@ -292,3 +306,56 @@ def sync_center(request):
     }
 
     return render(request, "reports/sync_center.html", context)
+
+
+@login_required
+@require_POST
+def sync_center_account(request, account_id):
+    from core.models import PlatformAccount, PlatformSyncJob
+    from core.services.account_sync import account_sync_mode
+    from core.services.sync_policy import manual_sync_allowed, policy_for_user
+    from core.services.demo_policy import is_demo_object
+    account = get_object_or_404(PlatformAccount.objects.select_related("platform", "connection"),
+                                pk=account_id, user=request.user, is_active=True)
+    mode = account_sync_mode(account)
+    if not mode or is_demo_object(account):
+        return JsonResponse({"success": False, "message": "Bu bağlantı senkronizasyona hazır değil."}, status=400)
+    if not manual_sync_allowed(request.user, "ad" if mode == "ad" else "organic"):
+        return JsonResponse({"success": False, "message": "Paketiniz bu hesap için manuel senkronizasyona izin vermiyor."}, status=403)
+    policy = policy_for_user(request.user)
+    with transaction.atomic():
+        PlatformAccount.objects.select_for_update().get(pk=account.pk)
+        job = PlatformSyncJob.objects.filter(user=request.user, platform_account=account,
+            status__in=("pending", "running")).order_by("-id").first()
+        created = job is None
+        if created:
+            job = PlatformSyncJob.objects.create(user=request.user, platform_account=account,
+                days_back=policy.history_days if policy else 30, message="Senkronizasyon kuyruğa alındı.")
+    if created:
+        try:
+            if mode == "ad":
+                from core.tasks.ads_pipeline import sync_platform_account_ads
+                sync_platform_account_ads.delay(job.pk)
+            else:
+                from core.tasks.account_read_sync import sync_account_read_job
+                sync_account_read_job.delay(job.pk)
+        except Exception:
+            job.status, job.message = "failed", "Senkronizasyon başlatılamadı. Lütfen tekrar deneyin."
+            job.error_message, job.finished_at = job.message, timezone.now()
+            job.save(update_fields=["status", "message", "error_message", "finished_at", "updated_at"])
+            return JsonResponse({"success": False, "message": job.message}, status=503)
+    return JsonResponse({"success": True, "job_id": job.pk,
+                         "status_url": reverse("sync_center_job_status", args=[job.pk])})
+
+
+@login_required
+@require_GET
+def sync_center_job_status(request, job_id):
+    Job = _model("PlatformSyncJob")
+    job = get_object_or_404(Job, pk=job_id, user=request.user, platform_account__user=request.user)
+    waiting = job.status == "pending" and (job.result or {}).get("waiting_reason") == "meta_rate_limit"
+    message = ("Platform kotası bekleniyor." if waiting else {
+        "pending": "Senkronizasyon kuyruğa alındı.", "running": "Senkronize ediliyor...",
+        "completed": "Veriler güncellendi.", "failed": "Senkronizasyon tamamlanamadı. Bağlantıyı ve izinleri kontrol edin."
+    }.get(job.status, "Durum kontrol ediliyor..."))
+    return JsonResponse({"status": job.status, "message": message})

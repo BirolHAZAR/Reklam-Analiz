@@ -14,6 +14,7 @@ Yeni Beat schedule ve yeni kodlar bu dosyaları kullanmalıdır.
 """
 
 from . import sync_tasks  # noqa: F401
+from . import account_read_sync  # noqa: F401
 from . import metric_tasks  # noqa: F401
 from . import notification_tasks  # noqa: F401
 from . import analysis_tasks  # noqa: F401

@@ -16,6 +16,9 @@ ORGANIC_SYNC_SOURCES = ("instagram_media_sync", "tiktok_video_sync", "x_post_syn
 
 
 def sync_organic_content(account, *, limit=50):
+    if getattr(account.platform, "code", "") == "youtube":
+        from core.services.youtube_channel_sync import sync_youtube_channel
+        return sync_youtube_channel(account)
     if getattr(account.platform, "code", "") == "x":
         from core.services.x_organic import sync_x_organic_content
         return sync_x_organic_content(account, limit=limit)

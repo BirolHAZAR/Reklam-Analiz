@@ -29,6 +29,7 @@
 .status-empty{background:#F3F4F6;color:#374151}
 .last-sync{margin-top:1rem;color:var(--theme-page-text, #DDE3FF);font-size:.8rem}
 .error-box{margin-top:.75rem;padding:.65rem;border-radius:14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.24);color:var(--theme-page-danger, #FCA5A5);font-size:.75rem}
+.sync-accounts{margin-top:1rem;display:grid;gap:.8rem}.sync-account{border-top:1px solid rgba(139,132,255,.18);padding-top:.8rem}.sync-account-name{font-size:.82rem;font-weight:800;overflow-wrap:anywhere}.sync-account-mode,.sync-feedback{font-size:.74rem;color:var(--theme-page-muted,#B8BED0);margin:.3rem 0}.sync-button{display:inline-flex;align-items:center;gap:.4rem;border:1px solid rgba(139,132,255,.4);background:rgba(108,99,255,.22);color:var(--theme-page-text,#fff);border-radius:12px;padding:.55rem .75rem;font:inherit;font-size:.78rem;font-weight:800;cursor:pointer}.sync-button:hover{background:rgba(108,99,255,.4)}.sync-button:disabled{opacity:.6;cursor:default}.sync-button:focus-visible{outline:3px solid #a5b4fc;outline-offset:3px}
 @media(max-width:1200px){.metric-grid{grid-template-columns:repeat(3,1fr)}.platform-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.octo-hero-inner{flex-direction:column;text-align:center}.metric-grid,.platform-grid{grid-template-columns:1fr}}
 </style>
@@ -39,7 +40,7 @@
             <div>
                 <span class="octo-kicker"><i class="fas fa-sync-alt"></i> Octo Sync Center</span>
                 <h1>Veri hattı sağlığı ve senkronizasyon komuta ekranı.</h1>
-                <p>Meta, Google Ads, TikTok, LinkedIn, X ve YouTube hesaplarınızdan gelen kampanya, reklam grubu, reklam, kreatif ve metrik akışını tek yerden izleyin.</p>
+                <p>Reklam ve organik hesaplarınızın veri güncelliğini izleyin. İstediğiniz hesabı ayrı ayrı senkronize edin; YouTube kanal verilerinizi de buradan yenileyin.</p>
             </div>
             <img class="octo-img" src="{% static 'images/octo-one.png' %}" alt="Octo">
         </div>
@@ -70,10 +71,26 @@
             {% if p.error_message %}
             <div class="error-box">{{ p.error_message|truncatechars:120 }}</div>
             {% endif %}
+            <div class="sync-accounts">
+                {% for row in p.accounts %}
+                <form class="sync-account" method="post" action="{% url 'sync_center_account' row.account.pk %}" data-sync-form data-status-url="{{ row.status_url }}">
+                    {% csrf_token %}
+                    <div class="sync-account-name">{{ row.account.display_name }}</div>
+                    <div class="sync-account-mode">{{ row.mode_label }}</div>
+                    <button class="sync-button" type="submit" {% if not row.can_sync or row.pending %}disabled{% endif %}>
+                        <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                        <span>{% if row.pending %}Senkronizasyon sürüyor{% else %}Şimdi senkronize et{% endif %}</span>
+                        <span class="visually-hidden"> — {{ row.account.display_name }}</span>
+                    </button>
+                    <p class="sync-feedback" role="status" aria-live="polite">{% if not row.can_sync %}Bağlantı ve paket izinlerini kontrol edin.{% endif %}</p>
+                </form>
+                {% endfor %}
+            </div>
         </div>
         {% empty %}
         <div class="glass-panel" style="padding:1.2rem;grid-column:1/-1">Henüz platform tanımı bulunamadı.</div>
         {% endfor %}
     </div>
 </div>
+<script src="{% static 'js/sync-center.js' %}" defer></script>
 {% endblock %}
