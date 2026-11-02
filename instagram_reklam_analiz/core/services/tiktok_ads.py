@@ -5,6 +5,7 @@ This is deliberately separate from Login Kit/Display API credentials.
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 import json
+import logging
 from urllib.parse import urlencode
 
 import requests
@@ -12,6 +13,7 @@ import requests
 from core.services.ads_integrations import IntegrationError, configuration
 
 API = "https://business-api.tiktok.com/open_api/v1.3/"
+logger = logging.getLogger(__name__)
 
 
 def request(method, path, token=None, **kwargs):
@@ -20,7 +22,10 @@ def request(method, path, token=None, **kwargs):
             headers={"Access-Token": token} if token else {}, timeout=30,
             allow_redirects=False, **kwargs)
         payload = response.json()
-    except (requests.RequestException, ValueError):
+    except (requests.RequestException, ValueError) as exc:
+        # Exception messages and request URLs may contain OAuth credentials.
+        # Keep only the class so transport and JSON failures remain diagnosable.
+        logger.warning("TikTok Ads request failed exception_type=%s", type(exc).__name__)
         raise IntegrationError("TikTok Ads isteği tamamlanamadı. Yeniden deneyin.") from None
     if (not response.ok or not isinstance(payload, dict) or type(payload.get("code")) is not int or payload.get("code") != 0
             or not isinstance(payload.get("data"), dict)):

@@ -5,6 +5,8 @@ from django.utils import timezone
 from django.db.models import Max, Sum
 from django.views.decorators.http import require_GET
 from datetime import datetime, time
+from types import SimpleNamespace
+from django.utils.dateparse import parse_datetime
 
 
 def _model(name):
@@ -116,6 +118,42 @@ def _date_range_filter(field_name, day):
     }
 
 
+def _account_success_time(account):
+    """Use completed provider reads, not the account's general activity time."""
+    extra = account.extra_data if isinstance(account.extra_data, dict) else {}
+    summary = extra.get("ads_sync_summary")
+    candidates = [extra.get("organic_last_sync_at")]
+    if isinstance(summary, dict):
+        candidates.append(summary.get("completed_at"))
+    times = []
+    for value in candidates:
+        try:
+            value = parse_datetime(value) if isinstance(value, str) else None
+            value = _to_aware(value)
+        except (TypeError, ValueError, OverflowError):
+            value = None
+        if value:
+            times.append(value)
+    return max(times, default=None)
+
+
+def _include_account_successes(accounts, latest_jobs):
+    jobs = {job.platform_account_id: job for job in latest_jobs}
+    for account in accounts:
+        success = _account_success_time(account)
+        job = jobs.get(account.pk)
+        # An in-flight manual job must stay visible, even if another read of
+        # the same account has completed in the meantime.
+        if not success or (job and job.status in {"pending", "running"}):
+            continue
+        job_time = _to_aware(job.finished_at or job.updated_at or job.created_at) if job else None
+        if not job_time or success > job_time:
+            jobs[account.pk] = SimpleNamespace(
+                status="completed", finished_at=success, platform_account=account, result={})
+    return sorted(jobs.values(), key=lambda job: _to_aware(
+        job.finished_at or getattr(job, "updated_at", None) or getattr(job, "created_at", None)), reverse=True)
+
+
 @login_required
 @require_GET
 def sync_center(request):
@@ -172,22 +210,17 @@ def sync_center(request):
         last_job = None
         if PlatformSyncJob:
             try:
+                health_accounts = PlatformAccount.objects.filter(
+                    user=request.user, platform=platform, is_active=True)
                 job_filters = {
                     "user": request.user,
                     "platform_account__user": request.user,
                     "platform_account__platform": platform,
                 }
-                if code == "instagram":
-                    from core.services.campaign_panel_service import instagram_ad_sources
-                    organic_accounts = PlatformAccount.objects.filter(user=request.user, platform=platform,
-                        is_active=True, extra_data__auth_type="instagram_login")
-                    if organic_accounts.exists():
-                        source_ids = {source.pk for account in organic_accounts for source in instagram_ad_sources(account)}
-                        job_filters.pop("platform_account__platform")
-                        job_filters["platform_account_id__in"] = source_ids
                 jobs = PlatformSyncJob.objects.filter(**job_filters, platform_account__is_active=True)
                 latest_ids = jobs.order_by().values("platform_account_id").annotate(latest_id=Max("id")).values_list("latest_id", flat=True)
                 latest_jobs = list(jobs.filter(id__in=latest_ids).select_related("platform_account__platform").order_by("-id"))
+                latest_jobs = _include_account_successes(health_accounts, latest_jobs)
                 # A newer successful account must not hide another account's
                 # pending cooldown or failed last attempt.
                 priority = {"pending": 0, "running": 0, "failed": 1, "completed": 2}
@@ -228,8 +261,6 @@ def sync_center(request):
             elif raw_status in ["completed", "success", "done"]:
                 status = "ok"
                 status_label = "Senkron tamam"
-            if code == "instagram" and last_job.platform_account.platform_id != platform.pk:
-                status_label = "Reklam: " + status_label
 
         platforms.append({
             "code": code,

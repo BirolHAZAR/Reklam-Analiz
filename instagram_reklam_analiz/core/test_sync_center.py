@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from datetime import timedelta
 
 from core.models import (
     Ad, AdGroup, AdMetricHistory, Campaign, Creative, Platform,
@@ -62,7 +63,7 @@ class SyncCenterAccessTests(TestCase):
         self.assertEqual(platform["status"], "running")
         self.assertEqual(platform["status_label"], "Meta kotası bekleniyor")
 
-    def test_instagram_ad_health_follows_its_meta_source_not_invalid_profile_job(self):
+    def test_instagram_organic_health_does_not_follow_meta_ad_cooldown(self):
         from core.models import PlatformConnection
         instagram, _ = Platform.objects.get_or_create(code="instagram", defaults={"name": "Instagram"})
         profile = PlatformAccount.objects.create(user=self.user, platform=instagram, account_id="profile",
@@ -74,11 +75,16 @@ class SyncCenterAccessTests(TestCase):
         PlatformSyncJob.objects.create(user=self.user, platform_account=self.account, status="pending",
             result={"waiting_reason": "meta_rate_limit"})
         PlatformSyncJob.objects.create(user=self.user, platform_account=profile, status="failed")
+        profile.extra_data = {**profile.extra_data, "organic_last_sync_at":
+                              (timezone.now() + timedelta(seconds=1)).isoformat()}
+        profile.save(update_fields=["extra_data"])
         self.client.force_login(self.user)
         response = self.client.get(reverse("sync_center"))
         platform = next(p for p in response.context["platforms"] if p["code"] == "instagram")
-        self.assertEqual(platform["status"], "running")
-        self.assertEqual(platform["status_label"], "Reklam: Meta kotası bekleniyor")
+        self.assertEqual(platform["status"], "ok")
+        self.assertEqual(platform["status_label"], "Senkron tamam")
+        meta = next(p for p in response.context["platforms"] if p["code"] == "facebook")
+        self.assertEqual(meta["status_label"], "Meta kotası bekleniyor")
 
     def test_newer_success_does_not_hide_another_accounts_failure_or_wait(self):
         second = PlatformAccount.objects.create(user=self.user, platform=self.meta,
@@ -100,3 +106,46 @@ class SyncCenterAccessTests(TestCase):
         response = self.client.get(reverse("sync_center"))
         platform = next(p for p in response.context["platforms"] if p["code"] == "facebook")
         self.assertEqual(platform["status"], "ok")
+
+    def test_background_success_is_visible_without_a_manual_job(self):
+        self.account.extra_data = {"ads_sync_summary": {"completed_at": timezone.now().isoformat()}}
+        self.account.save(update_fields=["extra_data"])
+        self.client.force_login(self.user)
+        platform = next(p for p in self.client.get(reverse("sync_center")).context["platforms"]
+                        if p["code"] == "facebook")
+        self.assertEqual(platform["status_label"], "Senkron tamam")
+        self.assertNotEqual(platform["last_sync_label"], "Henüz senkron yok")
+
+    def test_background_recovery_replaces_old_failure_but_not_another_accounts_error(self):
+        PlatformSyncJob.objects.create(user=self.user, platform_account=self.account, status="failed")
+        self.account.extra_data = {"ads_sync_summary": {
+            "completed_at": (timezone.now() + timedelta(seconds=1)).isoformat()}}
+        self.account.save(update_fields=["extra_data"])
+        self.client.force_login(self.user)
+        platform = next(p for p in self.client.get(reverse("sync_center")).context["platforms"]
+                        if p["code"] == "facebook")
+        self.assertEqual(platform["status_label"], "Senkron tamam")
+        second = PlatformAccount.objects.create(user=self.user, platform=self.meta, account_id="failed-second")
+        PlatformSyncJob.objects.create(user=self.user, platform_account=second, status="failed")
+        platform = next(p for p in self.client.get(reverse("sync_center")).context["platforms"]
+                        if p["code"] == "facebook")
+        self.assertEqual(platform["status"], "error")
+
+    def test_organic_success_is_visible_and_plain_last_sync_is_not_proof(self):
+        self.account.last_sync = timezone.now()
+        self.account.extra_data = {"ads_sync_summary": {"completed_at": "invalid-date"}}
+        self.account.save(update_fields=["last_sync", "extra_data"])
+        self.client.force_login(self.user)
+        platform = next(p for p in self.client.get(reverse("sync_center")).context["platforms"]
+                        if p["code"] == "facebook")
+        self.assertEqual(platform["status_label"], "Hazır")
+        self.account.extra_data = {"organic_last_sync_at": timezone.now().isoformat()}
+        self.account.save(update_fields=["extra_data"])
+        platform = next(p for p in self.client.get(reverse("sync_center")).context["platforms"]
+                        if p["code"] == "facebook")
+        self.assertEqual(platform["status_label"], "Senkron tamam")
+        PlatformSyncJob.objects.create(user=self.user, platform_account=self.account, status="pending",
+                                      result={"waiting_reason": "meta_rate_limit"})
+        platform = next(p for p in self.client.get(reverse("sync_center")).context["platforms"]
+                        if p["code"] == "facebook")
+        self.assertEqual(platform["status_label"], "Meta kotası bekleniyor")

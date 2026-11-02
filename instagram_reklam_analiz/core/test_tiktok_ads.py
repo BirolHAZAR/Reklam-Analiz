@@ -19,6 +19,26 @@ from core.services.tiktok_campaign_sync import sync_tiktok_campaigns
 @override_settings(TIKTOK_ADS_APP_ID="app-ads", TIKTOK_ADS_APP_SECRET="private-secret",
     TIKTOK_ADS_REDIRECT_URI="https://www.reklamanaliz.net/connect/tiktok-ads/callback/")
 class TikTokAdsProtocolTests(SimpleTestCase):
+    @patch("core.services.tiktok_ads.requests.request")
+    def test_transport_diagnostic_contains_type_without_exception_credentials(self, request):
+        import requests
+        request.side_effect = requests.ReadTimeout("private-token private-secret https://secret.example")
+        with self.assertLogs("core.services.tiktok_ads", level="WARNING") as logs:
+            with self.assertRaises(IntegrationError):
+                api.request("GET", "report/integrated/get", "private-token")
+        self.assertIn("exception_type=ReadTimeout", logs.output[0])
+        self.assertNotIn("private", logs.output[0])
+        self.assertNotIn("secret.example", logs.output[0])
+
+    @patch("core.services.tiktok_ads.requests.request")
+    def test_invalid_json_diagnostic_stays_distinct_and_sanitized(self, request):
+        request.return_value.json.side_effect = ValueError("private-response-body")
+        with self.assertLogs("core.services.tiktok_ads", level="WARNING") as logs:
+            with self.assertRaises(IntegrationError):
+                api.request("GET", "report/integrated/get", "private-token")
+        self.assertIn("exception_type=ValueError", logs.output[0])
+        self.assertNotIn("private", logs.output[0])
+
     @patch("core.services.tiktok_ads.request")
     def test_daily_report_accepts_measured_zero_and_rejects_missing_or_invalid_metrics(self, request):
         day = timezone.localdate()
